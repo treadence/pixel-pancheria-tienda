@@ -114,15 +114,6 @@
       image-rendering: pixelated;
     }
 
-    /* --- pelota pixel-art Mundial (canvas) --- */
-    .ld-ball {
-      display: block;
-      width: 96px;
-      height: 96px;
-      image-rendering: pixelated;
-      filter: drop-shadow(0 0 10px rgba(117,170,219,0.7));
-    }
-
     @keyframes ldBounce {
       from { transform: translateY(0); }
       to   { transform: translateY(-14px); }
@@ -141,7 +132,7 @@
     .ld-bar {
       width: min(280px, 80vw);
       height: 16px;
-      border: 3px solid #ffffff;
+      border: 3px solid var(--neon-cyan);
       background: var(--bg-2);
       image-rendering: pixelated;
       position: relative;
@@ -153,13 +144,13 @@
       width: 0%;
       background: repeating-linear-gradient(
         90deg,
-        #75aadb 0px,
-        #75aadb 12px,
-        #ffffff 12px,
-        #ffffff 24px
+        var(--neon-pink) 0px,
+        var(--neon-pink) 12px,
+        var(--neon-purple) 12px,
+        var(--neon-purple) 24px
       );
       animation: ldFill 1.8s ease-in-out forwards;
-      box-shadow: 0 0 8px #75aadb;
+      box-shadow: 0 0 8px var(--neon-pink);
     }
 
     @keyframes ldFill {
@@ -1764,6 +1755,18 @@
     position: relative;
   }
 
+  /* Direcciones guardadas */
+  #savedAddresses { margin-bottom: 10px; }
+  .dir-list { display: flex; flex-direction: column; gap: 8px; }
+  .dir-chip { display: flex; align-items: stretch; gap: 6px; border: 2px solid var(--neon-purple); border-radius: 6px; overflow: hidden; }
+  .dir-chip.sel { border-color: var(--neon-green); box-shadow: 0 0 8px rgba(0,255,102,0.35); }
+  .dir-chip-main { flex: 1; text-align: left; background: var(--bg); color: #e8e0ff; border: none; padding: 10px 12px; font-family: 'VT323', monospace; font-size: 17px; cursor: pointer; }
+  .dir-chip.sel .dir-chip-main { color: var(--neon-green); }
+  .dir-star, .dir-del { background: var(--bg); border: none; color: #c9b8e6; padding: 0 10px; font-size: 16px; cursor: pointer; }
+  .dir-star:hover, .dir-del:hover { background: rgba(255,255,255,0.08); }
+  .dir-nueva { text-align: center; background: transparent; color: var(--neon-cyan); border: 2px dashed var(--neon-cyan); border-radius: 6px; padding: 10px; font-family: 'VT323', monospace; font-size: 17px; cursor: pointer; }
+  .dir-nueva.sel { background: rgba(0,229,255,0.1); }
+
   /* Estilo del PlaceAutocompleteElement (Web Component nuevo) */
   gmp-place-autocomplete {
     width: 100% !important;
@@ -2175,127 +2178,7 @@
   </style>
 </head>
 
-<style>
-  /* ====== MUNDIAL: rediseño "modo evento" ====== */
-  :root {
-    --arg-celeste: #75aadb;
-    --arg-celeste-claro: #a9d0f0;
-    --arg-blanco: #ffffff;
-    --arg-sol: #f6b40e;
-  }
-  /* la barra de categorías se pega DEBAJO de la cinta mundialista (alto cinta = 30px) */
-  .categories { top: 30px !important; }
-  .mundial-strip {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 9998;
-    height: 30px; display: flex; align-items: center;
-    background: repeating-linear-gradient(90deg,
-      var(--arg-celeste) 0px, var(--arg-celeste) 26px,
-      var(--arg-blanco) 26px, var(--arg-blanco) 52px);
-    border-bottom: 3px solid var(--arg-sol);
-    overflow: hidden; white-space: nowrap;
-    box-shadow: 0 2px 12px rgba(117,170,219,0.6);
-  }
-  .mundial-strip .ms-track {
-    display: inline-block; padding-left: 100%;
-    animation: ms-scroll 14s linear infinite;
-    font-family: 'Press Start 2P', monospace; font-size: 9px;
-    color: #0a0118; letter-spacing: 1px;
-  }
-  .mundial-strip .ms-track span { margin: 0 22px; text-shadow: 0 1px 0 rgba(255,255,255,0.5); }
-  @keyframes ms-scroll { 0% { transform: translateX(0);} 100% { transform: translateX(-50%);} }
-  body { padding-top: 30px; }
-
-  .mundial-tribuna {
-    position: fixed; top: 30px; left: 0; right: 0; height: 100vh;
-    z-index: 0; pointer-events: none; opacity: 0.5;
-    background:
-      radial-gradient(2px 2px at 8% 22%, var(--arg-blanco), transparent),
-      radial-gradient(2px 2px at 20% 30%, var(--arg-celeste-claro), transparent),
-      radial-gradient(2px 2px at 33% 18%, var(--arg-blanco), transparent),
-      radial-gradient(2px 2px at 47% 28%, var(--arg-celeste-claro), transparent),
-      radial-gradient(2px 2px at 61% 16%, var(--arg-blanco), transparent),
-      radial-gradient(2px 2px at 74% 30%, var(--arg-celeste-claro), transparent),
-      radial-gradient(2px 2px at 88% 20%, var(--arg-blanco), transparent),
-      radial-gradient(2px 2px at 14% 40%, var(--arg-celeste-claro), transparent),
-      radial-gradient(2px 2px at 40% 42%, var(--arg-blanco), transparent),
-      radial-gradient(2px 2px at 67% 44%, var(--arg-celeste-claro), transparent),
-      radial-gradient(2px 2px at 92% 40%, var(--arg-blanco), transparent),
-      repeating-linear-gradient(180deg,
-        rgba(117,170,219,0.10) 0px, rgba(117,170,219,0.10) 14px,
-        rgba(255,255,255,0.06) 14px, rgba(255,255,255,0.06) 28px);
-    background-size: 100% 100%;
-    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 75%);
-    mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 75%);
-  }
-
-  header {
-    position: relative;
-    border-bottom: 4px solid var(--arg-sol) !important;
-    background:
-      linear-gradient(180deg, rgba(117,170,219,0.35) 0%, rgba(10,1,24,0.55) 100%),
-      linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%) !important;
-  }
-  header::before, header::after {
-    content: ""; position: absolute; top: 0; bottom: 0; width: 10px; z-index: 2;
-    background: repeating-linear-gradient(180deg,
-      var(--arg-celeste) 0px, var(--arg-celeste) 12px,
-      var(--arg-blanco) 12px, var(--arg-blanco) 24px);
-    opacity: 0.85;
-  }
-  header::before { left: 0; } header::after { right: 0; }
-
-  .mundial-copa {
-    font-size: 56px; line-height: 1; margin: 4px 0 6px; text-align: center;
-    filter: drop-shadow(0 0 12px var(--arg-sol)) drop-shadow(3px 3px 0 rgba(0,0,0,0.4));
-    animation: copa-bounce 2.4s ease-in-out infinite; position: relative; z-index: 3;
-  }
-  @keyframes copa-bounce { 0%,100% { transform: translateY(0) scale(1);} 50% { transform: translateY(-6px) scale(1.04);} }
-
-  .title.mundial-title {
-    background: none !important; -webkit-text-fill-color: initial !important;
-    filter: drop-shadow(3px 3px 0 rgba(0,0,0,0.5));
-    display: block; position: relative; z-index: 3;
-  }
-  .title.mundial-title .ltr { display: inline-block; }
-  .title.mundial-title .ltr.c { color: var(--arg-celeste-claro); text-shadow: 0 0 12px var(--arg-celeste), 0 0 4px var(--arg-celeste); }
-  .title.mundial-title .ltr.w { color: var(--arg-blanco); text-shadow: 0 0 12px rgba(255,255,255,0.8), 0 0 4px #fff; }
-  .title.mundial-title .sp { display:inline-block; width:0.5em; }
-
-  .coin-row .coin-stat.mundial {
-    border-color: var(--arg-celeste) !important;
-    color: var(--arg-celeste-claro) !important;
-    text-shadow: 0 0 5px var(--arg-celeste) !important;
-  }
-  .coin-stat .star-on, .coin-stat .star-off { font-size: 1.25em; letter-spacing: 2px; line-height: 1; }
-  .coin-stat .star-on { color: var(--arg-sol); text-shadow: 0 0 6px var(--arg-sol), 0 0 2px #fff; }
-  .coin-stat .star-off { color: #3a4150; text-shadow: none; }
-
-  @media (max-width: 600px) {
-    .mundial-copa { font-size: 40px; margin: 2px 0 4px; }
-    .title.mundial-title {
-      font-size: clamp(24px, 8.2vw, 46px) !important; line-height: 1.15; letter-spacing: 0 !important;
-    }
-    .title.mundial-title .sp { display: block !important; width: 0; height: 0; }
-    .mundial-strip { height: 26px; } .mundial-strip .ms-track { font-size: 8px; }
-    body { padding-top: 26px; }
-    .categories { top: 26px !important; }
-    header::before, header::after { width: 6px; }
-  }
-  @media (max-width: 360px) {
-    .title.mundial-title { font-size: clamp(20px, 7.8vw, 38px) !important; }
-    .mundial-copa { font-size: 34px; }
-  }
-</style>
 <body>
-
-<div class="mundial-strip">
-  <div class="ms-track">
-    <span>🇦🇷 VAMOS ARGENTINA 🏆</span><span>⭐ MODO MUNDIAL ACTIVADO ⭐</span><span>🌭 PEDÍ Y ALENTÁ 🌭</span><span>🇦🇷 VAMOS ARGENTINA 🏆</span><span>⭐ MODO MUNDIAL ACTIVADO ⭐</span><span>🌭 PEDÍ Y ALENTÁ 🌭</span>
-  </div>
-</div>
-
-<div class="mundial-tribuna"></div>
-
 
 <!-- Banner para usuarios de in-app browser (Instagram, Facebook, TikTok, etc.) -->
 <div class="inapp-banner" id="inappBanner">
@@ -2323,7 +2206,7 @@
 
   <div id="loadingScreen">
     <div class="ld-inner">
-      <div class="ld-sprite"><canvas class="ld-ball" id="ldBall" width="32" height="32" aria-label="pelota mundial"></canvas></div>
+      <div class="ld-sprite">🌭</div>
       <div class="ld-title">PIXEL PANCHERÍA</div>
       <div class="ld-bar"><div class="ld-bar-fill"></div></div>
       <div class="ld-text">CARGANDO<span class="ld-dots"></span></div>
@@ -2331,32 +2214,21 @@
     </div>
   </div>
 
-  <script>
-    (function drawBall(){
-      var cv = document.getElementById('ldBall');
-      if(!cv) return;
-      var ctx = cv.getContext('2d');
-      ctx.clearRect(0,0,cv.width,cv.height);
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font = (cv.width - 2) + 'px serif';
-      ctx.fillText('\u26BD', cv.width/2, cv.height/2 + 1);
-    })();
-  </script>
-
   <div class="stars"></div>
 
   <header>
-    <div class="mundial-copa">🏆</div>
-    <h1 class="title mundial-title"><span class="ltr c">P</span><span class="ltr w">I</span><span class="ltr c">X</span><span class="ltr w">E</span><span class="ltr c">L</span><span class="sp"></span><span class="ltr w">P</span><span class="ltr c">A</span><span class="ltr w">N</span><span class="ltr c">C</span><span class="ltr w">H</span><span class="ltr c">E</span><span class="ltr w">R</span><span class="ltr c">Í</span><span class="ltr w">A</span></h1>
+    <h1 class="title">PIXEL PANCHERÍA</h1>
     <div class="subtitle">&gt; INSERT COIN TO EAT _</div>
     <div id="storeStatusBanner" style="display:none;"></div>
     <div class="coin-row">
-      <div class="coin-stat mundial">🇦🇷 MODO MUNDIAL</div>
+      <div class="coin-stat">⚡ DELIVERY 24/7</div>
       <div class="coin-stat">🏆 LEVEL: HAMBRE</div>
-      <div class="coin-stat mundial"><span class="star-on">★</span><span class="star-on">★</span><span class="star-on">★</span><span class="star-off">★</span></div>
+      <div class="coin-stat">💎 1UP EN CADA PANCHO</div>
     </div>
   </header>
+
+  <div id="cuentaBar" style="display:none;"></div>
+  <div id="coinChip" style="display:none;"></div>
 
   <nav class="categories" id="cats"></nav>
 
@@ -2724,13 +2596,13 @@
       'panchos': {
         title: '🌭 PANCHOS',
         items: [
-          { id: 'p1', name: 'Pacman', desc: 'Pan casero, salchicha, papas pay, aderezos', price: 4500, sprite: '🟡', extras: true, sausage: true },
-          { id: 'p2', name: 'Mario Bros', desc: 'Pan casero, salchicha, salsa, jamón, muzzarella y aceitunas', price: 6000, sprite: '🍄', extras: true, sausage: true },
-          { id: 'p3', name: 'Daytona', desc: 'Pan casero, salchicha, guacamole, salsa criolla y mayonesa casera', price: 6000, sprite: '🏎️', extras: true, sausage: true },
-          { id: 'p4', name: 'Sonic', desc: 'Pan casero, salchicha, queso azul, cebolla caramelizada y champis', price: 6000, sprite: '💙', extras: true, sausage: true },
-          { id: 'p5', name: 'Mortal Kombat', desc: 'Pan casero, salchicha, cheddar y panceta', price: 6000, sprite: '🔥', extras: true, sausage: true },
-          { id: 'p6', name: 'Luigi', desc: 'Pan casero, salchicha, pesto, queso reggianito, tomates cherry confitados', price: 6000, sprite: '💚', extras: true, sausage: true },
-          { id: 'p7', name: 'Tetris', desc: 'Armalo como quieras', price: 5000, sprite: '🧱', extras: true, sausage: true, specialSauces: true, toppings: true }
+          { id: 'p1', name: 'Pacman', desc: 'Pan casero, salchicha, papas pay, aderezos', price: 5000, sprite: '🟡', extras: true, sausage: true },
+          { id: 'p2', name: 'Mario Bros', desc: 'Pan casero, salchicha, salsa, jamón, muzzarella y aceitunas', price: 6500, sprite: '🍄', extras: true, sausage: true },
+          { id: 'p3', name: 'Daytona', desc: 'Pan casero, salchicha, guacamole, salsa criolla y mayonesa casera', price: 6500, sprite: '🏎️', extras: true, sausage: true },
+          { id: 'p4', name: 'Sonic', desc: 'Pan casero, salchicha, queso azul, cebolla caramelizada y champis', price: 6500, sprite: '💙', extras: true, sausage: true },
+          { id: 'p5', name: 'Mortal Kombat', desc: 'Pan casero, salchicha, cheddar y panceta', price: 6500, sprite: '🔥', extras: true, sausage: true },
+          { id: 'p6', name: 'Luigi', desc: 'Pan casero, salchicha, pesto, queso reggianito, tomates cherry confitados', price: 6500, sprite: '💚', extras: true, sausage: true },
+          { id: 'p7', name: 'Tetris', desc: 'Armalo como quieras', price: 5500, sprite: '🧱', extras: true, sausage: true, specialSauces: true, toppings: true }
         ]
       },
       'acompanamientos': {
@@ -2846,7 +2718,12 @@
 
       // Footer dentro del scroll
       const footer = document.createElement('footer');
-      footer.innerHTML = `<div class="hs">HIGH SCORE: TU PRÓXIMO PANCHO</div>© PIXEL PANCHERÍA — PRESS START TO ORDER`;
+      footer.innerHTML = `<div class="hs">HIGH SCORE: TU PRÓXIMO PANCHO</div>© PIXEL PANCHERÍA — PRESS START TO ORDER
+        <div style="margin-top:12px;">
+          <a href="https://wa.me/5491167920464" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-decoration:none;font-family:'VT323',monospace;font-size:16px;">
+            desarrollado con &lt;3 by GastrOS · contactate
+          </a>
+        </div>`;
       main.appendChild(footer);
 
       if (window._restartObserver) window._restartObserver();
@@ -3511,7 +3388,6 @@
 
       updateBadge();
       flashBadge();
-      if (window.mundialGol) window.mundialGol();
       if (navigator.vibrate) navigator.vibrate(20);
       closeProduct();
     }
@@ -3716,6 +3592,7 @@
       </div>
       <div class="form-field">
         <label>📍 DIRECCIÓN DE ENTREGA</label>
+        <div id="savedAddresses"></div>
         <div class="address-wrap">
           <input type="text" id="fAddress" placeholder="Empezá a escribir tu dirección..." autocomplete="off">
         </div>
@@ -3763,13 +3640,19 @@
         <div id="couponMsg" style="font-size:15px;margin-top:6px;min-height:18px;"></div>
       </div>
 
+      <div id="vidaExtraBox" style="display:none;background:var(--bg);border:2px solid var(--neon-yellow);padding:12px 14px;margin:12px 0;font-family:'VT323',monospace;font-size:18px;color:var(--neon-yellow);"></div>
+
       <div id="totalBreakdown" style="background: var(--bg); border: 2px solid var(--neon-green); padding: 14px; margin: 16px 0; font-family: 'VT323', monospace;"></div>
 
       <button class="send-btn" onclick="sendOrder()">📱 ENVIAR POR WHATSAPP</button>
+      <div style="font-size:14px;color:#9b8bb8;margin-top:10px;text-align:center;font-family:'VT323',monospace;line-height:1.4;">
+        Al hacer tu pedido guardamos tu nombre, teléfono y dirección para que tu próxima compra sea más rápida
+      </div>
     `;
 
       // Renderizar desglose inicial
       updateCartTotals();
+      if (typeof window.loyaltyOnCartRender === 'function') window.loyaltyOnCartRender();
 
       // El innerHTML de arriba destruyó el pacEl de Google Places (si existía).
       // Reinyectar autocomplete y restaurar la dirección/mapa si ya había una elegida.
@@ -3781,7 +3664,17 @@
           const input = document.getElementById('fAddress');
           if (input && selectedLocation.address) input.value = selectedLocation.address;
           if (typeof showMapAndStatus === 'function') showMapAndStatus();
+        } else if (window.cuenta && typeof getDefaultDir === 'function' && getDefaultDir()) {
+          // Restaurar la dirección predeterminada de la cuenta (sin re-seleccionar en Google)
+          const d = getDefaultDir();
+          selectedDirId = d.id;
+          selectedLocation = { lat: d.lat, lng: d.lng, address: d.address || '', distanceKm: d.distanceKm || 0, needsConfirmation: (d.distanceKm || 0) > MAX_RADIUS_KM };
+          const input = document.getElementById('fAddress');
+          if (input && selectedLocation.address) input.value = selectedLocation.address;
+          if (typeof showMapAndStatus === 'function') showMapAndStatus();
+          if (typeof updateCartTotals === 'function') updateCartTotals();
         }
+        if (typeof renderSavedAddresses === 'function') renderSavedAddresses();
       }, 150);
     }
 
@@ -4233,7 +4126,8 @@
       const subtotalAfterPromo = subtotal - promoSavings;
       // Cupón se calcula sobre el subtotal YA rebajado por la promo
       const discount = calcDiscount(subtotalAfterPromo, activeCoupon);
-      const subtotalAfterDiscount = subtotalAfterPromo - discount;
+      const vidaExtra = (typeof window.vidaExtraDiscount === 'function') ? window.vidaExtraDiscount() : 0;
+      const subtotalAfterDiscount = Math.max(0, subtotalAfterPromo - discount - vidaExtra);
       const beforeSurcharge = subtotalAfterDiscount + shippingCost;
       const surchargeAmount = Math.round(beforeSurcharge * surchargePct / 100);
       const finalTotal = beforeSurcharge + surchargeAmount;
@@ -4241,6 +4135,12 @@
       let html = `<div style="display:flex;justify-content:space-between;font-size:18px;color:#c9b8e6;padding:4px 0;">
       <span>Subtotal</span><span>$${subtotal.toLocaleString('es-AR')}</span>
     </div>`;
+
+      if (vidaExtra > 0) {
+        html += `<div style="display:flex;justify-content:space-between;font-size:18px;color:var(--neon-yellow);padding:4px 0;">
+        <span>🪙 Coins canjeadas</span><span>−$${vidaExtra.toLocaleString('es-AR')}</span>
+      </div>`;
+      }
 
       if (promoSavings > 0) {
         html += `<div style="display:flex;justify-content:space-between;font-size:18px;color:var(--neon-green);padding:4px 0;">
@@ -4280,9 +4180,283 @@
         </div>`;
       }
 
+      // Coins que suma esta compra (1 cada $500 de lo que paga)
+      const coinsQueSuma = Math.floor(finalTotal / 500);
+      if (window.COINS_ENABLED && coinsQueSuma > 0) {
+        html += `<div style="text-align:center;margin-top:10px;padding:8px;background:rgba(255,225,77,0.08);border:1px dashed var(--neon-yellow);color:var(--neon-yellow);font-size:17px;">
+          🪙 Con esta compra sumás <strong>${coinsQueSuma}</strong> coins
+        </div>`;
+      }
+
       breakdown.innerHTML = html;
     }
     window.updateCartTotals = updateCartTotals;
+
+    // ============== CUENTA + COINS (fidelidad · GastrOS) ==============
+    // 🪙 Lanzamiento de coins: agosto 2026. Poner en true para activar toda la
+    // UI de coins (barra, chip, canje, "sumás X coins"). La cuenta y las
+    // direcciones guardadas siguen funcionando con esto en false.
+    window.COINS_ENABLED = false;
+    const LOYALTY_KEY = 'pixel_cuenta_v1';
+    const COINS_VIDA_EXTRA = 100;
+    window.cuenta = null;            // { nombre, telefono, direccion, coins }
+    window.vidaExtraActiva = false;
+
+    function escHtmlL(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    function normPhoneL(p) { return String(p || '').replace(/[^\d]/g, ''); }
+    function loadCuenta() {
+      try { window.cuenta = JSON.parse(localStorage.getItem(LOYALTY_KEY) || 'null'); } catch (e) { window.cuenta = null; }
+      ensureDirecciones();
+    }
+    function saveCuentaLocal() { try { localStorage.setItem(LOYALTY_KEY, JSON.stringify(window.cuenta)); } catch (e) {} }
+
+    // ---- Direcciones múltiples ----
+    let selectedDirId = null; // dirección elegida en el checkout actual
+
+    function ensureDirecciones() {
+      if (!window.cuenta) return;
+      if (!Array.isArray(window.cuenta.direcciones)) window.cuenta.direcciones = [];
+      // Migrar dirección vieja (formato de una sola) al array
+      if (window.cuenta.direccion && typeof window.cuenta.lat === 'number' && !window.cuenta.direcciones.length) {
+        const id = 'd' + Date.now().toString(36);
+        window.cuenta.direcciones.push({ id, address: window.cuenta.direccion, lat: window.cuenta.lat, lng: window.cuenta.lng, distanceKm: window.cuenta.distanceKm || 0 });
+        window.cuenta.defaultDirId = id;
+      }
+    }
+    function getDirecciones() { return (window.cuenta && window.cuenta.direcciones) || []; }
+    function getDefaultDir() {
+      const ds = getDirecciones();
+      return ds.find(d => d.id === (window.cuenta && window.cuenta.defaultDirId)) || ds[0] || null;
+    }
+    function getDirById(id) { return getDirecciones().find(d => d.id === id) || null; }
+    // Agrega una dirección (si no existe ya por coordenadas). Devuelve su id.
+    function addDireccion(loc) {
+      if (!window.cuenta || !loc || typeof loc.lat !== 'number') return null;
+      ensureDirecciones();
+      const existing = window.cuenta.direcciones.find(d => Math.abs(d.lat - loc.lat) < 1e-6 && Math.abs(d.lng - loc.lng) < 1e-6);
+      if (existing) return existing.id;
+      const id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 4);
+      window.cuenta.direcciones.push({ id, address: loc.address || '', lat: loc.lat, lng: loc.lng, distanceKm: loc.distanceKm || 0 });
+      if (!window.cuenta.defaultDirId) window.cuenta.defaultDirId = id;
+      return id;
+    }
+
+    async function fetchCoins(phone) {
+      const p = normPhoneL(phone);
+      if (!p) return 0;
+      try { const snap = await getDoc(doc(db, 'loyalty', p)); return snap.exists() ? (Number(snap.data().coins) || 0) : 0; }
+      catch (e) { console.warn('coins fetch', e); return 0; }
+    }
+
+    window.upsertCuenta = async function(nombre, telefono, direccion, loc) {
+      const p = normPhoneL(telefono);
+      if (!p) return;
+      const prev = (window.cuenta && normPhoneL(window.cuenta.telefono) === p) ? window.cuenta : null;
+      window.cuenta = {
+        nombre, telefono, coins: prev ? (prev.coins || 0) : 0,
+        direcciones: prev ? (prev.direcciones || []) : [],
+        defaultDirId: prev ? prev.defaultDirId : null
+      };
+      ensureDirecciones();
+      // Agregar/ubicar la dirección usada en este pedido (guarda coordenadas + zona)
+      if (loc && typeof loc.lat === 'number' && typeof loc.lng === 'number') {
+        const id = addDireccion({ address: direccion || loc.address, lat: loc.lat, lng: loc.lng, distanceKm: loc.distanceKm });
+        selectedDirId = id;
+      }
+      // Dirección "principal" (default) para mostrar en el admin y compat
+      const defDir = getDirById(window.cuenta.defaultDirId) || window.cuenta.direcciones[0] || null;
+      window.cuenta.direccion = defDir ? defDir.address : (direccion || '');
+      saveCuentaLocal();
+      const fbData = {
+        nombre, telefono: p, direccion: window.cuenta.direccion,
+        direcciones: window.cuenta.direcciones, defaultDirId: window.cuenta.defaultDirId || null,
+        updatedAt: serverTimestamp()
+      };
+      try { await setDoc(doc(db, 'loyalty', p), fbData, { merge: true }); }
+      catch (e) { console.warn('cuenta save', e); }
+    };
+
+    // Precio (con promo) del pancho más barato del carrito; 0 si no hay panchos
+    function lowestPanchoPrice() {
+      let min = 0;
+      Object.values(cart).forEach(c => {
+        const isPancho = (MENU.panchos.items || []).some(p => p.id === c.item.id);
+        if (!isPancho) return;
+        const unit = (typeof discountedPrice === 'function') ? discountedPrice(c.item.price, c.item.id) : c.item.price;
+        if (min === 0 || unit < min) min = unit;
+      });
+      return min;
+    }
+    window.vidaExtraDiscount = function() { return window.vidaExtraActiva ? lowestPanchoPrice() : 0; };
+    window.toggleVidaExtra = function() { window.vidaExtraActiva = !window.vidaExtraActiva; updateCartTotals(); renderVidaExtraBox(); };
+
+    function renderCuentaBar() {
+      const bar = document.getElementById('cuentaBar');
+      if (!bar) return;
+      if (!window.COINS_ENABLED) { bar.style.display = 'none'; renderCoinChip(); return; }
+      if (window.cuenta && window.cuenta.telefono) {
+        const coins = window.cuenta.coins || 0;
+        const enCurso = coins % COINS_VIDA_EXTRA;
+        const vidas = Math.floor(coins / COINS_VIDA_EXTRA);
+        const falta = COINS_VIDA_EXTRA - enCurso;
+        const pct = Math.min(100, (enCurso / COINS_VIDA_EXTRA) * 100);
+        bar.innerHTML = `
+          <div style="max-width:900px;margin:0 auto;padding:10px 16px;font-family:'VT323',monospace;color:#e8e0ff;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:19px;">
+              <span>👾 Hola <strong>${escHtmlL(window.cuenta.nombre || '')}</strong> · 🪙 <strong>${coins}</strong> coins${vidas > 0 ? ` · <strong style="color:#ffe14d;">${vidas} vida${vidas > 1 ? 's' : ''} extra</strong> 🌭` : ''}</span>
+              <button onclick="cuentaLogout()" style="background:transparent;border:1px solid #6b5b95;color:#9b8bb8;padding:4px 10px;font-family:inherit;font-size:14px;cursor:pointer;">salir</button>
+            </div>
+            <div style="height:10px;background:rgba(255,255,255,0.1);border-radius:6px;overflow:hidden;margin:6px 0 4px;"><div style="height:100%;width:${pct}%;background:#ffe14d;transition:width .3s;"></div></div>
+            <div style="font-size:16px;color:#c9b8e6;">${coins >= COINS_VIDA_EXTRA ? '¡Tenés un pancho gratis para canjear en tu próximo pedido! 🌭' : `Te faltan ${falta} coins para tu vida extra 🌭`}</div>
+          </div>`;
+        bar.style.display = 'block';
+      } else {
+        bar.innerHTML = `<div style="max-width:900px;margin:0 auto;padding:10px 16px;font-family:'VT323',monospace;color:#c9b8e6;font-size:18px;text-align:center;">🪙 Hacé tu primer pedido y empezá a juntar <strong style="color:#ffe14d;">coins</strong> → cada 100 = un pancho gratis 🌭</div>`;
+        bar.style.display = 'block';
+      }
+      renderCoinChip();
+    }
+    window.renderCuentaBar = renderCuentaBar;
+
+    // Coin flotante en la esquina (siempre visible al scrollear)
+    function renderCoinChip() {
+      const chip = document.getElementById('coinChip');
+      if (!chip) return;
+      if (window.COINS_ENABLED && window.cuenta && window.cuenta.telefono) {
+        chip.innerHTML = `🪙 <strong style="margin-left:2px;">${window.cuenta.coins || 0}</strong>`;
+        chip.style.cssText = "position:fixed;top:10px;right:12px;z-index:200;background:#160f2e;border:2px solid #ffe14d;color:#ffe14d;font-family:'VT323',monospace;font-size:20px;font-weight:700;padding:5px 14px;border-radius:20px;box-shadow:0 0 12px rgba(255,225,77,0.45);display:flex;align-items:center;gap:2px;";
+      } else {
+        chip.style.display = 'none';
+      }
+    }
+    window.renderCoinChip = renderCoinChip;
+
+    // Cartel de bienvenida (3s) si el cliente ya está registrado
+    function showWelcomeToast() {
+      if (!window.cuenta || !window.cuenta.telefono) return;
+      let t = document.getElementById('welcomeToast');
+      if (!t) { t = document.createElement('div'); t.id = 'welcomeToast'; document.body.appendChild(t); }
+      t.innerHTML = `👾 ¡Hola de nuevo, <strong>${escHtmlL((window.cuenta.nombre || '').split(' ')[0])}</strong>!<br>
+        <span style="font-size:16px;color:#c9b8e6;">Tus datos ya están cargados${window.COINS_ENABLED ? ` · 🪙 <strong style="color:#ffe14d;">${window.cuenta.coins || 0}</strong> coins` : ''}</span>`;
+      t.style.cssText = "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;background:#160f2e;border:3px solid #ff2d95;color:#fff;font-family:'VT323',monospace;font-size:24px;text-align:center;padding:22px 30px;border-radius:14px;box-shadow:0 0 30px rgba(255,45,149,0.55);opacity:0;transition:opacity .35s;";
+      requestAnimationFrame(() => { t.style.opacity = '1'; });
+      clearTimeout(t._t);
+      t._t = setTimeout(() => { t.style.opacity = '0'; setTimeout(() => { if (t && t.parentNode) t.remove(); }, 400); }, 3000);
+    }
+    window.showWelcomeToast = showWelcomeToast;
+
+    window.cuentaLogout = function() {
+      if (!confirm('¿Cerrar sesión de tu cuenta en este dispositivo?')) return;
+      window.cuenta = null; window.vidaExtraActiva = false;
+      try { localStorage.removeItem(LOYALTY_KEY); } catch (e) {}
+      renderCuentaBar();
+      const ov = document.getElementById('cartOverlay');
+      if (ov && ov.classList.contains('open')) renderCart();
+    };
+
+    function renderVidaExtraBox() {
+      const box = document.getElementById('vidaExtraBox');
+      if (!box) return;
+      const coins = (window.cuenta && window.cuenta.coins) || 0;
+      if (window.COINS_ENABLED && coins >= COINS_VIDA_EXTRA && lowestPanchoPrice() > 0) {
+        box.style.display = 'block';
+        box.innerHTML = `<label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <input type="checkbox" ${window.vidaExtraActiva ? 'checked' : ''} onchange="toggleVidaExtra()" style="width:22px;height:22px;flex:0 0 auto;">
+          <span>🪙 Canjear <strong>vida extra</strong> (−100 coins) → 1 pancho gratis 🌭</span>
+        </label>`;
+      } else {
+        if (window.vidaExtraActiva) { window.vidaExtraActiva = false; updateCartTotals(); }
+        box.style.display = 'none';
+        box.innerHTML = '';
+      }
+    }
+    window.renderVidaExtraBox = renderVidaExtraBox;
+
+    // Chips de direcciones guardadas en el checkout
+    function renderSavedAddresses() {
+      const box = document.getElementById('savedAddresses');
+      if (!box) return;
+      const ds = getDirecciones();
+      if (!window.cuenta || !ds.length) { box.innerHTML = ''; box.style.display = 'none'; return; }
+      box.style.display = 'block';
+      if (!selectedDirId || !getDirById(selectedDirId)) selectedDirId = (getDefaultDir() || {}).id || null;
+      const chips = ds.map(d => {
+        const sel = d.id === selectedDirId;
+        const isDef = d.id === window.cuenta.defaultDirId;
+        return `<div class="dir-chip ${sel ? 'sel' : ''}">
+          <button type="button" class="dir-chip-main" onclick="selectSavedDireccion('${d.id}')">${isDef ? '⭐ ' : '📍 '}${escHtmlL(d.address || '(sin dirección)')}</button>
+          <button type="button" class="dir-star" title="Hacer predeterminada" onclick="setDefaultDireccion('${d.id}')">${isDef ? '⭐' : '☆'}</button>
+          <button type="button" class="dir-del" title="Borrar" onclick="deleteDireccion('${d.id}')">🗑</button>
+        </div>`;
+      }).join('');
+      box.innerHTML = `<div class="dir-list">${chips}
+        <button type="button" class="dir-nueva ${!selectedDirId ? 'sel' : ''}" onclick="nuevaDireccion()">➕ Otra dirección</button>
+      </div>`;
+    }
+    window.renderSavedAddresses = renderSavedAddresses;
+
+    window.selectSavedDireccion = function(id) {
+      const d = getDirById(id); if (!d) return;
+      selectedDirId = id;
+      selectedLocation = { lat: d.lat, lng: d.lng, address: d.address, distanceKm: d.distanceKm || 0, needsConfirmation: (d.distanceKm || 0) > MAX_RADIUS_KM };
+      const input = document.getElementById('fAddress'); if (input) input.value = d.address || '';
+      if (typeof showMapAndStatus === 'function') showMapAndStatus();
+      if (typeof updateCartTotals === 'function') updateCartTotals();
+      renderSavedAddresses();
+    };
+    window.nuevaDireccion = function() {
+      selectedDirId = null; selectedLocation = null;
+      const input = document.getElementById('fAddress'); if (input) { input.value = ''; input.focus(); }
+      const mc = document.getElementById('mapConfirm'); if (mc) mc.classList.remove('show');
+      if (typeof updateCartTotals === 'function') updateCartTotals();
+      renderSavedAddresses();
+    };
+    window.setDefaultDireccion = async function(id) {
+      if (!window.cuenta) return;
+      window.cuenta.defaultDirId = id; saveCuentaLocal(); renderSavedAddresses();
+      const p = normPhoneL(window.cuenta.telefono);
+      if (p) { try { await setDoc(doc(db, 'loyalty', p), { defaultDirId: id, updatedAt: serverTimestamp() }, { merge: true }); } catch (e) {} }
+    };
+    window.deleteDireccion = async function(id) {
+      if (!window.cuenta) return;
+      if (!confirm('¿Borrar esta dirección guardada?')) return;
+      window.cuenta.direcciones = getDirecciones().filter(d => d.id !== id);
+      if (window.cuenta.defaultDirId === id) window.cuenta.defaultDirId = (window.cuenta.direcciones[0] || {}).id || null;
+      if (selectedDirId === id) { selectedDirId = null; selectedLocation = null; }
+      saveCuentaLocal(); renderSavedAddresses();
+      if (typeof updateCartTotals === 'function') updateCartTotals();
+      const p = normPhoneL(window.cuenta.telefono);
+      if (p) { try { await setDoc(doc(db, 'loyalty', p), { direcciones: window.cuenta.direcciones, defaultDirId: window.cuenta.defaultDirId || null, updatedAt: serverTimestamp() }, { merge: true }); } catch (e) {} }
+    };
+
+    // Al abrir/renderizar el carrito: autocompletar, refrescar coins y mostrar canje
+    window.loyaltyOnCartRender = async function() {
+      if (window.cuenta) {
+        const f = (id, v) => { const el = document.getElementById(id); if (el && !el.value && v) el.value = v; };
+        f('fName', window.cuenta.nombre);
+        f('fPhone', window.cuenta.telefono);
+      }
+      const phoneEl = document.getElementById('fPhone');
+      const phone = phoneEl ? phoneEl.value : (window.cuenta && window.cuenta.telefono);
+      if (phone) {
+        const coins = await fetchCoins(phone);
+        if (!window.cuenta) window.cuenta = { nombre: '', telefono: phone, coins: 0 };
+        window.cuenta.coins = coins;
+        saveCuentaLocal();
+        renderCuentaBar();
+      }
+      renderVidaExtraBox();
+      renderSavedAddresses();
+    };
+
+    // Init
+    loadCuenta();
+    renderCuentaBar();
+    if (window.cuenta && window.cuenta.telefono) {
+      // Cartel de bienvenida con los coins cacheados (aparece al toque)
+      setTimeout(showWelcomeToast, 600);
+      fetchCoins(window.cuenta.telefono).then(c => { window.cuenta.coins = c; saveCuentaLocal(); renderCuentaBar(); });
+    }
 
     // Aplicar cupón
     function applyCoupon() {
@@ -4384,7 +4558,8 @@
       const promoSavings = entries.reduce((s, [, c]) => s + promoDiscountForItem(c), 0);
       const subtotalAfterPromo = subtotal - promoSavings;
       const discount = calcDiscount(subtotalAfterPromo, activeCoupon);
-      const subtotalAfterDiscount = subtotalAfterPromo - discount;
+      const vidaExtraDesc = (typeof window.vidaExtraDiscount === 'function') ? window.vidaExtraDiscount() : 0;
+      const subtotalAfterDiscount = Math.max(0, subtotalAfterPromo - discount - vidaExtraDesc);
       const beforeSurcharge = subtotalAfterDiscount + shippingCost;
       const surchargeAmount = Math.round(beforeSurcharge * surchargePct / 100);
       const finalTotal = beforeSurcharge + surchargeAmount;
@@ -4501,6 +4676,18 @@
         status: 'pending',
         source: 'web'
       };
+
+      // Vida extra canjeada (el admin descuenta 100 coins al entregar)
+      if (window.vidaExtraActiva && vidaExtraDesc > 0) {
+        firebaseOrder.vidaExtra = true;
+        firebaseOrder.vidaExtraDescuento = vidaExtraDesc;
+      }
+
+      // Guardar/crear la cuenta del cliente (perfil, no coins) para reconocerlo la próxima vez
+      if (typeof window.upsertCuenta === 'function') {
+        try { await window.upsertCuenta(name, phone, address, loc); } catch (e) {}
+      }
+      window.vidaExtraActiva = false;
 
       // Incluir info del cupón si se aplicó
       if (activeCoupon && discount > 0) {
@@ -4938,161 +5125,6 @@
     });
   </script>
 
-<!-- ====== MUNDIAL FX: confeti + cantito + gol (solo visual) ====== -->
-<style>
-  /* confeti de fondo */
-  #mundialConfetti {
-    position: fixed; inset: 0; width: 100%; height: 100%;
-    pointer-events: none; z-index: 0; opacity: 0.55;
-  }
-  /* cantito de tribuna */
-  #mundialChant {
-    position: fixed; left: 50%; bottom: 88px; transform: translateX(-50%) translateY(20px);
-    z-index: 9000; pointer-events: none;
-    background: rgba(10,1,24,0.85);
-    border: 2px solid var(--arg-celeste, #75aadb);
-    border-radius: 4px;
-    padding: 8px 16px;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 9px; line-height: 1.5; text-align: center;
-    color: var(--arg-celeste-claro, #a9d0f0);
-    text-shadow: 0 0 6px var(--arg-celeste, #75aadb);
-    box-shadow: 0 0 14px rgba(117,170,219,0.5);
-    opacity: 0; transition: opacity 0.4s ease, transform 0.4s ease;
-    max-width: 86vw;
-  }
-  #mundialChant.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-  /* overlay GOL */
-  #golOverlay {
-    position: fixed; inset: 0; z-index: 9500; pointer-events: none;
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0;
-  }
-  #golOverlay.fire { animation: golFlash 1.1s ease-out forwards; }
-  #golOverlay .gol-text {
-    font-family: 'Press Start 2P', monospace;
-    font-size: clamp(40px, 16vw, 120px);
-    color: var(--arg-sol, #f6b40e);
-    text-shadow: 0 0 20px var(--arg-sol,#f6b40e), 4px 4px 0 #0a0118, 0 0 40px #fff;
-    transform: scale(0.4);
-  }
-  #golOverlay.fire .gol-text { animation: golPop 1.1s cubic-bezier(.2,1.4,.4,1) forwards; }
-  @keyframes golFlash {
-    0% { opacity: 0; } 12% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; }
-  }
-  @keyframes golPop {
-    0% { transform: scale(0.3) rotate(-6deg); }
-    50% { transform: scale(1.15) rotate(3deg); }
-    70% { transform: scale(1.0) rotate(0deg); }
-    100% { transform: scale(1.05) rotate(0deg); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    #mundialConfetti { display: none; }
-    #golOverlay.fire { animation-duration: 0.6s; }
-  }
-</style>
-
-<canvas id="mundialConfetti"></canvas>
-<div id="mundialChant"></div>
-<div id="golOverlay"><div class="gol-text">¡GOL!</div></div>
-
-<script>
-(function mundialFX(){
-  var CEL = '#75aadb', BLA = '#ffffff', SOL = '#f6b40e';
-
-  /* ---------- 1) CONFETI DE FONDO ---------- */
-  var cv = document.getElementById('mundialConfetti');
-  var ctx = cv.getContext('2d');
-  var W, H, pieces = [];
-  function resize(){ W = cv.width = window.innerWidth; H = cv.height = window.innerHeight; }
-  resize();
-  window.addEventListener('resize', resize);
-  var COLORS = [CEL, BLA, CEL, BLA, '#a9d0f0'];
-  var COUNT = window.innerWidth < 600 ? 22 : 40;
-  for (var i = 0; i < COUNT; i++) {
-    pieces.push({
-      x: Math.random()*W,
-      y: Math.random()*H,
-      w: 4 + Math.random()*5,
-      h: 7 + Math.random()*8,
-      vy: 0.4 + Math.random()*0.9,
-      vx: -0.3 + Math.random()*0.6,
-      rot: Math.random()*Math.PI,
-      vr: -0.04 + Math.random()*0.08,
-      color: COLORS[(Math.random()*COLORS.length)|0]
-    });
-  }
-  var running = true;
-  document.addEventListener('visibilitychange', function(){ running = !document.hidden; if(running) tick(); });
-  function tick(){
-    if(!running) return;
-    ctx.clearRect(0,0,W,H);
-    for (var i=0;i<pieces.length;i++){
-      var p = pieces[i];
-      p.y += p.vy; p.x += p.vx; p.rot += p.vr;
-      if (p.y > H + 12){ p.y = -12; p.x = Math.random()*W; }
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.rot);
-      ctx.fillStyle = p.color;
-      ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
-      ctx.restore();
-    }
-    requestAnimationFrame(tick);
-  }
-  tick();
-
-  /* ---------- 2) CANTITO DE TRIBUNA ---------- */
-  var CHANTS = [
-    '🇦🇷 ¡VAMOS VAMOS<br>ARGENTINA! 🇦🇷',
-    '⭐ ¡MUCHACHOS! ⭐',
-    '🏆 ¡DALE CAMPEÓN! 🏆',
-    '🇦🇷 ¡VAMOS ARGENTINA<br>CARAJO! 🇦🇷',
-    '🌭 ¡PANCHO Y A LA<br>CANCHA! 🌭'
-  ];
-  var chantEl = document.getElementById('mundialChant');
-  var ci = 0;
-  function showChant(){
-    chantEl.innerHTML = CHANTS[ci % CHANTS.length];
-    ci++;
-    chantEl.classList.add('show');
-    setTimeout(function(){ chantEl.classList.remove('show'); }, 4200);
-  }
-  // primer cantito a los 12s, luego cada ~40s
-  setTimeout(function(){
-    showChant();
-    setInterval(showChant, 40000);
-  }, 12000);
-
-  /* ---------- 3) EFECTO GOL ---------- */
-  var golEl = document.getElementById('golOverlay');
-  var golBusy = false;
-  window.mundialGol = function(){
-    if (golBusy) return;
-    golBusy = true;
-    golEl.classList.remove('fire');
-    void golEl.offsetWidth; // reiniciar animación
-    golEl.classList.add('fire');
-    // mini ráfaga de confeti extra
-    for (var i=0;i<14;i++){
-      pieces.push({
-        x: W/2 + (-60 + Math.random()*120),
-        y: H/2,
-        w: 5+Math.random()*5, h: 8+Math.random()*8,
-        vy: -2 - Math.random()*3, vx: -2 + Math.random()*4,
-        rot: Math.random()*Math.PI, vr: -0.1+Math.random()*0.2,
-        color: [SOL, CEL, BLA][(Math.random()*3)|0]
-      });
-    }
-    setTimeout(function(){
-      golEl.classList.remove('fire');
-      golBusy = false;
-      // recortar confeti extra para no acumular
-      if (pieces.length > COUNT) pieces.length = COUNT;
-    }, 1200);
-  };
-})();
-</script>
 
 </body>
 
