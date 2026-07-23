@@ -50,12 +50,35 @@ exports.handler = async (event) => {
   const token = process.env.MP_ACCESS_TOKEN;
   if (!token) return { statusCode: 500, headers, body: JSON.stringify({ error: 'Falta MP_ACCESS_TOKEN' }) };
 
-  let orderId;
+  let body;
   try {
-    ({ orderId } = JSON.parse(event.body || '{}'));
+    body = JSON.parse(event.body || '{}');
   } catch (e) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'JSON inválido' }) };
   }
+
+  // Diagnóstico: verifica el token contra la cuenta de MP sin crear ningún
+  // pago (no mueve plata). Devuelve solo si el token es válido y si la cuenta
+  // dueña es de prueba o productiva. No expone el token ni datos personales.
+  if (body.diagnostico === true) {
+    try {
+      const r = await fetch('https://api.mercadopago.com/users/me', {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      const u = await r.json().catch(() => ({}));
+      const email = String(u.email || '');
+      return { statusCode: 200, headers, body: JSON.stringify({
+        tokenValido: r.ok,
+        esCuentaDePrueba: /testuser|test_user/i.test(email),
+        siteId: u.site_id || null,
+        tipoCuenta: u.user_type || null
+      }) };
+    } catch (e) {
+      return { statusCode: 200, headers, body: JSON.stringify({ tokenValido: false, error: e.message }) };
+    }
+  }
+
+  const orderId = body.orderId;
   if (!orderId || !/^[A-Za-z0-9_-]{1,64}$/.test(String(orderId))) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'orderId inválido' }) };
   }
