@@ -4914,7 +4914,7 @@
         window.location.href = data.init_point;
       } catch (err) {
         console.error('Error Mercado Pago:', err);
-        alert('⚠ No se pudo iniciar el pago con Mercado Pago.\nProbá de nuevo o elegí otro método de pago.');
+        alert('⚠ No se pudo iniciar el pago con Mercado Pago.\n\nDetalle: ' + (err && err.message ? err.message : err) + '\n\nProbá de nuevo o elegí otro método de pago.');
         if (btn) { btn.disabled = false; btn.textContent = restore; }
       }
     }
