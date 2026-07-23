@@ -2251,6 +2251,7 @@
 
   .track-eta.gps { color: var(--neon-green); border-color: var(--neon-green); text-shadow: 0 0 8px rgba(0,255,102,0.5); }
   .track-eta .te-live { display: block; font-size: 15px; color: var(--neon-green); animation: ts-pulse 1.6s ease-in-out infinite; }
+  .track-eta .te-cola { display: block; font-size: 17px; color: var(--neon-yellow); margin-top: 6px; }
 
   .track-push-btn {
     width: 100%; margin: 0 0 16px;
@@ -2637,10 +2638,12 @@
       return v > 0 ? v : 15;
     }
 
+    const STREET_FACTOR = 1.3; // las calles no son línea recta
+
     function trackTravelMinutes(order) {
       if ((order.delivery || '').toLowerCase().includes('retiro')) return 0;
       const km = Number(order.distanceKm) || 0;
-      return Math.min(40, Math.max(3, Math.round((km / VEL_MOTO_KMH) * 60)));
+      return Math.min(40, Math.max(3, Math.round((km * STREET_FACTOR / VEL_MOTO_KMH) * 60)));
     }
 
     function trackNormStatus(s) {
@@ -2654,18 +2657,6 @@
     }
 
     let __trackOrder = null;
-    let __courierPos = null;
-    let __courierSubbed = false;
-
-    // Suscripción a la ubicación del repartidor (solo cuando hace falta)
-    function ensureCourierSub() {
-      if (__courierSubbed) return;
-      __courierSubbed = true;
-      onSnapshot(doc(db, "settings", "courier"), (snap) => {
-        __courierPos = snap.exists() ? snap.data() : null;
-        if (__trackOrder) renderTracking(__trackOrder);
-      }, () => {});
-    }
 
     // Activar avisos push para este pedido
     window.trackEnablePush = async function(orderId) {
@@ -2732,17 +2723,20 @@
       const prep = trackPrepMinutes();
       const travel = trackTravelMinutes(order);
       let etaHtml = '';
-      // GPS en vivo: si el repartidor está compartiendo ubicación y el pedido
-      // va en camino, el ETA sale de la distancia real repartidor → cliente
-      const gps = __courierPos;
-      const gpsFresh = gps && gps.active !== false && gps.at && (Date.now() - new Date(gps.at).getTime()) < 3 * 60000;
-      if (!cancelled && status === 'ontheway' && !esRetiro && gpsFresh &&
-          typeof order.latitude === 'number' && typeof order.longitude === 'number') {
-        const km = haversineKm(gps.lat, gps.lng, order.latitude, order.longitude);
-        const mins = Math.max(2, Math.round((km / VEL_MOTO_KMH) * 60));
-        etaHtml = km < 0.15
+      // GPS en vivo: el celu del repartidor escribe en el pedido la distancia
+      // y el ETA ya calculados (sus coordenadas nunca se publican). Si hay
+      // varias entregas en cola, el ETA ya incluye las paradas anteriores.
+      const live = order.live;
+      const gpsFresh = live && live.at && (Date.now() - new Date(live.at).getTime()) < 3 * 60000;
+      if (!cancelled && status === 'ontheway' && !esRetiro && gpsFresh) {
+        const km = Number(live.distKm) || 0;
+        const mins = Math.max(1, Number(live.etaMin) || Math.round((km * STREET_FACTOR / VEL_MOTO_KMH) * 60));
+        const colaHtml = (Number(live.totalStops) > 1 && Number(live.stop) > 1)
+          ? `<div class="te-cola">🛑 Hay ${live.stop - 1} entrega${live.stop > 2 ? 's' : ''} antes que la tuya</div>`
+          : '';
+        etaHtml = (km < 0.15 && Number(live.stop) <= 1)
           ? `<div class="track-eta ok">🛵 ¡El repartidor está llegando a tu puerta!</div>`
-          : `<div class="track-eta gps">🛵 El repartidor está a <strong>${km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1) + ' km'}</strong><br>llega en ~<strong>${mins} min</strong> <span class="te-live">● GPS en vivo</span></div>`;
+          : `<div class="track-eta gps">🛵 El repartidor está a <strong>${km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1) + ' km'}</strong><br>llega en ~<strong>${mins} min</strong> <span class="te-live">● GPS en vivo</span>${colaHtml}</div>`;
       } else if (cancelled) {
         etaHtml = `<div class="track-eta cancel">❌ Pedido cancelado.<br>Cualquier duda escribinos por WhatsApp.</div>`;
       } else if (status === 'delivered') {
@@ -2809,13 +2803,7 @@
       const box = document.getElementById('trackingScreen');
       if (box) box.style.display = 'flex';
       onSnapshot(doc(db, "orders", __trackId), (snap) => {
-        const o = snap.exists() ? { id: snap.id, ...snap.data() } : null;
-        // Si va en camino (delivery), escuchar también el GPS del repartidor
-        if (o && trackNormStatus(o.status) === 'ontheway' &&
-            !(o.delivery || '').toLowerCase().includes('retiro')) {
-          ensureCourierSub();
-        }
-        renderTracking(o);
+        renderTracking(snap.exists() ? { id: snap.id, ...snap.data() } : null);
       }, () => renderTracking(null));
       // Refrescar el "faltan X min" aunque no cambie el estado
       setInterval(() => { if (__trackOrder) renderTracking(__trackOrder); }, 30000);
