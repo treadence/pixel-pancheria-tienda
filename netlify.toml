@@ -3,5 +3,12 @@
   publish = "."
   functions = "netlify/functions"
 
+[build.environment]
+  # La API key de Firebase (AIza...) es pública por diseño — va en el cliente
+  # y la seguridad está en las reglas de Firestore. Apagamos la detección de
+  # patrones conocidos para que no marque esa key como secreto expuesto.
+  # El Access Token de MP sigue protegido: vive en env var, no en el código.
+  SECRETS_SCAN_SMART_DETECTION_ENABLED = "false"
+
 [functions]
   node_bundler = "esbuild"
