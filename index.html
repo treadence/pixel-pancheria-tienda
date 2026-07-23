@@ -2265,6 +2265,22 @@
     margin: 0 0 16px;
   }
 
+  .track-transfer {
+    border: 2px dashed var(--neon-yellow); padding: 16px 14px; margin: 16px 0;
+    background: rgba(255,238,0,0.05);
+  }
+  .track-transfer .tt-line { font-family: 'VT323', monospace; font-size: 19px; color: #c9b8e6; }
+  .track-transfer .tt-amount {
+    font-family: 'Press Start 2P', monospace; font-size: clamp(20px, 6vw, 30px);
+    color: var(--neon-green); text-shadow: 0 0 10px var(--neon-green); margin: 8px 0;
+  }
+  .track-transfer .tt-alias {
+    font-family: 'Press Start 2P', monospace; font-size: clamp(14px, 4.5vw, 20px);
+    color: var(--neon-cyan); text-shadow: 0 0 8px var(--neon-cyan);
+    margin: 6px 0 12px; word-break: break-all; user-select: all;
+  }
+  .track-transfer .tt-note { font-family: 'VT323', monospace; font-size: 17px; color: #9b8bb8; line-height: 1.3; }
+
   .track-summary { border-top: 1px solid #3a2d5e; padding-top: 14px; margin-top: 4px; }
   .track-item {
     display: flex; justify-content: space-between; gap: 10px; text-align: left;
@@ -2720,6 +2736,41 @@
                <p class="track-sub">Estamos confirmando tu pago con Mercado Pago. Esto puede tardar unos segundos.<br><strong>No cierres esta página</strong> — se actualiza sola.</p>
                <p class="track-live">● Esperando confirmación…</p>
              </div>`;
+        return;
+      }
+
+      // Transferencia esperando verificación: mostramos alias + monto y el
+      // pedido no arranca hasta que el local confirme el pago (lo pase a
+      // preparación). Al confirmarse, status deja de ser 'received' y se ve
+      // el seguimiento normal.
+      if (order.awaitingTransfer && trackNormStatus(order.status) === 'received') {
+        const pushHtmlT = pushSupported() ? (
+          localStorage.getItem('pixel_push_' + order.id) === '1'
+            ? `<div class="track-push on">🔔 Te avisamos apenas confirmemos el pago</div>`
+            : `<button class="track-push-btn" onclick="trackEnablePush('${order.id}')">🔔 AVISARME CUANDO SE CONFIRME</button>`
+        ) : '';
+        const itemsHtmlT = (order.items || []).map(it =>
+          `<div class="track-item"><span>${it.qty || 1}× ${trackEscape(it.name)}</span><span>$${Number(it.subtotal ?? ((it.qty || 1) * (it.unitPrice || it.price || 0))).toLocaleString('es-AR')}</span></div>`
+        ).join('');
+        box.innerHTML = `
+          <div class="track-card">
+            <div class="track-head-title">🌭 PIXEL PANCHERÍA</div>
+            <div class="track-title">¡CASI LISTO!</div>
+            <div class="track-customer">${trackEscape(order.customer || '')}</div>
+            <div class="track-transfer">
+              <div class="tt-line">Para confirmar tu pedido, transferí</div>
+              <div class="tt-amount">$${Number(order.total || 0).toLocaleString('es-AR')}</div>
+              <div class="tt-line">al alias</div>
+              <div class="tt-alias">Pixel.Pancheria</div>
+              <div class="tt-note">Apenas verifiquemos el pago te avisamos y arranca la preparación 🌭</div>
+            </div>
+            ${pushHtmlT}
+            <div class="track-summary">${itemsHtmlT}
+              <div class="track-item total"><span>TOTAL</span><span>$${Number(order.total || 0).toLocaleString('es-AR')}</span></div>
+            </div>
+            <p class="track-live">● Esta pantalla se actualiza sola al confirmar</p>
+            <a class="track-back" href="${location.pathname}">◀ VOLVER A LA TIENDA</a>
+          </div>`;
         return;
       }
 
@@ -4002,7 +4053,6 @@
           <option value="mercadopago" data-surcharge="0">💳 Mercado Pago (pago online)</option>
           <option value="efectivo" data-surcharge="0">Efectivo (al recibir)</option>
           <option value="transferencia" data-surcharge="0">Transferencia</option>
-          <option value="tarjeta" data-surcharge="10">Tarjeta al recibir (+10%)</option>
         </select>
       </div>
       <div class="form-field">
@@ -4476,12 +4526,13 @@
       const breakdown = document.getElementById('totalBreakdown');
       if (!paySelect || !breakdown) return;
 
-      // Texto del botón según método: MP paga online, el resto confirma por WhatsApp
+      // Texto del botón según método: MP paga online; efectivo/transferencia
+      // confirman el pedido y van al seguimiento
       const sendBtn = document.getElementById('sendBtn');
       if (sendBtn) {
         sendBtn.textContent = paySelect.value === 'mercadopago'
           ? '💳 PAGAR CON MERCADO PAGO'
-          : '📱 ENVIAR POR WHATSAPP';
+          : '🌭 CONFIRMAR PEDIDO';
       }
 
       // Determinar zona y costo según ubicación seleccionada
@@ -5133,240 +5184,45 @@
         firebaseOrder.promoSavings = promoSavings;
       }
 
-      // ── Mercado Pago: paga online y el pedido arranca al confirmarse el pago.
-      //    El resto de los métodos siguen el flujo de WhatsApp de abajo. ──
+      // ── Mercado Pago: paga online, el pedido arranca al confirmarse el pago ──
       if (payCode === 'mercadopago') {
         return await payWithMercadoPago(firebaseOrder);
       }
 
-      // Construir mensaje de WhatsApp
-      let msg = `🌭 *NUEVO PEDIDO - PIXEL PANCHERÍA* 🌭\n`;
-      msg += `━━━━━━━━━━━━━━━━━━━━\n\n`;
-      msg += `👤 *Cliente:* ${name}\n`;
-      msg += `📞 *Tel:* ${phone}\n`;
-      msg += `🚚 *Entrega:* ${deliveryLabel}\n`;
-      msg += `📍 *Dirección:* ${address}\n`;
-      if (addressUnit) msg += `   🏠 Piso/Depto: ${addressUnit}\n`;
-      if (addressRef) msg += `   📝 Referencias: ${addressRef}\n`;
-      msg += `🗺️ *Ver en mapa:* https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lng}\n`;
-      if (needsShippingConfirmation) {
-        msg += `\n⚠️ *FUERA DE ZONA HABITUAL* - Confirmar costo de envío\n\n`;
-      }
-      msg += `💳 *Pago:* ${payLabel}\n\n`;
-      msg += `🛒 *PEDIDO:*\n`;
-      msg += `━━━━━━━━━━━━━━━━━━━━\n`;
-      entries.forEach(([, c]) => {
-        const itemPromoPct = getProductDiscount(c.item.id);
-        if (itemPromoPct > 0) {
-          msg += `• ${c.qty}x ${c.item.name} (-${itemPromoPct}%) — $${(cartItemSubtotal(c) - promoDiscountForItem(c)).toLocaleString('es-AR')}\n`;
-        } else {
-          msg += `• ${c.qty}x ${c.item.name} — $${cartItemSubtotal(c).toLocaleString('es-AR')}\n`;
-        }
-        // Combo panchos con salchichas
-        if (c.comboPanchos && c.comboPanchos.length) {
-          const panchosStr = c.comboPanchos.map(pp => {
-            const p = findItem(pp.id);
-            if (!p) return '';
-            let base = (pp.qty > 1 ? pp.qty + 'x ' : '') + p.name;
-            if (p.sausage && c.comboSausages) {
-              const list = [];
-              for (let i = 0; i < pp.qty; i++) {
-                const sgId = c.comboSausages[pp.id + '_' + i];
-                if (sgId) {
-                  const sg = SAUSAGES.find(s => s.id === sgId);
-                  if (sg) list.push(sg.name);
-                }
-              }
-              if (list.length) base += ' (' + list.join(' + ') + ')';
-            }
-            return base;
-          }).filter(Boolean).join(', ');
-          if (panchosStr) msg += `   🌭 ${panchosStr}\n`;
-        }
-        if (c.comboBebidas && c.comboBebidas.length) {
-          const bebidasStr = c.comboBebidas.map(x => {
-            const b = findItem(x.id);
-            return b ? (x.qty > 1 ? x.qty + 'x ' : '') + b.name : '';
-          }).filter(Boolean).join(', ');
-          if (bebidasStr) msg += `   🥤 ${bebidasStr}\n`;
-        }
-        // Salchicha del pancho principal
-        if (c.sausages && c.sausages.length) {
-          const sgStr = c.sausages.map(x => {
-            const sg = SAUSAGES.find(s => s.id === x.id);
-            return sg ? (x.qty > 1 ? x.qty + 'x ' : '') + sg.name : '';
-          }).filter(Boolean).join(', ');
-          if (sgStr) msg += `   🌭 Salchicha: ${sgStr}\n`;
-        }
-        if (c.sauces && c.sauces.length) {
-          const saucesNames = c.sauces.map(saId => {
-            const sa = SAUCES.find(s => s.id === saId);
-            return sa ? sa.name : '';
-          }).filter(Boolean).join(', ');
-          if (saucesNames) msg += `   🥫 ${saucesNames}\n`;
-        }
-        if (c.specialSauces && c.specialSauces.length) {
-          const ssNames = c.specialSauces.map(ssId => {
-            const ss = SPECIAL_SAUCES.find(s => s.id === ssId);
-            return ss ? ss.name : '';
-          }).filter(Boolean).join(', ');
-          if (ssNames) msg += `   🌶️ Salsas: ${ssNames}\n`;
-        }
-        if (c.toppings && c.toppings.length) {
-          const tpNames = c.toppings.map(tpId => {
-            const tp = TOPPINGS.find(t => t.id === tpId);
-            return tp ? tp.name : '';
-          }).filter(Boolean).join(', ');
-          if (tpNames) msg += `   🧀 Toppings: ${tpNames}\n`;
-        }
-        if (c.removables && c.removables.length) {
-          const rmNames = c.removables.map(rmId => {
-            const rm = (c.item.removables || []).find(r => r.id === rmId);
-            return rm ? rm.name : '';
-          }).filter(Boolean).join(', ');
-          if (rmNames) msg += `   🚫 ${rmNames}\n`;
-        }
-        if (c.paidOptions && c.paidOptions.length) {
-          const poNames = c.paidOptions.map(poId => {
-            const po = (c.item.paidOptions || []).find(p => p.id === poId);
-            return po ? po.name : '';
-          }).filter(Boolean).join(', ');
-          if (poNames) msg += `   ➕ ${poNames}\n`;
-        }
-        if (c.extras && c.extras.length) {
-          const extrasNames = c.extras.map(exId => {
-            const ex = EXTRAS.find(e => e.id === exId);
-            return ex ? ex.name : '';
-          }).filter(Boolean).join(', ');
-          if (extrasNames) msg += `   + ${extrasNames}\n`;
-        }
-        if (c.notes) msg += `   📝 ${c.notes}\n`;
-      });
-      msg += `━━━━━━━━━━━━━━━━━━━━\n`;
-      msg += `Subtotal: $${subtotal.toLocaleString('es-AR')}\n`;
-      if (promoSavings > 0) {
-        msg += `🔥 Promo: -$${promoSavings.toLocaleString('es-AR')}\n`;
-      }
-      if (discount > 0 && activeCoupon) {
-        const couponLabel = activeCoupon.type === 'percent' ? `${activeCoupon.code} (-${activeCoupon.value}%)` : activeCoupon.code;
-        msg += `Cupón ${couponLabel}: -$${discount.toLocaleString('es-AR')}\n`;
-      }
-      if (needsShippingConfirmation) {
-        msg += `Envío: A CONFIRMAR\n`;
-      } else if (shippingCost > 0) {
-        msg += `Envío: +$${shippingCost.toLocaleString('es-AR')}\n`;
-      } else {
-        msg += `Envío: GRATIS\n`;
-      }
-      if (surchargeAmount > 0) {
-        msg += `Recargo tarjeta (${surchargePct}%): +$${surchargeAmount.toLocaleString('es-AR')}\n`;
-      }
-      const totalPrefix = needsShippingConfirmation ? 'TOTAL (sin envío)' : 'TOTAL';
-      msg += `\n💰 *${totalPrefix}: $${finalTotal.toLocaleString('es-AR')}*\n`;
-      if (notes) msg += `\n📝 *Notas del pedido:* ${notes}\n`;
+      // Efectivo y transferencia: guardar el pedido y llevar al seguimiento en
+      // vivo (ya no se manda WhatsApp).
+      return await placeOrderAndTrack(firebaseOrder, payCode);
+    }
 
-      // Link de seguimiento en vivo (id pre-generado para tenerlo antes de guardar)
-      const preOrderId = (typeof window.newOrderId === 'function') ? window.newOrderId() : null;
-      const trackUrl = preOrderId ? `${location.origin}${location.pathname}?pedido=${preOrderId}` : null;
-      if (trackUrl) msg += `\n📍 *Seguí tu pedido en vivo:*\n${trackUrl}\n`;
-
-      msg += `\n🎮 _Enviado desde Pixel Panchería_`;
-
-      // Codificar el mensaje correctamente para que los emojis y acentos lleguen bien
-      const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
-
-      // Detectar dispositivo
-      const ua = navigator.userAgent || '';
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(ua);
-      const isIOS = /iPhone|iPad|iPod/i.test(ua);
-
-      // Guardar en Firebase EN PARALELO (no bloqueante)
-      // CRÍTICO para iOS Safari: NO usar await acá porque rompe la cadena de "user gesture"
-      // y Safari bloquea silenciosamente el window.open / location.href
-      let firebaseOrderId = null;
-      firebaseOrder.statusHistory = { received: new Date().toISOString() };
-      if (trackUrl) firebaseOrder.trackUrl = trackUrl; // para el link en las notificaciones push
-      const firebaseSavePromise = (window.saveOrderToFirebase
-        ? window.saveOrderToFirebase(firebaseOrder, preOrderId).then(id => { firebaseOrderId = id; return id; })
-                                                    .catch(e => { console.warn('Firebase falló:', e); return null; })
-        : Promise.resolve(null));
-
-      // Recordar el pedido activo para el chip "tu pedido en curso"
-      if (preOrderId) {
-        try { localStorage.setItem('pixel_pedido_activo', JSON.stringify({ id: preOrderId, at: Date.now() })); } catch (e) {}
-      }
-
-      // Incrementar cupón en paralelo también (no bloqueante)
-      if (activeCoupon && activeCoupon.id && window.incrementCouponUse) {
-        try { window.incrementCouponUse(activeCoupon.id); } catch (e) {}
-      }
-
-      // Guardar el mensaje y datos para uso posterior
-      window.lastOrderUrl = url;
-      window.lastOrderData = {
-        customer: name,
-        phone,
-        total: finalTotal,
-        firebaseOrderRef: firebaseSavePromise
-      };
-
-      // Mostrar pantalla de confirmación con un pequeño delay para que el usuario
-      // vea que algo pasó. PERO antes de eso, intentar abrir WhatsApp.
-      let opened = false;
-      let openMethod = 'unknown';
+    // Guarda un pedido de efectivo/transferencia y redirige al seguimiento.
+    // Transferencia queda "esperando verificación del pago" hasta que el local
+    // lo pase a preparación (ahí el cliente recibe la notificación y arranca).
+    async function placeOrderAndTrack(order, payCode) {
+      const btn = document.getElementById('sendBtn');
+      const restore = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Guardando tu pedido...'; }
       try {
-        if (isMobile) {
-          // En mobile (iOS y Android), location.href es más confiable
-          window.location.href = url;
-          openMethod = 'location.href-mobile';
-          opened = true;
-        } else {
-          // En desktop, abrir nueva pestaña
-          const w = window.open(url, '_blank');
-          if (w && !w.closed) {
-            opened = true;
-            openMethod = 'window.open-desktop';
-          } else {
-            // Fallback
-            window.location.href = url;
-            openMethod = 'location.href-fallback';
-            opened = true;
-          }
-        }
+        const orderId = (typeof window.newOrderId === 'function') ? window.newOrderId() : null;
+        if (!orderId) throw new Error('no se pudo generar el pedido');
+        order.status = 'received';
+        order.statusHistory = { received: new Date().toISOString() };
+        order.trackUrl = `${location.origin}${location.pathname}?pedido=${orderId}`;
+        if (payCode === 'transferencia') order.awaitingTransfer = true;
+
+        const savedId = await window.saveOrderToFirebase(order, orderId);
+        if (!savedId) throw new Error('no se pudo guardar el pedido');
+
+        try { localStorage.setItem('pixel_pedido_activo', JSON.stringify({ id: orderId, at: Date.now() })); } catch (e) {}
+
+        // Pedido guardado: limpiar el carrito y llevar al seguimiento en vivo
+        Object.keys(cart).forEach(k => delete cart[k]);
+        activeCoupon = null; updateBadge();
+        window.location.href = order.trackUrl;
       } catch (err) {
-        console.error('Error abriendo WhatsApp:', err);
-        opened = false;
-        openMethod = 'error';
+        console.error('Error guardando pedido:', err);
+        alert('⚠ No se pudo registrar tu pedido.\n\nDetalle: ' + (err && err.message ? err.message : err) + '\n\nProbá de nuevo en unos segundos.');
+        if (btn) { btn.disabled = false; btn.textContent = restore; }
       }
-
-      // Mostrar pantalla de confirmación SIEMPRE (haya abierto o no)
-      // En mobile, location.href ya redirigió, pero si por alguna razón se queda
-      // (ej: app no instalada), va a ver esta pantalla al volver
-      showOrderSuccessScreen({
-        customer: name,
-        total: finalTotal,
-        url,
-        whatsappOpened: opened,
-        openMethod,
-        trackUrl
-      });
-
-      // Loggear intento de WhatsApp en Firebase (best-effort, no bloqueante)
-      // Esperamos brevemente para que firebaseSavePromise resuelva con un id
-      firebaseSavePromise.then(id => {
-        if (id && window.logOrderEvent) {
-          window.logOrderEvent(id, {
-            event: 'whatsapp_attempt',
-            success: opened,
-            method: openMethod,
-            userAgent: ua,
-            isIOS,
-            isMobile,
-            referrer: document.referrer || null,
-            screenWidth: window.screen ? window.screen.width : 0
-          }).catch(e => console.warn('No se pudo loggear evento:', e));
-        }
-      });
     }
 
     // Pantalla de confirmación
