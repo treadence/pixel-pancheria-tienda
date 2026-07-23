@@ -1,0 +1,7 @@
+[build]
+  # Sitio estático: solo hay que empaquetar las functions
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"

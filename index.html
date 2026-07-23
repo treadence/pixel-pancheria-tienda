@@ -2698,6 +2698,31 @@
         return;
       }
 
+      // Pendiente de pago (Mercado Pago): el cliente volvió del checkout pero el
+      // webhook todavía no confirmó (o el pago se rechazó). onSnapshot está activo,
+      // así que cuando el pago entra, la pantalla salta sola al seguimiento.
+      if (order.status === 'pending_payment') {
+        const p = new URLSearchParams(location.search);
+        const mpStatus = p.get('status') || p.get('collection_status');
+        const rechazado = ['failure', 'rejected', 'cancelled', 'null'].includes(String(mpStatus)) ||
+          order.paymentStatus === 'rejected' || order.paymentStatus === 'cancelled';
+        box.innerHTML = rechazado
+          ? `<div class="track-card">
+               <div class="track-icon">😕</div>
+               <div class="track-title">EL PAGO NO SE COMPLETÓ</div>
+               <p class="track-sub">Tu pago con Mercado Pago no se procesó, así que el pedido no se confirmó. Podés volver a la tienda e intentarlo de nuevo.</p>
+               <a class="track-back" href="${location.pathname}">◀ VOLVER A LA TIENDA</a>
+             </div>`
+          : `<div class="track-card">
+               <div class="track-head-title">🌭 PIXEL PANCHERÍA</div>
+               <div class="track-icon">⏳</div>
+               <div class="track-title">CONFIRMANDO TU PAGO</div>
+               <p class="track-sub">Estamos confirmando tu pago con Mercado Pago. Esto puede tardar unos segundos.<br><strong>No cierres esta página</strong> — se actualiza sola.</p>
+               <p class="track-live">● Esperando confirmación…</p>
+             </div>`;
+        return;
+      }
+
       const status = trackNormStatus(order.status);
       const esRetiro = (order.delivery || '').toLowerCase().includes('retiro');
 
@@ -3974,9 +3999,10 @@
       <div class="form-field">
         <label>PAGO</label>
         <select id="fPay" onchange="updateCartTotals()">
-          <option value="efectivo" data-surcharge="0">Efectivo</option>
+          <option value="mercadopago" data-surcharge="0">💳 Mercado Pago (pago online)</option>
+          <option value="efectivo" data-surcharge="0">Efectivo (al recibir)</option>
           <option value="transferencia" data-surcharge="0">Transferencia</option>
-          <option value="tarjeta" data-surcharge="10">Tarjeta de Crédito (+10%)</option>
+          <option value="tarjeta" data-surcharge="10">Tarjeta al recibir (+10%)</option>
         </select>
       </div>
       <div class="form-field">
@@ -4000,7 +4026,7 @@
 
       <div id="totalBreakdown" style="background: var(--bg); border: 2px solid var(--neon-green); padding: 14px; margin: 16px 0; font-family: 'VT323', monospace;"></div>
 
-      <button class="send-btn" onclick="sendOrder()">📱 ENVIAR POR WHATSAPP</button>
+      <button class="send-btn" id="sendBtn" onclick="sendOrder()">💳 PAGAR CON MERCADO PAGO</button>
       <div style="font-size:14px;color:#9b8bb8;margin-top:10px;text-align:center;font-family:'VT323',monospace;line-height:1.4;">
         Al hacer tu pedido guardamos tu nombre, teléfono y dirección para que tu próxima compra sea más rápida
       </div>
@@ -4450,6 +4476,14 @@
       const breakdown = document.getElementById('totalBreakdown');
       if (!paySelect || !breakdown) return;
 
+      // Texto del botón según método: MP paga online, el resto confirma por WhatsApp
+      const sendBtn = document.getElementById('sendBtn');
+      if (sendBtn) {
+        sendBtn.textContent = paySelect.value === 'mercadopago'
+          ? '💳 PAGAR CON MERCADO PAGO'
+          : '📱 ENVIAR POR WHATSAPP';
+      }
+
       // Determinar zona y costo según ubicación seleccionada
       const loc = (typeof window.getSelectedLocation === 'function') ? window.getSelectedLocation() : null;
       let shippingCost = 0;
@@ -4848,6 +4882,43 @@
     }
     window.removeCoupon = removeCoupon;
 
+    // Flujo Mercado Pago: guarda el pedido como pendiente de pago, pide la
+    // preferencia a la function y redirige al checkout. El pedido recién se
+    // vuelve visible para el local cuando el webhook confirma el pago.
+    async function payWithMercadoPago(order) {
+      const btn = document.getElementById('sendBtn');
+      const restore = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Creando el pago...'; }
+      try {
+        const orderId = (typeof window.newOrderId === 'function') ? window.newOrderId() : null;
+        if (!orderId) throw new Error('no se pudo generar el pedido');
+        order.status = 'pending_payment';
+        order.statusHistory = { created: new Date().toISOString() };
+        order.trackUrl = `${location.origin}${location.pathname}?pedido=${orderId}`;
+
+        const savedId = await window.saveOrderToFirebase(order, orderId);
+        if (!savedId) throw new Error('no se pudo guardar el pedido');
+
+        try { localStorage.setItem('pixel_pedido_activo', JSON.stringify({ id: orderId, at: Date.now() })); } catch (e) {}
+
+        const r = await fetch('/.netlify/functions/crear-pago', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId })
+        });
+        const data = await r.json();
+        if (!r.ok || !data.init_point) throw new Error(data.error || 'no se pudo crear el pago');
+
+        // El pedido ya está guardado: limpiar el carrito y redirigir a Mercado Pago
+        cart = {}; activeCoupon = null; saveCart(); updateBadge();
+        window.location.href = data.init_point;
+      } catch (err) {
+        console.error('Error Mercado Pago:', err);
+        alert('⚠ No se pudo iniciar el pago con Mercado Pago.\nProbá de nuevo o elegí otro método de pago.');
+        if (btn) { btn.disabled = false; btn.textContent = restore; }
+      }
+    }
+
     async function sendOrder() {
       const name = document.getElementById('fName').value.trim();
       const phone = document.getElementById('fPhone').value.trim();
@@ -5058,6 +5129,12 @@
       // Incluir ahorro total por promos si hubo
       if (promoSavings > 0) {
         firebaseOrder.promoSavings = promoSavings;
+      }
+
+      // ── Mercado Pago: paga online y el pedido arranca al confirmarse el pago.
+      //    El resto de los métodos siguen el flujo de WhatsApp de abajo. ──
+      if (payCode === 'mercadopago') {
+        return await payWithMercadoPago(firebaseOrder);
       }
 
       // Construir mensaje de WhatsApp

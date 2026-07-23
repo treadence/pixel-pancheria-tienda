@@ -1,0 +1,8 @@
+{
+  "name": "pixel-pancheria-tienda",
+  "private": true,
+  "description": "Tienda Pixel Panchería (sitio estático + Netlify functions de pago)",
+  "dependencies": {
+    "mercadopago": "^2.0.15"
+  }
+}
