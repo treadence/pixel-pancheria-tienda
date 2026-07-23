@@ -4909,10 +4909,10 @@
         const data = await r.json();
         if (!r.ok || !data.init_point) throw new Error(data.error || 'no se pudo crear el pago');
 
-        // El pedido ya está guardado: limpiar el carrito (cart es const → mutar)
-        // y redirigir a Mercado Pago
+        // El pedido ya está guardado: limpiar el carrito (cart es const → mutar,
+        // vive solo en memoria) y redirigir a Mercado Pago
         Object.keys(cart).forEach(k => delete cart[k]);
-        activeCoupon = null; saveCart(); updateBadge();
+        activeCoupon = null; updateBadge();
         window.location.href = data.init_point;
       } catch (err) {
         console.error('Error Mercado Pago:', err);
@@ -5451,11 +5451,10 @@
       const modal = document.getElementById('orderSuccessModal');
       if (modal) modal.classList.remove('active');
 
-      // Limpiar el carrito (el pedido se completó). cart es const: se vacía
-      // mutando (borrando sus claves), no reasignando.
+      // Limpiar el carrito (el pedido se completó). cart es const y vive solo
+      // en memoria: se vacía mutando (borrando sus claves), no reasignando.
       Object.keys(cart).forEach(k => delete cart[k]);
       activeCoupon = null;
-      saveCart();
       updateBadge();
 
       // Limpiar form
