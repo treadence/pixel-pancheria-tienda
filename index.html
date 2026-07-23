@@ -2249,6 +2249,21 @@
   .track-eta.ok { color: var(--neon-green); border-color: var(--neon-green); text-shadow: 0 0 8px rgba(0,255,102,0.5); }
   .track-eta.cancel { color: #ff5555; border-color: #ff5555; text-shadow: none; }
 
+  .track-eta.gps { color: var(--neon-green); border-color: var(--neon-green); text-shadow: 0 0 8px rgba(0,255,102,0.5); }
+  .track-eta .te-live { display: block; font-size: 15px; color: var(--neon-green); animation: ts-pulse 1.6s ease-in-out infinite; }
+
+  .track-push-btn {
+    width: 100%; margin: 0 0 16px;
+    background: transparent; border: 2px solid var(--neon-yellow); color: var(--neon-yellow);
+    font-family: 'Press Start 2P', monospace; font-size: 10px; padding: 12px;
+    cursor: pointer; text-shadow: 0 0 6px var(--neon-yellow);
+  }
+  .track-push-btn:hover { background: rgba(255,238,0,0.08); }
+  .track-push.on {
+    font-family: 'VT323', monospace; font-size: 18px; color: var(--neon-yellow);
+    margin: 0 0 16px;
+  }
+
   .track-summary { border-top: 1px solid #3a2d5e; padding-top: 14px; margin-top: 4px; }
   .track-item {
     display: flex; justify-content: space-between; gap: 10px; text-align: left;
@@ -2592,6 +2607,22 @@
 
     // ====== SEGUIMIENTO DE PEDIDO EN VIVO (?pedido=<id>) ======
     const VEL_MOTO_KMH = 25; // velocidad promedio estimada del reparto
+    const VAPID_PUBLIC_KEY = 'BEesy0Pgh3iHuwWRLLnlzErwqeu4UGMbyTMRzyGfVx5d77krIh-Z5_XLCIohnEXxXJMxGz9Bih8e3xdVoAYBTB4';
+
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const raw = window.atob(base64);
+      const arr = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+      return arr;
+    }
+
+    function pushSupported() {
+      return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    }
+
+    // (la distancia repartidor→cliente usa el haversineKm ya definido más abajo)
 
     function trackTsToDate(v) {
       if (!v) return null;
@@ -2623,6 +2654,42 @@
     }
 
     let __trackOrder = null;
+    let __courierPos = null;
+    let __courierSubbed = false;
+
+    // Suscripción a la ubicación del repartidor (solo cuando hace falta)
+    function ensureCourierSub() {
+      if (__courierSubbed) return;
+      __courierSubbed = true;
+      onSnapshot(doc(db, "settings", "courier"), (snap) => {
+        __courierPos = snap.exists() ? snap.data() : null;
+        if (__trackOrder) renderTracking(__trackOrder);
+      }, () => {});
+    }
+
+    // Activar avisos push para este pedido
+    window.trackEnablePush = async function(orderId) {
+      try {
+        const reg = await navigator.serviceWorker.register('sw.js');
+        const perm = await Notification.requestPermission();
+        if (perm !== 'granted') {
+          alert('Para avisarte, permití las notificaciones en tu navegador.');
+          return;
+        }
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+        await setDoc(doc(db, "orders", orderId), {
+          pushSub: JSON.parse(JSON.stringify(sub))
+        }, { merge: true });
+        try { localStorage.setItem('pixel_push_' + orderId, '1'); } catch (e) {}
+        if (__trackOrder) renderTracking(__trackOrder);
+      } catch (err) {
+        console.warn('No se pudo activar el aviso:', err);
+        alert('No se pudo activar el aviso en este navegador 😞 La página igual se actualiza sola.');
+      }
+    };
 
     function renderTracking(order) {
       __trackOrder = order;
@@ -2665,7 +2732,18 @@
       const prep = trackPrepMinutes();
       const travel = trackTravelMinutes(order);
       let etaHtml = '';
-      if (cancelled) {
+      // GPS en vivo: si el repartidor está compartiendo ubicación y el pedido
+      // va en camino, el ETA sale de la distancia real repartidor → cliente
+      const gps = __courierPos;
+      const gpsFresh = gps && gps.active !== false && gps.at && (Date.now() - new Date(gps.at).getTime()) < 3 * 60000;
+      if (!cancelled && status === 'ontheway' && !esRetiro && gpsFresh &&
+          typeof order.latitude === 'number' && typeof order.longitude === 'number') {
+        const km = haversineKm(gps.lat, gps.lng, order.latitude, order.longitude);
+        const mins = Math.max(2, Math.round((km / VEL_MOTO_KMH) * 60));
+        etaHtml = km < 0.15
+          ? `<div class="track-eta ok">🛵 ¡El repartidor está llegando a tu puerta!</div>`
+          : `<div class="track-eta gps">🛵 El repartidor está a <strong>${km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1) + ' km'}</strong><br>llega en ~<strong>${mins} min</strong> <span class="te-live">● GPS en vivo</span></div>`;
+      } else if (cancelled) {
         etaHtml = `<div class="track-eta cancel">❌ Pedido cancelado.<br>Cualquier duda escribinos por WhatsApp.</div>`;
       } else if (status === 'delivered') {
         const t = trackTsToDate((order.statusHistory || {}).delivered);
@@ -2696,6 +2774,16 @@
         `<div class="track-item"><span>${it.qty || 1}× ${trackEscape(it.name)}</span><span>$${Number(it.subtotal ?? ((it.qty || 1) * (it.unitPrice || it.price || 0))).toLocaleString('es-AR')}</span></div>`
       ).join('');
 
+      // --- Aviso push ---
+      const finalState = cancelled || status === 'delivered';
+      let pushHtml = '';
+      if (!finalState && pushSupported()) {
+        const yaSuscripto = localStorage.getItem('pixel_push_' + order.id) === '1';
+        pushHtml = yaSuscripto
+          ? `<div class="track-push on">🔔 Te vamos a avisar ante cada cambio</div>`
+          : `<button class="track-push-btn" onclick="trackEnablePush('${order.id}')">🔔 AVISARME CUANDO CAMBIE</button>`;
+      }
+
       box.innerHTML = `
         <div class="track-card">
           <div class="track-head-title">🌭 PIXEL PANCHERÍA</div>
@@ -2703,6 +2791,7 @@
           <div class="track-customer">${trackEscape(order.customer || '')}</div>
           <div class="track-steps ${cancelled ? 'cancelled' : ''}">${stepsHtml}</div>
           ${etaHtml}
+          ${pushHtml}
           <div class="track-summary">
             ${itemsHtml}
             <div class="track-item total"><span>TOTAL</span><span>$${Number(order.total || 0).toLocaleString('es-AR')}</span></div>
@@ -2720,7 +2809,13 @@
       const box = document.getElementById('trackingScreen');
       if (box) box.style.display = 'flex';
       onSnapshot(doc(db, "orders", __trackId), (snap) => {
-        renderTracking(snap.exists() ? { id: snap.id, ...snap.data() } : null);
+        const o = snap.exists() ? { id: snap.id, ...snap.data() } : null;
+        // Si va en camino (delivery), escuchar también el GPS del repartidor
+        if (o && trackNormStatus(o.status) === 'ontheway' &&
+            !(o.delivery || '').toLowerCase().includes('retiro')) {
+          ensureCourierSub();
+        }
+        renderTracking(o);
       }, () => renderTracking(null));
       // Refrescar el "faltan X min" aunque no cambie el estado
       setInterval(() => { if (__trackOrder) renderTracking(__trackOrder); }, 30000);
@@ -5123,6 +5218,7 @@
       // y Safari bloquea silenciosamente el window.open / location.href
       let firebaseOrderId = null;
       firebaseOrder.statusHistory = { received: new Date().toISOString() };
+      if (trackUrl) firebaseOrder.trackUrl = trackUrl; // para el link en las notificaciones push
       const firebaseSavePromise = (window.saveOrderToFirebase
         ? window.saveOrderToFirebase(firebaseOrder, preOrderId).then(id => { firebaseOrderId = id; return id; })
                                                     .catch(e => { console.warn('Firebase falló:', e); return null; })
