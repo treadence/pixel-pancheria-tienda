@@ -9,6 +9,26 @@
 const PROJECT_ID = 'pixelpancheria';
 const API_KEY = 'AIzaSyBQGQlfNxRVMk7UfvGI6VRqURwAw7JIMuI';
 
+// --- Firestore con privilegios (service account) ---
+// Con FIREBASE_SERVICE_ACCOUNT configurada en Netlify, el webhook escribe con
+// el Admin SDK (por encima de las reglas). Es necesario porque las reglas no
+// dejan que un cliente público marque pedidos como pagados — exactamente lo
+// que este webhook sí tiene que poder hacer.
+// Sin la variable cae al REST público (solo funciona con las reglas viejas).
+const fbadmin = require('firebase-admin');
+let adminDb = null;
+try {
+  const sa = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (sa) {
+    if (!fbadmin.apps.length) {
+      fbadmin.initializeApp({ credential: fbadmin.credential.cert(JSON.parse(sa)) });
+    }
+    adminDb = fbadmin.firestore();
+  }
+} catch (e) {
+  console.error('FIREBASE_SERVICE_ACCOUNT inválida:', e.message);
+}
+
 // --- Firestore REST: decode ---
 function fsDecode(v) {
   if (v === null || v === undefined) return null;
@@ -28,6 +48,10 @@ function fsDecodeFields(fields) {
   return out;
 }
 async function fsGetDoc(path) {
+  if (adminDb) {
+    const snap = await adminDb.doc(path).get();
+    return snap.exists ? snap.data() : null;
+  }
   const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${path}?key=${API_KEY}`;
   const r = await fetch(url);
   if (!r.ok) return null;
@@ -51,6 +75,10 @@ function fsEncode(v) {
 }
 // PATCH con updateMask para tocar solo los campos indicados (merge)
 async function fsPatch(path, data) {
+  if (adminDb) {
+    await adminDb.doc(path).set(data, { merge: true });
+    return true;
+  }
   const mask = Object.keys(data).map(k => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join('&');
   const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${path}?${mask}&key=${API_KEY}`;
   const fields = {};

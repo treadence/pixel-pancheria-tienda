@@ -3,6 +3,7 @@
   "private": true,
   "description": "Tienda Pixel Panchería (sitio estático + Netlify functions de pago)",
   "dependencies": {
+    "firebase-admin": "^12.7.0",
     "mercadopago": "^2.0.15"
   }
 }
