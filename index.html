@@ -4573,6 +4573,12 @@
       const surchargeAmount = Math.round(beforeSurcharge * surchargePct / 100);
       const finalTotal = beforeSurcharge + surchargeAmount;
 
+      // Si no hay nada que cobrar (total $0 por recompensa/promo), aunque el
+      // método sea Mercado Pago el pedido se confirma directo: el botón lo refleja.
+      if (sendBtn && paySelect.value === 'mercadopago' && finalTotal <= 0) {
+        sendBtn.textContent = '🌭 CONFIRMAR PEDIDO';
+      }
+
       let html = `<div style="display:flex;justify-content:space-between;font-size:18px;color:#c9b8e6;padding:4px 0;">
       <span>Subtotal</span><span>$${subtotal.toLocaleString('es-AR')}</span>
     </div>`;
@@ -5305,7 +5311,9 @@
       }
 
       // ── Mercado Pago: paga online, el pedido arranca al confirmarse el pago ──
-      if (payCode === 'mercadopago') {
+      // Si el total quedó en $0 (recompensa/promo lo dejó gratis), MP rechaza el
+      // monto: no hay nada que cobrar, así que va directo al seguimiento.
+      if (payCode === 'mercadopago' && finalTotal > 0) {
         return await payWithMercadoPago(firebaseOrder);
       }
 
