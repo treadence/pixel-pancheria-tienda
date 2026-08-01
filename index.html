@@ -4630,6 +4630,8 @@
       }
 
       breakdown.innerHTML = html;
+      // La caja de recompensas depende del carrito: la refrescamos con cada cambio
+      if (window.COINS_ENABLED && typeof renderVidaExtraBox === 'function') renderVidaExtraBox();
     }
     window.updateCartTotals = updateCartTotals;
 
@@ -4745,18 +4747,39 @@
     // ---- Recompensas multi-nivel (canje de coins) ----
     // Resuelve qué productId corresponde a la recompensa elegida (y, si es de
     // tipo 'choice', a la opción/producto elegido dentro de ella).
-    function rewardChosenProductId() {
-      const r = window.selectedReward;
-      if (!r) return null;
-      if (r.kind === 'product') return r.productId;
-      if (r.kind === 'choice') {
-        const opt = (r.options || [])[window.selectedRewardOptionIdx || 0];
-        if (!opt) return null;
-        if (opt.kind === 'product') return opt.productId;
-        if (opt.kind === 'category') return window.selectedRewardProductId || null;
-      }
-      return null;
+    // Ids de productos que hay actualmente en el carrito
+    function cartProductIds() {
+      return Object.values(cart).map(c => c && c.item && c.item.id).filter(Boolean);
     }
+    // Para una recompensa, el producto DEL CARRITO que se haría gratis (el de mayor
+    // precio si hay varios candidatos), o null si en el carrito no hay nada que
+    // aplique. Así una recompensa solo se ofrece si su producto está en el carrito,
+    // y las de tipo 'choice' se resuelven solas según lo que el cliente ya pidió.
+    function rewardCartProductId(r) {
+      if (!r) return null;
+      const inCart = cartProductIds();
+      const has = (pid) => pid && inCart.includes(pid);
+      const candidates = [];
+      if (r.kind === 'product') { if (has(r.productId)) candidates.push(r.productId); }
+      else if (r.kind === 'choice') {
+        (r.options || []).forEach(opt => {
+          if (opt.kind === 'product') { if (has(opt.productId)) candidates.push(opt.productId); }
+          else if (opt.kind === 'category') {
+            const catItems = ((MENU[opt.category] && MENU[opt.category].items) || [])
+              .filter(it => !(opt.exclude || []).includes(it.id)).map(it => it.id);
+            inCart.forEach(pid => { if (catItems.includes(pid)) candidates.push(pid); });
+          }
+        });
+      }
+      if (!candidates.length) return null;
+      return candidates.sort((a, b) => {
+        const pa = findItem(a), pb = findItem(b);
+        return (pb ? discountedPrice(pb.price, b) : 0) - (pa ? discountedPrice(pa.price, a) : 0);
+      })[0];
+    }
+    window.rewardCartProductId = rewardCartProductId;
+    // El producto que se hace gratis = el que matchea el carrito (automático)
+    function rewardChosenProductId() { return rewardCartProductId(window.selectedReward); }
     window.rewardChosenProductId = rewardChosenProductId;
 
     // Descuento en $ de la recompensa elegida (precio del producto elegido, con promo si tiene)
@@ -4773,24 +4796,10 @@
       const cfg = getLoyaltyConfig();
       if (window.selectedReward && window.selectedReward.id === id) {
         window.selectedReward = null;
-        window.selectedRewardOptionIdx = 0;
-        window.selectedRewardProductId = null;
       } else {
-        const r = cfg.rewards.find(x => x.id === id);
-        window.selectedReward = r || null;
-        window.selectedRewardOptionIdx = 0;
-        window.selectedRewardProductId = null;
-        if (r && r.kind === 'choice' && r.options && r.options[0]) {
-          const opt = r.options[0];
-          if (opt.kind === 'product') window.selectedRewardProductId = opt.productId;
-          else if (opt.kind === 'category') {
-            const items = (MENU[opt.category].items || []).filter(it => !(opt.exclude || []).includes(it.id));
-            window.selectedRewardProductId = items[0] ? items[0].id : null;
-          }
-        }
+        window.selectedReward = cfg.rewards.find(x => x.id === id) || null;
       }
-      updateCartTotals();
-      renderVidaExtraBox();
+      updateCartTotals(); // recalcula totales y refresca la caja de recompensas
     };
     window.selectRewardOption = function(idx) {
       window.selectedRewardOptionIdx = idx;
@@ -4891,9 +4900,13 @@
       if (!window.COINS_ENABLED) { box.style.display = 'none'; box.innerHTML = ''; return; }
       const coins = (window.cuenta && window.cuenta.coins) || 0;
       const cfg = getLoyaltyConfig();
-      const available = cfg.rewards.filter(r => coins >= r.coins);
+      // Disponible = la alcanzás por coins Y su producto gratis está en el carrito
+      const available = cfg.rewards.filter(r => coins >= r.coins && rewardCartProductId(r));
+      // Si la recompensa elegida ya no aplica (sacaste el producto del carrito), soltarla
+      if (window.selectedReward && !available.some(r => r.id === window.selectedReward.id)) {
+        window.selectedReward = null;
+      }
       if (!available.length) {
-        if (window.selectedReward) { window.selectedReward = null; updateCartTotals(); }
         box.style.display = 'none';
         box.innerHTML = '';
         return;
@@ -4901,29 +4914,13 @@
       box.style.display = 'block';
       const rows = available.map(r => {
         const sel = window.selectedReward && window.selectedReward.id === r.id;
-        let subHtml = '';
-        if (sel && r.kind === 'choice') {
-          const optRows = (r.options || []).map((opt, idx) => {
-            const optSel = (window.selectedRewardOptionIdx || 0) === idx;
-            return `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:16px;margin-top:4px;">
-              <input type="radio" name="rewardOption" ${optSel ? 'checked' : ''} onchange="selectRewardOption(${idx})">
-              <span>${escHtmlL(opt.label)}</span>
-            </label>`;
-          }).join('');
-          const activeOpt = (r.options || [])[window.selectedRewardOptionIdx || 0];
-          let productPicker = '';
-          if (activeOpt && activeOpt.kind === 'category') {
-            const items = (MENU[activeOpt.category].items || []).filter(it => !(activeOpt.exclude || []).includes(it.id));
-            productPicker = `<select onchange="selectRewardProduct(this.value)" style="margin:6px 0 0 32px;background:var(--bg);border:2px solid var(--neon-purple);color:#fff;padding:6px 8px;font-family:'VT323',monospace;font-size:15px;">` +
-              items.map(it => `<option value="${it.id}" ${window.selectedRewardProductId === it.id ? 'selected' : ''}>${escHtmlL(it.name)}</option>`).join('') +
-              `</select>`;
-          }
-          subHtml = `<div style="margin:6px 0 0 32px;display:flex;flex-direction:column;gap:2px;">${optRows}${productPicker}</div>`;
-        }
+        const freeId = rewardCartProductId(r);
+        const freeProd = freeId ? findItem(freeId) : null;
+        const freeTxt = freeProd ? ` <span style="color:#9b8bb8;">(gratis: ${escHtmlL(freeProd.name)})</span>` : '';
         return `<label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:4px 0;">
           <input type="radio" name="rewardPick" ${sel ? 'checked' : ''} onclick="selectReward('${r.id}')">
-          <span>🪙 <strong>${r.coins} coins</strong> → ${escHtmlL(r.label)}</span>
-        </label>${subHtml}`;
+          <span>🪙 <strong>${r.coins} coins</strong> → ${escHtmlL(r.label)}${freeTxt}</span>
+        </label>`;
       }).join('<div style="border-top:1px dashed rgba(255,238,0,0.25);margin:6px 0;"></div>');
       box.innerHTML = `<div style="font-family:'Press Start 2P',monospace;font-size:11px;margin-bottom:8px;">▶ CANJEAR RECOMPENSA</div>${rows}`;
     }
