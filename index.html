@@ -4567,8 +4567,8 @@
       const subtotalAfterPromo = subtotal - promoSavings;
       // Cupón se calcula sobre el subtotal YA rebajado por la promo
       const discount = calcDiscount(subtotalAfterPromo, activeCoupon);
-      const vidaExtra = (typeof window.vidaExtraDiscount === 'function') ? window.vidaExtraDiscount() : 0;
-      const subtotalAfterDiscount = Math.max(0, subtotalAfterPromo - discount - vidaExtra);
+      const rewardDesc = (typeof window.rewardDiscount === 'function') ? window.rewardDiscount() : 0;
+      const subtotalAfterDiscount = Math.max(0, subtotalAfterPromo - discount - rewardDesc);
       const beforeSurcharge = subtotalAfterDiscount + shippingCost;
       const surchargeAmount = Math.round(beforeSurcharge * surchargePct / 100);
       const finalTotal = beforeSurcharge + surchargeAmount;
@@ -4577,9 +4577,9 @@
       <span>Subtotal</span><span>$${subtotal.toLocaleString('es-AR')}</span>
     </div>`;
 
-      if (vidaExtra > 0) {
+      if (rewardDesc > 0) {
         html += `<div style="display:flex;justify-content:space-between;font-size:18px;color:var(--neon-yellow);padding:4px 0;">
-        <span>🪙 Coins canjeadas</span><span>−$${vidaExtra.toLocaleString('es-AR')}</span>
+        <span>🪙 Recompensa canjeada</span><span>−$${rewardDesc.toLocaleString('es-AR')}</span>
       </div>`;
       }
 
@@ -4621,8 +4621,8 @@
         </div>`;
       }
 
-      // Coins que suma esta compra (1 cada $500 de lo que paga)
-      const coinsQueSuma = Math.floor(finalTotal / 500);
+      // Coins que suma esta compra (según la tasa configurada en el admin)
+      const coinsQueSuma = Math.floor(finalTotal / getLoyaltyConfig().coinsPerPeso);
       if (window.COINS_ENABLED && coinsQueSuma > 0) {
         html += `<div style="text-align:center;margin-top:10px;padding:8px;background:rgba(255,225,77,0.08);border:1px dashed var(--neon-yellow);color:var(--neon-yellow);font-size:17px;">
           🪙 Con esta compra sumás <strong>${coinsQueSuma}</strong> coins
@@ -4637,11 +4637,36 @@
     // 🪙 Lanzamiento de coins: agosto 2026. Poner en true para activar toda la
     // UI de coins (barra, chip, canje, "sumás X coins"). La cuenta y las
     // direcciones guardadas siguen funcionando con esto en false.
-    window.COINS_ENABLED = false;
+    window.COINS_ENABLED = true;
     const LOYALTY_KEY = 'pixel_cuenta_v1';
-    const COINS_VIDA_EXTRA = 100;
+
+    // Catálogo de recompensas por defecto (editable desde el panel admin →
+    // Promociones → Sistema de coins, se guarda en settings/store.loyaltyConfig).
+    // kind: 'product' = un producto puntual gratis. kind: 'choice' = el cliente
+    // elige entre varias opciones (cada opción puede ser 'product' o 'category').
+    const DEFAULT_LOYALTY_REWARDS = [
+      { id: 'r100', coins: 100, active: true, label: '1 Pacman gratis 🟡', kind: 'product', productId: 'p1' },
+      { id: 'r150', coins: 150, active: true, label: '1 Papas Fritas gratis 🍟', kind: 'product', productId: 'a1' },
+      { id: 'r200', coins: 200, active: true, label: '1 pancho (menos Tetris) o 1 Salchipapas gratis 🌭', kind: 'choice',
+        options: [
+          { label: 'Pancho a elección (no Tetris)', kind: 'category', category: 'panchos', exclude: ['p7'] },
+          { label: 'Salchipapas', kind: 'product', productId: 'a3' }
+        ] },
+      { id: 'r250', coins: 250, active: true, label: '1 Papas con Cheddar y Panceta gratis 🧀', kind: 'product', productId: 'a2' },
+      { id: 'r300', coins: 300, active: true, label: 'Combo 1 Player Game gratis (1 pancho + 1 bebida) 🕹️', kind: 'product', productId: 'c1' },
+      { id: 'r350', coins: 350, active: true, label: 'Combo 2 Players Game gratis (2 panchos + 2 bebidas) 👾', kind: 'product', productId: 'c2' }
+    ];
+    function getLoyaltyConfig() {
+      const cfg = (window.storeSettings && window.storeSettings.loyaltyConfig) || {};
+      const coinsPerPeso = Number(cfg.coinsPerPeso) > 0 ? Number(cfg.coinsPerPeso) : 500;
+      const rewards = (Array.isArray(cfg.rewards) && cfg.rewards.length) ? cfg.rewards : DEFAULT_LOYALTY_REWARDS;
+      return { coinsPerPeso, rewards: rewards.filter(r => r.active !== false).sort((a, b) => a.coins - b.coins) };
+    }
     window.cuenta = null;            // { nombre, telefono, direccion, coins }
-    window.vidaExtraActiva = false;
+    window.selectedReward = null;      // recompensa elegida (objeto completo) o null
+    window.selectedRewardOptionIdx = 0; // para recompensas tipo 'choice'
+    window.selectedRewardProductId = null; // producto elegido dentro de la opción (para 'category')
+
 
     function escHtmlL(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
     function normPhoneL(p) { return String(p || '').replace(/[^\d]/g, ''); }
@@ -4717,42 +4742,107 @@
       catch (e) { console.warn('cuenta save', e); }
     };
 
-    // Precio (con promo) del pancho más barato del carrito; 0 si no hay panchos
-    function lowestPanchoPrice() {
-      let min = 0;
-      Object.values(cart).forEach(c => {
-        const isPancho = (MENU.panchos.items || []).some(p => p.id === c.item.id);
-        if (!isPancho) return;
-        const unit = (typeof discountedPrice === 'function') ? discountedPrice(c.item.price, c.item.id) : c.item.price;
-        if (min === 0 || unit < min) min = unit;
-      });
-      return min;
+    // ---- Recompensas multi-nivel (canje de coins) ----
+    // Resuelve qué productId corresponde a la recompensa elegida (y, si es de
+    // tipo 'choice', a la opción/producto elegido dentro de ella).
+    function rewardChosenProductId() {
+      const r = window.selectedReward;
+      if (!r) return null;
+      if (r.kind === 'product') return r.productId;
+      if (r.kind === 'choice') {
+        const opt = (r.options || [])[window.selectedRewardOptionIdx || 0];
+        if (!opt) return null;
+        if (opt.kind === 'product') return opt.productId;
+        if (opt.kind === 'category') return window.selectedRewardProductId || null;
+      }
+      return null;
     }
-    window.vidaExtraDiscount = function() { return window.vidaExtraActiva ? lowestPanchoPrice() : 0; };
-    window.toggleVidaExtra = function() { window.vidaExtraActiva = !window.vidaExtraActiva; updateCartTotals(); renderVidaExtraBox(); };
+    window.rewardChosenProductId = rewardChosenProductId;
 
+    // Descuento en $ de la recompensa elegida (precio del producto elegido, con promo si tiene)
+    window.rewardDiscount = function() {
+      const pid = rewardChosenProductId();
+      if (!pid) return 0;
+      const prod = findItem(pid);
+      if (!prod) return 0;
+      return discountedPrice(prod.price, pid);
+    };
+
+    // Elegir/deselecccionar una recompensa (comportamiento tipo radio: solo una a la vez)
+    window.selectReward = function(id) {
+      const cfg = getLoyaltyConfig();
+      if (window.selectedReward && window.selectedReward.id === id) {
+        window.selectedReward = null;
+        window.selectedRewardOptionIdx = 0;
+        window.selectedRewardProductId = null;
+      } else {
+        const r = cfg.rewards.find(x => x.id === id);
+        window.selectedReward = r || null;
+        window.selectedRewardOptionIdx = 0;
+        window.selectedRewardProductId = null;
+        if (r && r.kind === 'choice' && r.options && r.options[0]) {
+          const opt = r.options[0];
+          if (opt.kind === 'product') window.selectedRewardProductId = opt.productId;
+          else if (opt.kind === 'category') {
+            const items = (MENU[opt.category].items || []).filter(it => !(opt.exclude || []).includes(it.id));
+            window.selectedRewardProductId = items[0] ? items[0].id : null;
+          }
+        }
+      }
+      updateCartTotals();
+      renderVidaExtraBox();
+    };
+    window.selectRewardOption = function(idx) {
+      window.selectedRewardOptionIdx = idx;
+      const r = window.selectedReward;
+      const opt = r && r.options && r.options[idx];
+      window.selectedRewardProductId = null;
+      if (opt && opt.kind === 'product') window.selectedRewardProductId = opt.productId;
+      else if (opt && opt.kind === 'category') {
+        const items = (MENU[opt.category].items || []).filter(it => !(opt.exclude || []).includes(it.id));
+        window.selectedRewardProductId = items[0] ? items[0].id : null;
+      }
+      updateCartTotals();
+      renderVidaExtraBox();
+    };
+    window.selectRewardProduct = function(pid) {
+      window.selectedRewardProductId = pid;
+      updateCartTotals();
+      renderVidaExtraBox();
+    };
     function renderCuentaBar() {
       const bar = document.getElementById('cuentaBar');
       if (!bar) return;
       if (!window.COINS_ENABLED) { bar.style.display = 'none'; renderCoinChip(); return; }
       if (window.cuenta && window.cuenta.telefono) {
         const coins = window.cuenta.coins || 0;
-        const enCurso = coins % COINS_VIDA_EXTRA;
-        const vidas = Math.floor(coins / COINS_VIDA_EXTRA);
-        const falta = COINS_VIDA_EXTRA - enCurso;
-        const pct = Math.min(100, (enCurso / COINS_VIDA_EXTRA) * 100);
+        const cfg = getLoyaltyConfig();
+        const next = cfg.rewards.find(r => r.coins > coins);
+        const alcanzadas = cfg.rewards.filter(r => coins >= r.coins).length;
+        let progresoHtml;
+        if (next) {
+          const prevThreshold = [...cfg.rewards].reverse().find(r => r.coins <= coins);
+          const base = prevThreshold ? prevThreshold.coins : 0;
+          const pct = Math.min(100, Math.round(((coins - base) / (next.coins - base)) * 100));
+          progresoHtml = `
+            <div style="height:10px;background:rgba(255,255,255,0.1);border-radius:6px;overflow:hidden;margin:6px 0 4px;"><div style="height:100%;width:${pct}%;background:#ffe14d;transition:width .3s;"></div></div>
+            <div style="font-size:16px;color:#c9b8e6;">Te faltan ${next.coins - coins} coins para: ${escHtmlL(next.label)}</div>`;
+        } else if (cfg.rewards.length) {
+          progresoHtml = `<div style="font-size:16px;color:var(--neon-green);margin-top:4px;">¡Tenés recompensas para canjear en tu próximo pedido! 🎉</div>`;
+        } else {
+          progresoHtml = '';
+        }
         bar.innerHTML = `
           <div style="max-width:900px;margin:0 auto;padding:10px 16px;font-family:'VT323',monospace;color:#e8e0ff;">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:19px;">
-              <span>👾 Hola <strong>${escHtmlL(window.cuenta.nombre || '')}</strong> · 🪙 <strong>${coins}</strong> coins${vidas > 0 ? ` · <strong style="color:#ffe14d;">${vidas} vida${vidas > 1 ? 's' : ''} extra</strong> 🌭` : ''}</span>
+              <span>👾 Hola <strong>${escHtmlL(window.cuenta.nombre || '')}</strong> · 🪙 <strong>${coins}</strong> coins${alcanzadas > 0 ? ` · <strong style="color:#ffe14d;">${alcanzadas} recompensa${alcanzadas > 1 ? 's' : ''} disponible${alcanzadas > 1 ? 's' : ''}</strong> 🎉` : ''}</span>
               <button onclick="cuentaLogout()" style="background:transparent;border:1px solid #6b5b95;color:#9b8bb8;padding:4px 10px;font-family:inherit;font-size:14px;cursor:pointer;">salir</button>
             </div>
-            <div style="height:10px;background:rgba(255,255,255,0.1);border-radius:6px;overflow:hidden;margin:6px 0 4px;"><div style="height:100%;width:${pct}%;background:#ffe14d;transition:width .3s;"></div></div>
-            <div style="font-size:16px;color:#c9b8e6;">${coins >= COINS_VIDA_EXTRA ? '¡Tenés un pancho gratis para canjear en tu próximo pedido! 🌭' : `Te faltan ${falta} coins para tu vida extra 🌭`}</div>
+            ${progresoHtml}
           </div>`;
         bar.style.display = 'block';
       } else {
-        bar.innerHTML = `<div style="max-width:900px;margin:0 auto;padding:10px 16px;font-family:'VT323',monospace;color:#c9b8e6;font-size:18px;text-align:center;">🪙 Hacé tu primer pedido y empezá a juntar <strong style="color:#ffe14d;">coins</strong> → cada 100 = un pancho gratis 🌭</div>`;
+        bar.innerHTML = `<div style="max-width:900px;margin:0 auto;padding:10px 16px;font-family:'VT323',monospace;color:#c9b8e6;font-size:18px;text-align:center;">🪙 Hacé tu primer pedido y empezá a juntar <strong style="color:#ffe14d;">coins</strong> → sumá recompensas 🎉</div>`;
         bar.style.display = 'block';
       }
       renderCoinChip();
@@ -4788,7 +4878,7 @@
 
     window.cuentaLogout = function() {
       if (!confirm('¿Cerrar sesión de tu cuenta en este dispositivo?')) return;
-      window.cuenta = null; window.vidaExtraActiva = false;
+      window.cuenta = null; window.selectedReward = null; window.selectedRewardOptionIdx = 0; window.selectedRewardProductId = null;
       try { localStorage.removeItem(LOYALTY_KEY); } catch (e) {}
       renderCuentaBar();
       const ov = document.getElementById('cartOverlay');
@@ -4798,18 +4888,44 @@
     function renderVidaExtraBox() {
       const box = document.getElementById('vidaExtraBox');
       if (!box) return;
+      if (!window.COINS_ENABLED) { box.style.display = 'none'; box.innerHTML = ''; return; }
       const coins = (window.cuenta && window.cuenta.coins) || 0;
-      if (window.COINS_ENABLED && coins >= COINS_VIDA_EXTRA && lowestPanchoPrice() > 0) {
-        box.style.display = 'block';
-        box.innerHTML = `<label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-          <input type="checkbox" ${window.vidaExtraActiva ? 'checked' : ''} onchange="toggleVidaExtra()" style="width:22px;height:22px;flex:0 0 auto;">
-          <span>🪙 Canjear <strong>vida extra</strong> (−100 coins) → 1 pancho gratis 🌭</span>
-        </label>`;
-      } else {
-        if (window.vidaExtraActiva) { window.vidaExtraActiva = false; updateCartTotals(); }
+      const cfg = getLoyaltyConfig();
+      const available = cfg.rewards.filter(r => coins >= r.coins);
+      if (!available.length) {
+        if (window.selectedReward) { window.selectedReward = null; updateCartTotals(); }
         box.style.display = 'none';
         box.innerHTML = '';
+        return;
       }
+      box.style.display = 'block';
+      const rows = available.map(r => {
+        const sel = window.selectedReward && window.selectedReward.id === r.id;
+        let subHtml = '';
+        if (sel && r.kind === 'choice') {
+          const optRows = (r.options || []).map((opt, idx) => {
+            const optSel = (window.selectedRewardOptionIdx || 0) === idx;
+            return `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:16px;margin-top:4px;">
+              <input type="radio" name="rewardOption" ${optSel ? 'checked' : ''} onchange="selectRewardOption(${idx})">
+              <span>${escHtmlL(opt.label)}</span>
+            </label>`;
+          }).join('');
+          const activeOpt = (r.options || [])[window.selectedRewardOptionIdx || 0];
+          let productPicker = '';
+          if (activeOpt && activeOpt.kind === 'category') {
+            const items = (MENU[activeOpt.category].items || []).filter(it => !(activeOpt.exclude || []).includes(it.id));
+            productPicker = `<select onchange="selectRewardProduct(this.value)" style="margin:6px 0 0 32px;background:var(--bg);border:2px solid var(--neon-purple);color:#fff;padding:6px 8px;font-family:'VT323',monospace;font-size:15px;">` +
+              items.map(it => `<option value="${it.id}" ${window.selectedRewardProductId === it.id ? 'selected' : ''}>${escHtmlL(it.name)}</option>`).join('') +
+              `</select>`;
+          }
+          subHtml = `<div style="margin:6px 0 0 32px;display:flex;flex-direction:column;gap:2px;">${optRows}${productPicker}</div>`;
+        }
+        return `<label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:4px 0;">
+          <input type="radio" name="rewardPick" ${sel ? 'checked' : ''} onclick="selectReward('${r.id}')">
+          <span>🪙 <strong>${r.coins} coins</strong> → ${escHtmlL(r.label)}</span>
+        </label>${subHtml}`;
+      }).join('<div style="border-top:1px dashed rgba(255,238,0,0.25);margin:6px 0;"></div>');
+      box.innerHTML = `<div style="font-family:'Press Start 2P',monospace;font-size:11px;margin-bottom:8px;">▶ CANJEAR RECOMPENSA</div>${rows}`;
     }
     window.renderVidaExtraBox = renderVidaExtraBox;
 
@@ -4974,7 +5090,7 @@
 
     async function sendOrder() {
       const name = document.getElementById('fName').value.trim();
-      const phone = document.getElementById('fPhone').value.trim();
+      const phone = normPhoneL(document.getElementById('fPhone').value); // digitos: match con loyalty/{phone} y esTelefono en las reglas
       const paySelect = document.getElementById('fPay');
       const payCode = paySelect.value;
       const payLabel = paySelect.selectedOptions[0].textContent.replace(/\s*\(.*?\)/, '').trim();
@@ -5038,8 +5154,8 @@
       const promoSavings = entries.reduce((s, [, c]) => s + promoDiscountForItem(c), 0);
       const subtotalAfterPromo = subtotal - promoSavings;
       const discount = calcDiscount(subtotalAfterPromo, activeCoupon);
-      const vidaExtraDesc = (typeof window.vidaExtraDiscount === 'function') ? window.vidaExtraDiscount() : 0;
-      const subtotalAfterDiscount = Math.max(0, subtotalAfterPromo - discount - vidaExtraDesc);
+      const rewardDesc = (typeof window.rewardDiscount === 'function') ? window.rewardDiscount() : 0;
+      const subtotalAfterDiscount = Math.max(0, subtotalAfterPromo - discount - rewardDesc);
       const beforeSurcharge = subtotalAfterDiscount + shippingCost;
       const surchargeAmount = Math.round(beforeSurcharge * surchargePct / 100);
       const finalTotal = beforeSurcharge + surchargeAmount;
@@ -5157,17 +5273,24 @@
         source: 'web'
       };
 
-      // Vida extra canjeada (el admin descuenta 100 coins al entregar)
-      if (window.vidaExtraActiva && vidaExtraDesc > 0) {
-        firebaseOrder.vidaExtra = true;
-        firebaseOrder.vidaExtraDescuento = vidaExtraDesc;
+      // Recompensa canjeada (el admin descuenta los coins correspondientes al entregar)
+      if (window.selectedReward && rewardDesc > 0) {
+        const _pid = rewardChosenProductId();
+        const _prod = _pid ? findItem(_pid) : null;
+        firebaseOrder.redeemedReward = {
+          id: window.selectedReward.id,
+          coins: window.selectedReward.coins,
+          label: window.selectedReward.label,
+          discount: rewardDesc,
+          product: _prod ? _prod.name : ''
+        };
       }
 
       // Guardar/crear la cuenta del cliente (perfil, no coins) para reconocerlo la próxima vez
       if (typeof window.upsertCuenta === 'function') {
         try { await window.upsertCuenta(name, phone, address, loc); } catch (e) {}
       }
-      window.vidaExtraActiva = false;
+      window.selectedReward = null; window.selectedRewardOptionIdx = 0; window.selectedRewardProductId = null;
 
       // Incluir info del cupón si se aplicó
       if (activeCoupon && discount > 0) {
