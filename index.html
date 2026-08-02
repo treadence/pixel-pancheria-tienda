@@ -266,6 +266,7 @@
       opacity: 0.4;
       animation: drift 60s linear infinite;
       z-index: 0;
+      pointer-events: none; /* capa decorativa: no debe interceptar clicks */
     }
 
     @keyframes drift {
@@ -2385,6 +2386,14 @@
     <div class="product-modal">
       <button class="close-btn" onclick="closeProduct()">X</button>
       <div id="productBody"></div>
+    </div>
+  </div>
+
+  <!-- Popup de premios (se abre al tocar el monitor de coins) -->
+  <div class="product-overlay" id="prizesOverlay">
+    <div class="product-modal">
+      <button class="close-btn" onclick="closePrizes()">X</button>
+      <div id="prizesBody"></div>
     </div>
   </div>
 
@@ -4850,7 +4859,7 @@
         bar.innerHTML = `
           <div style="max-width:900px;margin:0 auto;padding:10px 16px;font-family:'VT323',monospace;color:#e8e0ff;">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:19px;">
-              <span>👾 Hola <strong>${escHtmlL(window.cuenta.nombre || '')}</strong> · 🪙 <strong>${coins}</strong> coins${alcanzadas > 0 ? ` · <strong style="color:#ffe14d;">${alcanzadas} recompensa${alcanzadas > 1 ? 's' : ''} disponible${alcanzadas > 1 ? 's' : ''}</strong> 🎉` : ''}</span>
+              <span onclick="openPrizes()" style="cursor:pointer;" title="Ver tus premios">👾 Hola <strong>${escHtmlL(window.cuenta.nombre || '')}</strong> · 🪙 <strong>${coins}</strong> coins${alcanzadas > 0 ? ` · <strong style="color:#ffe14d;">${alcanzadas} recompensa${alcanzadas > 1 ? 's' : ''} disponible${alcanzadas > 1 ? 's' : ''}</strong> 🎉` : ''} <span style="text-decoration:underline;color:#ffe14d;font-size:16px;white-space:nowrap;">ver premios ▸</span></span>
               <button onclick="cuentaLogout()" style="background:transparent;border:1px solid #6b5b95;color:#9b8bb8;padding:4px 10px;font-family:inherit;font-size:14px;cursor:pointer;">salir</button>
             </div>
             ${progresoHtml}
@@ -4870,12 +4879,59 @@
       if (!chip) return;
       if (window.COINS_ENABLED && window.cuenta && window.cuenta.telefono) {
         chip.innerHTML = `🪙 <strong style="margin-left:2px;">${window.cuenta.coins || 0}</strong>`;
-        chip.style.cssText = "position:fixed;top:10px;right:12px;z-index:200;background:#160f2e;border:2px solid #ffe14d;color:#ffe14d;font-family:'VT323',monospace;font-size:20px;font-weight:700;padding:5px 14px;border-radius:20px;box-shadow:0 0 12px rgba(255,225,77,0.45);display:flex;align-items:center;gap:2px;";
+        chip.style.cssText = "position:fixed;top:10px;right:12px;z-index:200;background:#160f2e;border:2px solid #ffe14d;color:#ffe14d;font-family:'VT323',monospace;font-size:20px;font-weight:700;padding:5px 14px;border-radius:20px;box-shadow:0 0 12px rgba(255,225,77,0.45);align-items:center;gap:2px;cursor:pointer;";
+        chip.onclick = window.openPrizes;
+        chip.title = 'Ver tus premios';
       } else {
         chip.style.display = 'none';
+        chip.onclick = null;
       }
+      updateCoinChipVisibility();
     }
     window.renderCoinChip = renderCoinChip;
+
+    // El chip flotante aparece SOLO cuando la barra de coins ya no está a la vista
+    // (scrolleaste): así no se superpone con el header ni duplica la barra.
+    function updateCoinChipVisibility() {
+      const chip = document.getElementById('coinChip');
+      if (!chip) return;
+      const loggedIn = window.COINS_ENABLED && window.cuenta && window.cuenta.telefono;
+      if (!loggedIn) { chip.style.display = 'none'; return; }
+      const bar = document.getElementById('cuentaBar');
+      const barVisible = bar && getComputedStyle(bar).display !== 'none' && bar.getBoundingClientRect().bottom > 4;
+      chip.style.display = barVisible ? 'none' : 'flex';
+    }
+    window.addEventListener('scroll', updateCoinChipVisibility, { passive: true });
+
+    // Popup de premios: catálogo de recompensas, cuáles alcanzaste y cuánto falta.
+    window.openPrizes = function() {
+      const cfg = getLoyaltyConfig();
+      const coins = (window.cuenta && window.cuenta.coins) || 0;
+      const body = document.getElementById('prizesBody');
+      if (!body) return;
+      const rows = (cfg.rewards || []).map(r => {
+        const reached = coins >= r.coins;
+        const falta = r.coins - coins;
+        return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid rgba(255,238,0,0.18);${reached ? '' : 'opacity:0.55;'}">
+          <span style="font-size:18px;">${reached ? '✅' : '🔒'} 🪙 <strong style="color:#ffe14d;">${r.coins}</strong> · ${escHtmlL(r.label)}</span>
+          <span style="font-size:15px;white-space:nowrap;color:${reached ? 'var(--neon-green)' : '#c9b8e6'};">${reached ? '¡lo tenés!' : 'faltan ' + falta}</span>
+        </div>`;
+      }).join('');
+      body.innerHTML = `
+        <div style="font-family:'Press Start 2P',monospace;font-size:14px;color:#ffe14d;margin-bottom:8px;">🪙 TUS PREMIOS</div>
+        <div style="font-size:18px;color:#e8e0ff;margin-bottom:6px;">Tenés <strong style="color:#ffe14d;">${coins}</strong> coins</div>
+        ${rows || '<div style="color:#c9b8e6;padding:10px 0;">Todavía no hay premios cargados.</div>'}
+        <div style="font-size:15px;color:#9b8bb8;margin-top:12px;">Canjeás el premio en el carrito, al hacer el pedido — se aplica al producto que ya tengas agregado.</div>`;
+      document.getElementById('prizesOverlay').classList.add('open');
+    };
+    window.closePrizes = function() {
+      const ov = document.getElementById('prizesOverlay');
+      if (ov) ov.classList.remove('open');
+    };
+    (function () {
+      const ov = document.getElementById('prizesOverlay');
+      if (ov) ov.addEventListener('click', e => { if (e.target.id === 'prizesOverlay') window.closePrizes(); });
+    })();
 
     // Cartel de bienvenida (3s) si el cliente ya está registrado
     function showWelcomeToast() {
