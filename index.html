@@ -2397,6 +2397,14 @@
     </div>
   </div>
 
+  <!-- Popup de feedback: "¿Cómo fue tu último pedido?" (al volver a la tienda) -->
+  <div class="product-overlay" id="feedbackOverlay">
+    <div class="product-modal">
+      <button class="close-btn" onclick="dismissFeedback()">X</button>
+      <div id="feedbackBody"></div>
+    </div>
+  </div>
+
   <script type="module">
     // ====== FIREBASE ======
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
@@ -2894,24 +2902,94 @@
       setInterval(() => { if (__trackOrder) renderTracking(__trackOrder); }, 30000);
     }
 
-    // Chip "pedido en curso" al volver a la tienda (recordado por 3 horas)
+    // ====== FEEDBACK DEL ÚLTIMO PEDIDO ("¿Cómo fue tu último pedido?") ======
+    window.__fbId = null; window.__fbRating = 0; window.__fbOrder = null;
+    function showFeedbackPrompt(orderId, order) {
+      window.__fbId = orderId; window.__fbRating = 0; window.__fbOrder = order;
+      renderFeedbackBody();
+      const ov = document.getElementById('feedbackOverlay');
+      if (ov) ov.classList.add('open');
+    }
+    window.showFeedbackPrompt = showFeedbackPrompt;
+    function renderFeedbackBody() {
+      const body = document.getElementById('feedbackBody');
+      if (!body) return;
+      const order = window.__fbOrder || {};
+      const stars = [1,2,3,4,5].map(n =>
+        `<span class="fb-star" onclick="setFeedbackRating(${n})" style="cursor:pointer;font-size:40px;line-height:1;filter:${n <= window.__fbRating ? 'none' : 'grayscale(1) opacity(0.4)'};transition:filter .1s;">⭐</span>`
+      ).join('');
+      const primer = (order.items && order.items[0]) ? order.items[0].name : '';
+      body.innerHTML = `
+        <div style="font-family:'Press Start 2P',monospace;font-size:13px;color:#ffe14d;margin-bottom:10px;line-height:1.5;">¿CÓMO FUE TU<br>ÚLTIMO PEDIDO?</div>
+        ${primer ? `<div style="font-size:18px;color:#c9b8e6;margin-bottom:14px;">🌭 ${escHtmlL(primer)}${(order.items||[]).length>1?' y más':''}</div>` : ''}
+        <div style="display:flex;justify-content:center;gap:8px;margin-bottom:14px;">${stars}</div>
+        <textarea id="feedbackComment" placeholder="Contanos algo (opcional)…" style="width:100%;box-sizing:border-box;background:var(--bg);border:2px solid var(--neon-purple);color:#fff;font-family:'VT323',monospace;font-size:18px;padding:10px;border-radius:8px;min-height:60px;resize:vertical;"></textarea>
+        <button onclick="submitFeedback()" style="width:100%;margin-top:12px;background:#ffe14d;color:#1a0033;border:none;font-family:'Press Start 2P',monospace;font-size:12px;padding:13px;border-radius:8px;cursor:pointer;">ENVIAR</button>
+        <div onclick="dismissFeedback()" style="text-align:center;margin-top:12px;color:#9b8bb8;font-size:16px;cursor:pointer;text-decoration:underline;">ahora no</div>`;
+    }
+    window.setFeedbackRating = function(n) {
+      window.__fbRating = n;
+      document.querySelectorAll('#feedbackBody .fb-star').forEach((s, i) => {
+        s.style.filter = (i + 1) <= n ? 'none' : 'grayscale(1) opacity(0.4)';
+      });
+    };
+    window.submitFeedback = async function() {
+      if (!window.__fbId) return;
+      if (!window.__fbRating) { alert('Elegí cuántas estrellas ⭐'); return; }
+      const comment = ((document.getElementById('feedbackComment') || {}).value || '').trim().slice(0, 500);
+      try {
+        await setDoc(doc(db, "orders", window.__fbId), {
+          feedback: { rating: window.__fbRating, comment, at: serverTimestamp() }
+        }, { merge: true });
+        try { localStorage.setItem('pixel_fb_done_' + window.__fbId, '1'); localStorage.removeItem('pixel_pedido_activo'); } catch (e) {}
+        const body = document.getElementById('feedbackBody');
+        if (body) body.innerHTML = `
+          <div style="font-family:'Press Start 2P',monospace;font-size:14px;color:var(--neon-green);margin-bottom:12px;">¡GRACIAS! ⭐</div>
+          <div style="font-size:18px;color:#c9b8e6;">Tu opinión nos ayuda un montón 🙌</div>
+          <button onclick="dismissFeedback()" style="width:100%;margin-top:16px;background:#ffe14d;color:#1a0033;border:none;font-family:'Press Start 2P',monospace;font-size:12px;padding:13px;border-radius:8px;cursor:pointer;">CERRAR</button>`;
+      } catch (err) {
+        console.error('feedback', err);
+        alert('No se pudo enviar tu feedback. Probá de nuevo en un ratito.');
+      }
+    };
+    window.dismissFeedback = function() {
+      if (window.__fbId) { try { localStorage.setItem('pixel_fb_done_' + window.__fbId, '1'); localStorage.removeItem('pixel_pedido_activo'); } catch (e) {} }
+      const ov = document.getElementById('feedbackOverlay');
+      if (ov) ov.classList.remove('open');
+    };
+    (function () {
+      const ov = document.getElementById('feedbackOverlay');
+      if (ov) ov.addEventListener('click', e => { if (e.target.id === 'feedbackOverlay') window.dismissFeedback(); });
+    })();
+
+    // Al volver a la tienda: chip "pedido en curso" (fresco) o prompt de feedback
+    // si el último pedido ya está entregado y todavía no lo calificaste.
     if (!__trackId) {
       (function activeOrderChip() {
         let saved = null;
         try { saved = JSON.parse(localStorage.getItem('pixel_pedido_activo') || 'null'); } catch (e) {}
-        if (!saved || !saved.id || (Date.now() - (saved.at || 0)) > 3 * 60 * 60 * 1000) return;
+        if (!saved || !saved.id) return;
+        const age = Date.now() - (saved.at || 0);
+        if (age > 3 * 24 * 60 * 60 * 1000) { try { localStorage.removeItem('pixel_pedido_activo'); } catch (e) {} return; }
         getDoc(doc(db, "orders", saved.id)).then(snap => {
           if (!snap.exists()) return;
-          const st = trackNormStatus(snap.data().status);
-          if (st === 'delivered' || st === 'cancelled') {
-            try { localStorage.removeItem('pixel_pedido_activo'); } catch (e) {}
+          const order = snap.data();
+          const st = trackNormStatus(order.status);
+          if (st === 'cancelled') { try { localStorage.removeItem('pixel_pedido_activo'); } catch (e) {} return; }
+          if (st === 'delivered') {
+            const dismissed = localStorage.getItem('pixel_fb_done_' + saved.id) === '1';
+            if (order.feedback || dismissed) { try { localStorage.removeItem('pixel_pedido_activo'); } catch (e) {} return; }
+            showFeedbackPrompt(saved.id, order);
             return;
           }
-          const a = document.createElement('a');
-          a.className = 'track-chip';
-          a.href = location.pathname + '?pedido=' + saved.id;
-          a.innerHTML = '📍 Tu pedido en curso →';
-          document.body.appendChild(a);
+          // Pedido en curso: el chip solo si es reciente (< 3 h)
+          if (age <= 3 * 60 * 60 * 1000) {
+            const a = document.createElement('a');
+            a.className = 'track-chip';
+            a.href = location.pathname + '?pedido=' + saved.id;
+            a.innerHTML = '📍 Tu pedido en curso →';
+            document.body.appendChild(a);
+          }
         }).catch(() => {});
       })();
     }
