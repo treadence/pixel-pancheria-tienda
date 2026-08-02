@@ -771,6 +771,14 @@
       position: relative;
     }
 
+    /* Popups chicos (feedback, premios): tarjeta centrada, NUNCA pantalla completa */
+    .product-overlay.mini .product-modal {
+      max-width: 420px;
+      height: auto;
+      border-radius: 14px;
+      text-align: center;
+    }
+
     .product-modal::-webkit-scrollbar {
       width: 12px;
     }
@@ -1179,6 +1187,18 @@
         box-shadow: none;
         border-radius: 0;
         animation: slideUp 0.3s ease-out;
+      }
+
+      /* Los popups chicos NO van a pantalla completa en celu: quedan centrados */
+      .product-overlay.mini { align-items: center; padding: 16px; }
+      .product-overlay.mini .product-modal {
+        height: auto;
+        max-height: 85vh;
+        border: 4px solid var(--neon-cyan);
+        border-radius: 14px;
+        box-shadow: none;
+        padding: 22px 18px;
+        animation: none;
       }
 
       .pm-sprite {
@@ -2390,7 +2410,7 @@
   </div>
 
   <!-- Popup de premios (se abre al tocar el monitor de coins) -->
-  <div class="product-overlay" id="prizesOverlay">
+  <div class="product-overlay mini" id="prizesOverlay">
     <div class="product-modal">
       <button class="close-btn" onclick="closePrizes()">X</button>
       <div id="prizesBody"></div>
@@ -2398,7 +2418,7 @@
   </div>
 
   <!-- Popup de feedback: "¿Cómo fue tu último pedido?" (al volver a la tienda) -->
-  <div class="product-overlay" id="feedbackOverlay">
+  <div class="product-overlay mini" id="feedbackOverlay">
     <div class="product-modal">
       <button class="close-btn" onclick="dismissFeedback()">X</button>
       <div id="feedbackBody"></div>
@@ -2711,7 +2731,13 @@
         if (__trackOrder) renderTracking(__trackOrder);
       } catch (err) {
         console.warn('No se pudo activar el aviso:', err);
-        alert('No se pudo activar el aviso en este navegador 😞 La página igual se actualiza sola.');
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        if (isIOS && !standalone) {
+          alert('📲 En iPhone los avisos funcionan agregando la tienda a tu pantalla de inicio:\n\nTocá el botón Compartir ⬆️ y elegí "Agregar a inicio".\n\nIgual esta pantalla se actualiza sola, no hace falta que la cierres. 👍');
+        } else {
+          alert('No se pudo activar el aviso en este navegador 😞\nIgual esta pantalla se actualiza sola, dejala abierta. 👍');
+        }
       }
     };
 
@@ -5213,10 +5239,10 @@
         const data = await r.json();
         if (!r.ok || !data.init_point) throw new Error(data.error || 'no se pudo crear el pago');
 
-        // El pedido ya está guardado: limpiar el carrito (cart es const → mutar,
-        // vive solo en memoria) y redirigir a Mercado Pago
-        Object.keys(cart).forEach(k => delete cart[k]);
-        activeCoupon = null; updateBadge();
+        // NO limpiar el carrito acá: si el cliente toca "atrás" sin pagar, el
+        // navegador restaura esta página (bfcache) y tiene que encontrar su
+        // carrito intacto para reintentar. Un pago exitoso redirige a otra URL
+        // (carga nueva, el carrito en memoria arranca vacío igual).
         window.location.href = data.init_point;
       } catch (err) {
         console.error('Error Mercado Pago:', err);
@@ -5224,6 +5250,18 @@
         if (btn) { btn.disabled = false; btn.textContent = restore; }
       }
     }
+
+    // Al volver del bfcache (p.ej. "atrás" desde Mercado Pago sin pagar): el
+    // botón quedó deshabilitado en "⏳ Creando el pago..." y el carrito puede
+    // estar desincronizado. Re-habilitamos y refrescamos para que se pueda
+    // reintentar el pedido normalmente.
+    window.addEventListener('pageshow', (e) => {
+      if (!e.persisted) return;
+      const btn = document.getElementById('sendBtn');
+      if (btn) btn.disabled = false;
+      if (typeof updateCartTotals === 'function') updateCartTotals();
+      if (typeof renderVidaExtraBox === 'function') renderVidaExtraBox();
+    });
 
     async function sendOrder() {
       const name = document.getElementById('fName').value.trim();
