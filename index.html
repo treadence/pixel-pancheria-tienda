@@ -2996,7 +2996,7 @@
         try { saved = JSON.parse(localStorage.getItem('pixel_pedido_activo') || 'null'); } catch (e) {}
         if (!saved || !saved.id) return;
         const age = Date.now() - (saved.at || 0);
-        if (age > 3 * 24 * 60 * 60 * 1000) { try { localStorage.removeItem('pixel_pedido_activo'); } catch (e) {} return; }
+        if (age > 30 * 24 * 60 * 60 * 1000) { try { localStorage.removeItem('pixel_pedido_activo'); } catch (e) {} return; }
         getDoc(doc(db, "orders", saved.id)).then(snap => {
           if (!snap.exists()) return;
           const order = snap.data();
