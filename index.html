@@ -4406,9 +4406,27 @@
       renderUpsellList();
     }
 
-    // "FINALIZAR PEDIDO": cerrar upsell y continuar al pago
+    // Re-renderiza el carrito para reflejar lo agregado desde el upsell, PERO
+    // preservando lo que el cliente ya tipeó en el formulario (renderCart reescribe
+    // #cartBody y borraría los inputs). Snapshot → renderCart → restore.
+    function refreshCartKeepingForm() {
+      const ov = document.getElementById('cartOverlay');
+      if (!ov || !ov.classList.contains('open')) return;
+      const ids = ['fName', 'fPhone', 'fAddress', 'fAddressUnit', 'fAddressRef', 'fNotes', 'fPay', 'fCoupon'];
+      const snap = {};
+      ids.forEach(id => { const el = document.getElementById(id); if (el) snap[id] = el.value; });
+      renderCart();
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && snap[id] != null && snap[id] !== '') el.value = snap[id];
+      });
+      if (typeof updateCartTotals === 'function') updateCartTotals();
+    }
+
+    // "FINALIZAR PEDIDO": cerrar upsell, reflejar lo agregado y continuar al pago
     function upsellProceed() {
       document.getElementById('upsellOverlay').classList.remove('open');
+      refreshCartKeepingForm();
       sendOrder();
     }
 
@@ -4416,6 +4434,7 @@
     // para reflejar lo que se haya agregado, sin perder los datos del formulario.
     function closeUpsell() {
       document.getElementById('upsellOverlay').classList.remove('open');
+      refreshCartKeepingForm();
     }
 
     document.getElementById('upsellOverlay').addEventListener('click', e => {

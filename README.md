@@ -50,7 +50,16 @@ total + el botón quedan pegados abajo del carrito, siempre visibles.
   - **Fix de tamaños:** el label `▶ TIPO DE SALCHICHA` (`.upsell-sausage-field label`) se veía
     grande/apretado (10px sin `line-height`, mientras el resto de la app usa 9px en mobile). Se
     igualó a `.pm-section-title` (cian, `line-height: 1.6`, 10px desktop / 9px mobile) y el
-    `.upsell-title` baja a 13px en mobile.
+    `.upsell-title` baja a 13px en mobile. El bloque `.upsell-sausage-field` pasó a `margin: 18px 0`
+    (antes solo abajo) para que el aire arriba/abajo del selector sea simétrico.
+  - **Fix del carrito desactualizado:** al agregar algo desde el popup y cerrar/`FINALIZAR PEDIDO`,
+    el carrito de atrás seguía mostrando el estado viejo (lista + total) ~2s hasta redirigir a MP
+    (el pago sí tomaba el total correcto porque `sendOrder` lee el objeto `cart`). Se agregó
+    `refreshCartKeepingForm()`: hace snapshot de los inputs del formulario (`fName`, `fPhone`,
+    `fAddress`, `fAddressUnit`, `fAddressRef`, `fNotes`, `fPay`, `fCoupon`), llama `renderCart()` y
+    restaura esos valores + `updateCartTotals()`. Se llama desde `upsellProceed()` y `closeUpsell()`,
+    así el carrito refleja lo agregado sin perder lo que el cliente ya tipeó. (La dirección/mapa y
+    el cupón viven en estado del módulo, no en el DOM, así que sobreviven al re-render.)
 - El total de la barra (`#ctaTotal`) lo actualiza `updateCartTotals()` con el `finalTotal` (mismo
   valor que el desglose); muestra `*` si el envío queda "a confirmar". El `#sendBtn` no se movió
   de lugar, así que los estados/textos por método de pago siguen intactos.
