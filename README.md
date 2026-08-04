@@ -47,6 +47,10 @@ total + el botón quedan pegados abajo del carrito, siempre visibles.
     Estado nuevo: `_upsellSuggestions` (para re-render) y `_upsellAdded` (Set de ids ya agregados,
     para marcar las cards "✓ AGREGADO"). Funciones nuevas en `window`: `upsellConfirmPancho`,
     `upsellBackToList`.
+  - **Fix de tamaños:** el label `▶ TIPO DE SALCHICHA` (`.upsell-sausage-field label`) se veía
+    grande/apretado (10px sin `line-height`, mientras el resto de la app usa 9px en mobile). Se
+    igualó a `.pm-section-title` (cian, `line-height: 1.6`, 10px desktop / 9px mobile) y el
+    `.upsell-title` baja a 13px en mobile.
 - El total de la barra (`#ctaTotal`) lo actualiza `updateCartTotals()` con el `finalTotal` (mismo
   valor que el desglose); muestra `*` si el envío queda "a confirmar". El `#sendBtn` no se movió
   de lugar, así que los estados/textos por método de pago siguen intactos.
