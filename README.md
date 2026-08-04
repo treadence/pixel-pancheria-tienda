@@ -60,6 +60,13 @@ total + el botón quedan pegados abajo del carrito, siempre visibles.
     restaura esos valores + `updateCartTotals()`. Se llama desde `upsellProceed()` y `closeUpsell()`,
     así el carrito refleja lo agregado sin perder lo que el cliente ya tipeó. (La dirección/mapa y
     el cupón viven en estado del módulo, no en el DOM, así que sobreviven al re-render.)
+  - **Fix del chip "pedido en curso" tapado en mobile:** el chip `.track-chip` ("📍 Tu pedido en
+    curso →", lo crea `activeOrderChip()` para volver al seguimiento si el cliente cerró/volvió
+    atrás) quedaba **tapado detrás del `.cart-fab`** en mobile, porque ahí el FAB del carrito ocupa
+    todo el ancho (`left:16px; right:16px`, z-index 200) a la misma altura (`bottom` ~20px, z-index
+    150). Se agregó una media query (`max-width: 600px`) **después de la regla base** (para ganar por
+    orden de fuente) que sube el chip por encima del FAB: `bottom: calc(84px + safe-area)`,
+    full-width y `z-index: 210`. En desktop no cambia (chip a la izquierda, carrito a la derecha).
 - El total de la barra (`#ctaTotal`) lo actualiza `updateCartTotals()` con el `finalTotal` (mismo
   valor que el desglose); muestra `*` si el envío queda "a confirmar". El `#sendBtn` no se movió
   de lugar, así que los estados/textos por método de pago siguen intactos.

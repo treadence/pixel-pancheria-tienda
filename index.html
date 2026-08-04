@@ -2578,6 +2578,17 @@
     animation: ts-pulse 2.4s ease-in-out infinite;
   }
 
+  /* En mobile el FAB del carrito ocupa todo el ancho (left+right:16px) y taparía
+     el chip de "pedido en curso": lo subimos justo por encima del FAB.
+     (Va después de la regla base para ganar por orden de fuente.) */
+  @media (max-width: 600px) {
+    .track-chip {
+      bottom: calc(84px + env(safe-area-inset-bottom));
+      left: 16px; right: 16px;
+      z-index: 210; text-align: center;
+    }
+  }
+
   </style>
 </head>
 
