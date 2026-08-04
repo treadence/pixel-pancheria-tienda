@@ -1454,6 +1454,167 @@
       box-shadow: 2px 2px 0 var(--neon-pink);
     }
 
+    /* Barra de checkout pegada abajo del carrito: total + botón siempre visibles */
+    .cart-cta-bar {
+      position: sticky;
+      bottom: 0;
+      z-index: 6;
+      margin: 18px -30px 0;
+      padding: 14px 30px 6px;
+      background: var(--bg-2);
+      border-top: 3px solid var(--neon-green);
+      /* La sombra sólida (spread) tapa el contenido que scrollea por detrás */
+      box-shadow: 0 -14px 22px 10px var(--bg-2), 0 -2px 0 0 var(--neon-green);
+    }
+
+    .cart-cta-bar .send-btn {
+      margin-top: 0;
+    }
+
+    .cart-cta-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 14px;
+      color: var(--neon-green);
+      text-shadow: 0 0 10px var(--neon-green);
+      margin-bottom: 12px;
+    }
+
+    .cart-cta-total .cta-amount {
+      font-size: 16px;
+    }
+
+    .cart-privacy-note {
+      font-size: 14px;
+      color: #9b8bb8;
+      margin-top: 10px;
+      text-align: center;
+      font-family: 'VT323', monospace;
+      line-height: 1.4;
+    }
+
+    /* ── UPSELL "¿QUERÉS ALGO MÁS?" ── */
+    #upsellOverlay {
+      z-index: 400;
+    }
+
+    .upsell-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 16px;
+      color: var(--neon-yellow);
+      text-align: center;
+      text-shadow: 2px 2px 0 var(--neon-pink);
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+
+    .upsell-sub {
+      text-align: center;
+      color: var(--neon-cyan);
+      font-size: 18px;
+      margin-bottom: 18px;
+    }
+
+    .upsell-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .upsell-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: var(--bg);
+      border: 2px solid var(--neon-cyan);
+    }
+
+    .upsell-card.added {
+      border-color: var(--neon-green);
+      box-shadow: 0 0 12px rgba(0, 255, 102, 0.4);
+    }
+
+    .upsell-sprite {
+      font-size: 34px;
+      line-height: 1;
+      width: 44px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .upsell-sprite img {
+      width: 44px;
+      height: 44px;
+      object-fit: cover;
+      image-rendering: pixelated;
+    }
+
+    .upsell-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .upsell-name {
+      color: var(--neon-cyan);
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .upsell-price {
+      color: var(--neon-green);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      margin-top: 5px;
+    }
+
+    .upsell-add {
+      flex-shrink: 0;
+      background: var(--neon-pink);
+      color: #fff;
+      border: 2px solid var(--neon-yellow);
+      padding: 12px 14px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+
+    .upsell-add:hover {
+      background: var(--neon-yellow);
+      color: var(--bg);
+    }
+
+    .upsell-add:disabled {
+      background: var(--neon-green);
+      color: var(--bg);
+      border-color: var(--neon-green);
+      cursor: default;
+    }
+
+    .upsell-skip {
+      width: 100%;
+      padding: 16px;
+      background: var(--neon-green);
+      color: var(--bg);
+      border: 3px solid var(--neon-yellow);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 13px;
+      cursor: pointer;
+      box-shadow: 4px 4px 0 var(--neon-pink);
+      transition: all 0.1s;
+    }
+
+    .upsell-skip:hover {
+      background: var(--neon-yellow);
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0 var(--neon-pink);
+    }
+
     footer {
       position: relative;
       text-align: center;
@@ -1713,6 +1874,16 @@
         padding: 18px;
         font-size: 13px;
         min-height: 56px;
+      }
+
+      /* El modal en mobile tiene padding lateral 20px: el full-bleed se ajusta */
+      .cart-cta-bar {
+        margin: 16px -20px 0;
+        padding: 12px 20px calc(6px + env(safe-area-inset-bottom));
+      }
+
+      .cart-cta-total {
+        font-size: 13px;
       }
 
       footer {
@@ -2414,6 +2585,14 @@
     <div class="product-modal">
       <button class="close-btn" onclick="closeProduct()">X</button>
       <div id="productBody"></div>
+    </div>
+  </div>
+
+  <!-- Upsell "¿Querés algo más?": sugerencias inteligentes al ir a pagar -->
+  <div class="product-overlay mini" id="upsellOverlay">
+    <div class="product-modal">
+      <button class="close-btn" onclick="closeUpsell()">X</button>
+      <div id="upsellBody"></div>
     </div>
   </div>
 
@@ -3195,6 +3374,7 @@
     // ====== STATE ======
     const cart = {};
     let activeCoupon = null; // Cupón aplicado actualmente (objeto con code, type, value, ...)
+    let upsellShown = false; // Upsell "¿querés algo más?": se muestra una sola vez por sesión
 
     // ====== RENDER MENU ======
     const catsNav = document.getElementById('cats');
@@ -3985,6 +4165,149 @@
       if (e.target.id === 'cartOverlay') closeCart();
     });
 
+    // ====== UPSELL "¿QUERÉS ALGO MÁS?" ======
+    // Al tocar el botón de pago, si detectamos que al pedido le falta algo que
+    // suele acompañar (bebida, papas, un pancho), ofrecemos sugerencias antes de
+    // seguir. Se muestra una sola vez por sesión (flag upsellShown).
+
+    // Categoría (key de MENU) a la que pertenece un producto
+    function productCategory(id) {
+      for (const k in MENU) {
+        if (MENU[k].items.some(i => i.id === id)) return k;
+      }
+      return null;
+    }
+
+    // ¿El producto está disponible (no agotado)?
+    function upsellAvailable(id) {
+      return !(window.stockMap && window.stockMap[id] === false);
+    }
+
+    // Motor de sugerencias: mira qué categorías hay en el carrito y devuelve
+    // hasta 3 productos que lo complementan. El combo cuenta como pancho + bebida.
+    function upsellSuggestions() {
+      const cats = new Set(Object.values(cart).map(c => productCategory(c.item.id)));
+      const hasPancho = cats.has('panchos') || cats.has('combos');
+      const hasDrink = cats.has('bebidas') || cats.has('combos');
+      const hasPapas = cats.has('acompanamientos');
+
+      const pick = (ids, max) => ids
+        .map(id => findItem(id))
+        .filter(p => p && upsellAvailable(p.id))
+        .slice(0, max);
+
+      let out = [];
+      if (!hasDrink) out = out.concat(pick(['b1', 'b2'], 2));            // falta bebida → gaseosas
+      if (hasPancho && !hasPapas) out = out.concat(pick(['a1', 'a3'], 2)); // pancho sin papas → papas
+      if (!hasPancho) out = out.concat(pick(['p1', 'p2'], 2));           // sin pancho → pancho estrella
+
+      // Dedupe + tope de 3
+      const seen = new Set();
+      const res = [];
+      for (const p of out) {
+        if (seen.has(p.id)) continue;
+        seen.add(p.id);
+        res.push(p);
+        if (res.length >= 3) break;
+      }
+      return res;
+    }
+
+    // Handler del botón de pago: intercepta una vez para ofrecer el upsell
+    function onCheckoutClick() {
+      if (!upsellShown) {
+        const sugg = upsellSuggestions();
+        if (sugg.length) { openUpsell(sugg); return; }
+      }
+      sendOrder();
+    }
+
+    function openUpsell(suggestions) {
+      upsellShown = true; // ya lo mostramos: no volver a interrumpir esta sesión
+      const body = document.getElementById('upsellBody');
+      body.innerHTML = `
+        <h2 class="upsell-title">¿QUERÉS ALGO MÁS?</h2>
+        <p class="upsell-sub">Aprovechá el viaje y completá tu combo 🚀</p>
+        <div class="upsell-grid">
+          ${suggestions.map(p => {
+            const price = getProductDiscount(p.id) > 0 ? discountedPrice(p.price, p.id) : p.price;
+            return `
+            <div class="upsell-card" id="upsell-card-${p.id}">
+              <div class="upsell-sprite">${spriteFor(p)}</div>
+              <div class="upsell-info">
+                <div class="upsell-name">${p.name}</div>
+                <div class="upsell-price">$${price.toLocaleString('es-AR')}</div>
+              </div>
+              <button class="upsell-add" onclick="upsellAdd('${p.id}')">+ AGREGAR</button>
+            </div>`;
+          }).join('')}
+        </div>
+        <button class="upsell-skip" onclick="upsellProceed()">NO, ASÍ ESTÁ 👍</button>
+      `;
+      document.getElementById('upsellOverlay').classList.add('open');
+    }
+
+    // Agrega directo al carrito un producto simple (sin opciones a elegir)
+    function upsellAddSimple(item) {
+      const cartKey = `${item.id}|||||||||`; // clave "sin extras" (coincide con confirmAddToCart)
+      if (!cart[cartKey]) {
+        cart[cartKey] = {
+          item, qty: 0, extras: [], sauces: [], specialSauces: [], toppings: [],
+          removables: [], paidOptions: [], sausages: [], notes: '',
+          comboPanchos: [], comboBebidas: [], comboSausages: {}
+        };
+      }
+      cart[cartKey].qty += 1;
+      updateBadge();
+      flashBadge();
+      if (navigator.vibrate) navigator.vibrate(15);
+    }
+
+    // Toca "+ AGREGAR" en una sugerencia
+    function upsellAdd(id) {
+      const item = findItem(id);
+      if (!item) return;
+      if (!upsellAvailable(id)) { alert('😔 Ese producto está agotado momentáneamente'); return; }
+
+      // Productos con opciones a elegir (panchos, salchipapas, etc.): abrir el
+      // modal para que el cliente los configure.
+      const needsConfig = item.combo || item.sausage || item.extras ||
+        item.specialSauces || item.toppings ||
+        (item.removables && item.removables.length) ||
+        (item.paidOptions && item.paidOptions.length);
+
+      if (needsConfig) {
+        document.getElementById('upsellOverlay').classList.remove('open');
+        openProduct(id);
+        return;
+      }
+
+      // Producto simple: se agrega en el acto y marcamos la card como agregada
+      upsellAddSimple(item);
+      const card = document.getElementById('upsell-card-' + id);
+      if (card) {
+        card.classList.add('added');
+        const btn = card.querySelector('.upsell-add');
+        if (btn) { btn.textContent = '✓ AGREGADO'; btn.disabled = true; }
+      }
+    }
+
+    // "NO, ASÍ ESTÁ": cerrar upsell y continuar al pago
+    function upsellProceed() {
+      document.getElementById('upsellOverlay').classList.remove('open');
+      sendOrder();
+    }
+
+    // Cerrar el upsell sin ir a pagar (X o tocar afuera): re-render del carrito
+    // para reflejar lo que se haya agregado, sin perder los datos del formulario.
+    function closeUpsell() {
+      document.getElementById('upsellOverlay').classList.remove('open');
+    }
+
+    document.getElementById('upsellOverlay').addEventListener('click', e => {
+      if (e.target.id === 'upsellOverlay') closeUpsell();
+    });
+
     // ============== PROMOS (FASE 1) ==============
     // Devuelve el % de descuento vigente para un producto (0 si no hay)
     function getProductDiscount(productId) {
@@ -4198,9 +4521,13 @@
 
       <div id="totalBreakdown" style="background: var(--bg); border: 2px solid var(--neon-green); padding: 14px; margin: 16px 0; font-family: 'VT323', monospace;"></div>
 
-      <button class="send-btn" id="sendBtn" onclick="sendOrder()">💳 PAGAR CON MERCADO PAGO</button>
-      <div style="font-size:14px;color:#9b8bb8;margin-top:10px;text-align:center;font-family:'VT323',monospace;line-height:1.4;">
+      <div class="cart-privacy-note">
         Al hacer tu pedido guardamos tu nombre, teléfono y dirección para que tu próxima compra sea más rápida
+      </div>
+
+      <div class="cart-cta-bar">
+        <div class="cart-cta-total"><span>TOTAL</span><span class="cta-amount" id="ctaTotal">$${total.toLocaleString('es-AR')}</span></div>
+        <button class="send-btn" id="sendBtn" onclick="onCheckoutClick()">💳 PAGAR CON MERCADO PAGO</button>
       </div>
     `;
 
@@ -4758,6 +5085,14 @@
       }
 
       breakdown.innerHTML = html;
+
+      // Total en la barra sticky (siempre visible)
+      const ctaTotal = document.getElementById('ctaTotal');
+      if (ctaTotal) {
+        ctaTotal.textContent = `$${finalTotal.toLocaleString('es-AR')}${isToConfirm ? '*' : ''}`;
+        ctaTotal.style.color = totalColor;
+      }
+
       // La caja de recompensas depende del carrito: la refrescamos con cada cambio
       if (window.COINS_ENABLED && typeof renderVidaExtraBox === 'function') renderVidaExtraBox();
     }
@@ -5736,6 +6071,10 @@
     window.closeCart = closeCartWithLock;
     window.changeQty = changeQty;
     window.sendOrder = sendOrder;
+    window.onCheckoutClick = onCheckoutClick;
+    window.upsellAdd = upsellAdd;
+    window.upsellProceed = upsellProceed;
+    window.closeUpsell = closeUpsell;
     window.renderProductModal = renderProductModal;
     // currentProduct es una variable let - la exponemos vía getter/setter
     Object.defineProperty(window, 'currentProduct', {
