@@ -1269,7 +1269,9 @@
     .cart-modal {
       background: var(--bg-2);
       border: 4px solid var(--neon-pink);
-      padding: 30px;
+      /* Sin padding inferior: la barra sticky de checkout llega hasta el borde
+         de abajo (si no, el carrito se ve asomar por debajo del botón) */
+      padding: 30px 30px 0;
       max-width: 500px;
       width: 100%;
       max-height: 85vh;
@@ -1460,7 +1462,9 @@
       bottom: 0;
       z-index: 6;
       margin: 18px -30px 0;
-      padding: 14px 30px 6px;
+      /* El padding inferior (antes en el modal) va acá para que la barra tape
+         el fondo hasta el borde de abajo del modal */
+      padding: 14px 30px 30px;
       background: var(--bg-2);
       border-top: 3px solid var(--neon-green);
       /* La sombra sólida (spread) tapa el contenido que scrollea por detrás */
@@ -1795,7 +1799,8 @@
         height: 100dvh;
         max-width: 100%;
         padding: 24px 20px;
-        padding-bottom: calc(24px + env(safe-area-inset-bottom));
+        /* Sin padding inferior: lo asume la barra sticky (.cart-cta-bar) */
+        padding-bottom: 0;
         padding-top: calc(24px + env(safe-area-inset-top));
         border: none;
         border-top: 4px solid var(--neon-pink);
@@ -1876,10 +1881,11 @@
         min-height: 56px;
       }
 
-      /* El modal en mobile tiene padding lateral 20px: el full-bleed se ajusta */
+      /* El modal en mobile tiene padding lateral 20px: el full-bleed se ajusta.
+         El padding inferior (incluye safe-area) tapa hasta el borde del modal */
       .cart-cta-bar {
         margin: 16px -20px 0;
-        padding: 12px 20px calc(6px + env(safe-area-inset-bottom));
+        padding: 12px 20px calc(24px + env(safe-area-inset-bottom));
       }
 
       .cart-cta-total {

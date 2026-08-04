@@ -29,6 +29,11 @@ total + el botón quedan pegados abajo del carrito, siempre visibles.
 - CSS `.cart-cta-bar`: full-bleed (márgenes negativos = padding del modal, 30px desktop / 20px
   mobile), fondo opaco `--bg-2`, borde superior verde y `box-shadow` con *spread* sólido que tapa
   el contenido que scrollea por detrás. En mobile suma `env(safe-area-inset-bottom)`.
+- **Ajuste (mismo día):** el padding **inferior** del `.cart-modal` se movió adentro de la barra
+  (`.cart-modal` pasó a `padding: 30px 30px 0` en desktop y `padding-bottom: 0` en mobile; ese
+  espacio ahora es el `padding-bottom` de `.cart-cta-bar`). Sin esto, la barra quedaba a `bottom:0`
+  del área de contenido y por debajo asomaba el carrito en la franja del padding del modal. Ahora
+  la barra tapa hasta el borde de abajo (queda solo el marco de 4px del modal en desktop).
 - El total de la barra (`#ctaTotal`) lo actualiza `updateCartTotals()` con el `finalTotal` (mismo
   valor que el desglose); muestra `*` si el envío queda "a confirmar". El `#sendBtn` no se movió
   de lugar, así que los estados/textos por método de pago siguen intactos.
