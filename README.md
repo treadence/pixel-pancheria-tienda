@@ -34,6 +34,19 @@ total + el botón quedan pegados abajo del carrito, siempre visibles.
   espacio ahora es el `padding-bottom` de `.cart-cta-bar`). Sin esto, la barra quedaba a `bottom:0`
   del área de contenido y por debajo asomaba el carrito en la franja del padding del modal. Ahora
   la barra tapa hasta el borde de abajo (queda solo el marco de 4px del modal en desktop).
+- **Ajustes de UI del upsell (mismo día):**
+  - `.upsell-title` tiene `padding: 0 44px` para que el texto no choque con la X de cerrar.
+  - El botón para seguir al pago pasó de "NO, ASÍ ESTÁ 👍" a **"FINALIZAR PEDIDO"** (sin emoji).
+  - Al elegir un **pancho** desde el upsell, ya **no** abre el modal de producto completo: muestra
+    un sub-paso propio (`renderUpsellSausage()`) con el pancho (sprite + nombre + descripción,
+    "para que se vea qué trae" como los combos) y **solo** un `<select>` de tipo de salchicha
+    (Alemana/Viena). "🌭 AGREGAR AL PEDIDO" (`upsellConfirmPancho()`) lo suma con esa salchicha y
+    vuelve a la lista; "◀ VOLVER A LAS SUGERENCIAS" (`upsellBackToList()`) regresa sin agregar.
+    El alta usa `upsellAddToCart(item, sausages)` que arma la **misma clave** que
+    `confirmAddToCart` (incluye `sausagesKey`), así se agrupa/fusiona igual que el flujo normal.
+    Estado nuevo: `_upsellSuggestions` (para re-render) y `_upsellAdded` (Set de ids ya agregados,
+    para marcar las cards "✓ AGREGADO"). Funciones nuevas en `window`: `upsellConfirmPancho`,
+    `upsellBackToList`.
 - El total de la barra (`#ctaTotal`) lo actualiza `updateCartTotals()` con el `finalTotal` (mismo
   valor que el desglose); muestra `*` si el envío queda "a confirmar". El `#sendBtn` no se movió
   de lugar, así que los estados/textos por método de pago siguen intactos.

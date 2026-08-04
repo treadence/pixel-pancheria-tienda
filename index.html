@@ -1513,6 +1513,60 @@
       text-shadow: 2px 2px 0 var(--neon-pink);
       margin-bottom: 8px;
       line-height: 1.5;
+      /* Aire a los lados para no chocar con la X de cerrar (arriba a la derecha) */
+      padding: 0 44px;
+    }
+
+    .upsell-cardesc {
+      font-size: 14px;
+      color: #9b8bb8;
+      margin-top: 4px;
+      line-height: 1.35;
+    }
+
+    .upsell-sausage-field {
+      margin-bottom: 18px;
+    }
+
+    .upsell-sausage-field label {
+      display: block;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      color: var(--neon-yellow);
+      margin-bottom: 8px;
+    }
+
+    .upsell-sausage-field select {
+      width: 100%;
+      background: var(--bg);
+      border: 2px solid var(--neon-purple);
+      color: #fff;
+      padding: 12px;
+      font-family: 'VT323', monospace;
+      font-size: 18px;
+      outline: none;
+    }
+
+    .upsell-sausage-field select:focus {
+      border-color: var(--neon-pink);
+      box-shadow: 0 0 10px var(--neon-pink);
+    }
+
+    .upsell-back {
+      width: 100%;
+      margin-top: 12px;
+      padding: 12px;
+      background: transparent;
+      color: var(--neon-cyan);
+      border: 2px solid var(--neon-cyan);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      cursor: pointer;
+    }
+
+    .upsell-back:hover {
+      background: var(--neon-cyan);
+      color: var(--bg);
     }
 
     .upsell-sub {
@@ -4228,38 +4282,95 @@
       sendOrder();
     }
 
+    let _upsellSuggestions = []; // sugerencias actuales (para re-render al volver)
+    const _upsellAdded = new Set(); // ids ya agregados en esta apertura del upsell
+
     function openUpsell(suggestions) {
       upsellShown = true; // ya lo mostramos: no volver a interrumpir esta sesión
+      _upsellSuggestions = suggestions;
+      _upsellAdded.clear();
+      renderUpsellList();
+      document.getElementById('upsellOverlay').classList.add('open');
+    }
+
+    // Pantalla principal del upsell: la lista de sugerencias
+    function renderUpsellList() {
       const body = document.getElementById('upsellBody');
       body.innerHTML = `
         <h2 class="upsell-title">¿QUERÉS ALGO MÁS?</h2>
         <p class="upsell-sub">Aprovechá el viaje y completá tu combo 🚀</p>
         <div class="upsell-grid">
-          ${suggestions.map(p => {
+          ${_upsellSuggestions.map(p => {
             const price = getProductDiscount(p.id) > 0 ? discountedPrice(p.price, p.id) : p.price;
+            const added = _upsellAdded.has(p.id);
             return `
-            <div class="upsell-card" id="upsell-card-${p.id}">
+            <div class="upsell-card${added ? ' added' : ''}" id="upsell-card-${p.id}">
               <div class="upsell-sprite">${spriteFor(p)}</div>
               <div class="upsell-info">
                 <div class="upsell-name">${p.name}</div>
                 <div class="upsell-price">$${price.toLocaleString('es-AR')}</div>
               </div>
-              <button class="upsell-add" onclick="upsellAdd('${p.id}')">+ AGREGAR</button>
+              <button class="upsell-add" onclick="upsellAdd('${p.id}')" ${added ? 'disabled' : ''}>${added ? '✓ AGREGADO' : '+ AGREGAR'}</button>
             </div>`;
           }).join('')}
         </div>
-        <button class="upsell-skip" onclick="upsellProceed()">NO, ASÍ ESTÁ 👍</button>
+        <button class="upsell-skip" onclick="upsellProceed()">FINALIZAR PEDIDO</button>
       `;
-      document.getElementById('upsellOverlay').classList.add('open');
     }
 
-    // Agrega directo al carrito un producto simple (sin opciones a elegir)
-    function upsellAddSimple(item) {
-      const cartKey = `${item.id}|||||||||`; // clave "sin extras" (coincide con confirmAddToCart)
+    // Sub-pantalla: elegir la salchicha del pancho (como en los combos, sin más
+    // personalización), mostrando qué trae el pancho
+    function renderUpsellSausage(id) {
+      const item = findItem(id);
+      if (!item) return;
+      const price = getProductDiscount(id) > 0 ? discountedPrice(item.price, id) : item.price;
+      const body = document.getElementById('upsellBody');
+      body.innerHTML = `
+        <h2 class="upsell-title">ELEGÍ TU SALCHICHA</h2>
+        <div class="upsell-card" style="cursor:default;">
+          <div class="upsell-sprite">${spriteFor(item)}</div>
+          <div class="upsell-info">
+            <div class="upsell-name">${item.name}</div>
+            <div class="upsell-cardesc">${item.desc}</div>
+            <div class="upsell-price">$${price.toLocaleString('es-AR')}</div>
+          </div>
+        </div>
+        <div class="upsell-sausage-field">
+          <label>▶ TIPO DE SALCHICHA</label>
+          <select id="upsellSausageSel">
+            ${SAUSAGES.map(sg => `<option value="${sg.id}">${sg.name}</option>`).join('')}
+          </select>
+        </div>
+        <button class="upsell-skip" onclick="upsellConfirmPancho('${id}')">🌭 AGREGAR AL PEDIDO</button>
+        <button class="upsell-back" onclick="upsellBackToList()">◀ VOLVER A LAS SUGERENCIAS</button>
+      `;
+    }
+
+    function upsellBackToList() { renderUpsellList(); }
+
+    // Confirma el pancho con la salchicha elegida
+    function upsellConfirmPancho(id) {
+      const item = findItem(id);
+      if (!item) return;
+      const sel = document.getElementById('upsellSausageSel');
+      const sausageId = (sel && sel.value) || SAUSAGES[0].id;
+      upsellAddToCart(item, [{ id: sausageId, qty: 1 }]);
+      _upsellAdded.add(id);
+      renderUpsellList();
+    }
+
+    // Agrega al carrito una unidad de un producto desde el upsell, con las
+    // salchichas indicadas (vacío para simples). Arma la misma clave que
+    // confirmAddToCart para que se agrupe igual.
+    function upsellAddToCart(item, sausages) {
+      const extrasKey = '', saucesKey = '', specialSaucesKey = '', toppingsKey = '',
+        removablesKey = '', paidOptionsKey = '', notesKey = '', comboKey = '';
+      const sausagesKey = sausages.map(x => x.id + 'x' + x.qty).sort().join(',');
+      const cartKey = `${item.id}|${extrasKey}|${saucesKey}|${specialSaucesKey}|${toppingsKey}|${removablesKey}|${paidOptionsKey}|${sausagesKey}|${notesKey}|${comboKey}`;
       if (!cart[cartKey]) {
         cart[cartKey] = {
           item, qty: 0, extras: [], sauces: [], specialSauces: [], toppings: [],
-          removables: [], paidOptions: [], sausages: [], notes: '',
+          removables: [], paidOptions: [], sausages: sausages.map(x => ({ ...x })), notes: '',
           comboPanchos: [], comboBebidas: [], comboSausages: {}
         };
       }
@@ -4275,30 +4386,16 @@
       if (!item) return;
       if (!upsellAvailable(id)) { alert('😔 Ese producto está agotado momentáneamente'); return; }
 
-      // Productos con opciones a elegir (panchos, salchipapas, etc.): abrir el
-      // modal para que el cliente los configure.
-      const needsConfig = item.combo || item.sausage || item.extras ||
-        item.specialSauces || item.toppings ||
-        (item.removables && item.removables.length) ||
-        (item.paidOptions && item.paidOptions.length);
+      // Pancho: pasar a elegir la salchicha (sin más personalización)
+      if (item.sausage) { renderUpsellSausage(id); return; }
 
-      if (needsConfig) {
-        document.getElementById('upsellOverlay').classList.remove('open');
-        openProduct(id);
-        return;
-      }
-
-      // Producto simple: se agrega en el acto y marcamos la card como agregada
-      upsellAddSimple(item);
-      const card = document.getElementById('upsell-card-' + id);
-      if (card) {
-        card.classList.add('added');
-        const btn = card.querySelector('.upsell-add');
-        if (btn) { btn.textContent = '✓ AGREGADO'; btn.disabled = true; }
-      }
+      // Producto simple (bebida, papas fritas): se agrega en el acto
+      upsellAddToCart(item, []);
+      _upsellAdded.add(id);
+      renderUpsellList();
     }
 
-    // "NO, ASÍ ESTÁ": cerrar upsell y continuar al pago
+    // "FINALIZAR PEDIDO": cerrar upsell y continuar al pago
     function upsellProceed() {
       document.getElementById('upsellOverlay').classList.remove('open');
       sendOrder();
@@ -6079,6 +6176,8 @@
     window.sendOrder = sendOrder;
     window.onCheckoutClick = onCheckoutClick;
     window.upsellAdd = upsellAdd;
+    window.upsellConfirmPancho = upsellConfirmPancho;
+    window.upsellBackToList = upsellBackToList;
     window.upsellProceed = upsellProceed;
     window.closeUpsell = closeUpsell;
     window.renderProductModal = renderProductModal;
