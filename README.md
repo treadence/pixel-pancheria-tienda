@@ -13,6 +13,29 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 Bitácora con fecha y hora de qué se tocó en cada flujo de trabajo, para tener trazabilidad y
 poder reutilizar la lógica en otros proyectos.
 
+### 2026-08-04 03:15 (-03)
+
+**Fix: pago de MP abandonado aparecía como "pedido en curso"**
+
+Síntoma: un cliente sin pedido activo entraba a la tienda y veía el chip "📍 Tu pedido en curso →"
+(y al abrirlo, la pantalla de "el pago no se completó" / "confirmando tu pago").
+
+Cómo reconoce la tienda un pedido en curso: **por dispositivo/navegador**, vía
+`localStorage['pixel_pedido_activo']` (`{id, at}`). NO hay consulta por teléfono/cuenta — `activeOrderChip()`
+lee ese id y hace `getDoc` de ese pedido puntual. O sea el reconocimiento es del navegador, no de la cuenta.
+
+Causa: al elegir Mercado Pago, `payWithMercadoPago()` guarda el pedido con `status: 'pending_payment'`
+y escribe `pixel_pedido_activo` **antes** de redirigir a MP. Si el pago no se completa (abandonado o
+rechazado), el pedido queda en `pending_payment` para siempre, y `activeOrderChip()` mostraba el chip
+para cualquier pedido que no fuera `cancelled`/`delivered` y tuviera <3h → un pago fallido se veía como
+pedido en curso.
+
+Fix: en `activeOrderChip()`, branch nuevo para `st === 'pending_payment'` → **no** muestra el chip (si
+el pago entra, el webhook lo pasa a `received` y ahí sí aparece); y si pasaron +30min lo da por
+abandonado y borra `pixel_pedido_activo`. No afecta pedidos reales (`received`/`preparing`/`ontheway`
+siguen mostrando el chip). Nota/pendiente opcional: si se abre directo la trackUrl de un
+`pending_payment` viejo (no rechazado), la pantalla sigue diciendo "CONFIRMANDO TU PAGO" — no se tocó.
+
 ### 2026-08-04 01:55 (-03)
 
 **Carrito: botón de pago siempre visible (sticky) + upsell inteligente "¿querés algo más?"**

@@ -3272,6 +3272,14 @@
           const order = snap.data();
           const st = trackNormStatus(order.status);
           if (st === 'cancelled') { try { localStorage.removeItem('pixel_pedido_activo'); } catch (e) {} return; }
+          // Pago con Mercado Pago que nunca se confirmó: NO es un pedido "en curso"
+          // real (si el pago entra, el webhook lo pasa a 'received' y ahí sí se
+          // muestra). No mostramos el chip; y si ya pasó un rato lo damos por
+          // abandonado y limpiamos el marcador para no seguir consultándolo.
+          if (st === 'pending_payment') {
+            if (age > 30 * 60 * 1000) { try { localStorage.removeItem('pixel_pedido_activo'); } catch (e) {} }
+            return;
+          }
           if (st === 'delivered') {
             const dismissed = localStorage.getItem('pixel_fb_done_' + saved.id) === '1';
             if (order.feedback || dismissed) { try { localStorage.removeItem('pixel_pedido_activo'); } catch (e) {} return; }
