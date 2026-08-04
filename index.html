@@ -2317,6 +2317,14 @@
     padding: 12px 18px; margin-top: 4px;
   }
   .track-back:hover { background: rgba(0,240,255,0.1); }
+  .track-wa {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; box-sizing: border-box; font-family: 'Press Start 2P', monospace;
+    font-size: 10px; line-height: 1.5; color: var(--neon-green); text-decoration: none;
+    border: 2px solid var(--neon-green); background: rgba(57,255,20,0.06);
+    padding: 13px 16px; border-radius: 8px; margin: 4px 0 14px; cursor: pointer;
+  }
+  .track-wa:hover { background: rgba(57,255,20,0.14); }
 
   .track-chip {
     position: fixed; bottom: 20px; left: 16px; z-index: 150;
@@ -2912,6 +2920,7 @@
             ${order.payment ? `<div class="track-addr">💳 ${trackEscape(order.payment)}</div>` : ''}
           </div>
           <p class="track-live">● Esta pantalla se actualiza sola en tiempo real</p>
+          <a class="track-wa" href="https://wa.me/5491178257432?text=${encodeURIComponent('Hola! Tengo una consulta sobre mi pedido' + (order.id ? ' #' + String(order.id).slice(-5).toUpperCase() : '') + ' 🌭')}" target="_blank" rel="noopener">💬 ¿ALGÚN PROBLEMA? CONTACTANOS</a>
           <a class="track-back" href="${location.pathname}">◀ VOLVER A LA TIENDA</a>
         </div>`;
     }
