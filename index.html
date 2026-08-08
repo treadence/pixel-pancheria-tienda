@@ -2568,6 +2568,20 @@
   }
   .track-wa:hover { background: rgba(57,255,20,0.14); }
 
+  /* Aviso para pedidos fuera de la zona habitual (entrega no garantizada) */
+  .track-outside {
+    font-family: 'VT323', monospace; text-align: left; line-height: 1.35;
+    color: #ffe6a3; background: rgba(255,176,32,0.08);
+    border: 2px dashed var(--neon-orange); border-radius: 8px;
+    padding: 14px 16px; margin: 4px 0 14px;
+  }
+  .track-outside .to-title {
+    display: block; font-family: 'Press Start 2P', monospace; font-size: 11px;
+    color: var(--neon-orange); text-shadow: 0 0 8px var(--neon-orange);
+    margin-bottom: 8px; line-height: 1.5;
+  }
+  .track-outside p { font-size: 18px; margin: 6px 0 0; }
+
   .track-chip {
     position: fixed; bottom: 20px; left: 16px; z-index: 150;
     background: var(--bg-2); border: 2px solid var(--neon-green);
@@ -3156,6 +3170,18 @@
         `<div class="track-item"><span>${it.qty || 1}× ${trackEscape(it.name)}</span><span>$${Number(it.subtotal ?? ((it.qty || 1) * (it.unitPrice || it.price || 0))).toLocaleString('es-AR')}</span></div>`
       ).join('');
 
+      // --- Aviso fuera de zona (entrega no garantizada) ---
+      // Solo mientras el pedido sigue vivo: una vez entregado/cancelado ya no aporta.
+      let outsideHtml = '';
+      if (order.needsShippingConfirmation && status !== 'delivered' && status !== 'cancelled') {
+        outsideHtml = `
+          <div class="track-outside">
+            <span class="to-title">⚠️ Dirección fuera de la zona habitual</span>
+            <p>Tu pedido quedó fuera de nuestro radio de reparto de siempre. <strong>Quedate tranqui</strong>: vamos a intentar llevártelo igual.</p>
+            <p>Si por distancia no llegáramos a cubrir tu zona, te contactamos a la brevedad por WhatsApp${order.paid ? ' y te reintegramos el total abonado' : ' (y si ya lo habías pagado, te reintegramos el importe completo)'}.</p>
+          </div>`;
+      }
+
       // --- Aviso push ---
       const finalState = cancelled || status === 'delivered';
       let pushHtml = '';
@@ -3173,6 +3199,7 @@
           <div class="track-customer">${trackEscape(order.customer || '')}</div>
           <div class="track-steps ${cancelled ? 'cancelled' : ''}">${stepsHtml}</div>
           ${etaHtml}
+          ${outsideHtml}
           ${pushHtml}
           <div class="track-summary">
             ${itemsHtml}
@@ -5087,9 +5114,9 @@
         el.innerHTML = `📍 Envío $2.500`;
       } else {
         el.className = 'zone-status outside';
-        el.innerHTML = `⚠️ FUERA DE COBERTURA<br>
-          <span style="font-size:13px;font-weight:normal;">Podés enviar el pedido igual.<br>
-          Revisaremos la dirección y te confirmaremos por WhatsApp si podemos llegar.</span>`;
+        el.innerHTML = `⚠️ FUERA DE ZONA HABITUAL · Envío $4.000<br>
+          <span style="font-size:13px;font-weight:normal;">Intentaremos enviártelo igual.<br>
+          Si no llegamos a cubrir tu zona, te avisamos y te reintegramos lo abonado.</span>`;
       }
     }
 
@@ -5155,9 +5182,11 @@
         shippingLabel = '+$2.500';
         shippingColor = 'var(--neon-cyan)';
       } else {
-        shippingCost = 0;
-        shippingLabel = 'A CONFIRMAR';
-        shippingColor = 'var(--neon-red)';
+        // Fuera de zona: envío fijo de $4.000 (incluido en el total). La entrega
+        // no está garantizada, así que igual marcamos isOutside para el aviso.
+        shippingCost = 4000;
+        shippingLabel = '+$4.000';
+        shippingColor = 'var(--neon-orange)';
         isToConfirm = true;
       }
 
@@ -5215,16 +5244,18 @@
       </div>`;
       }
 
-      const totalLabel = isToConfirm ? 'TOTAL (sin envío)' : 'TOTAL';
-      const totalColor = isToConfirm ? 'var(--neon-yellow)' : 'var(--neon-green)';
+      // El envío ($4.000 fuera de zona) ya va incluido en el total: siempre es un total real.
+      const totalLabel = 'TOTAL';
+      const totalColor = 'var(--neon-green)';
 
       html += `<div style="display:flex;justify-content:space-between;font-family:'Press Start 2P',monospace;font-size:14px;color:${totalColor};padding:10px 0 4px;margin-top:8px;border-top:2px dashed rgba(0,255,102,0.3);text-shadow:0 0 8px ${totalColor};">
       <span>${totalLabel}</span><span>$${finalTotal.toLocaleString('es-AR')}</span>
     </div>`;
 
       if (isToConfirm) {
-        html += `<div style="font-size:14px;color:var(--neon-yellow);text-align:center;padding:8px 4px 0;">
-          ⚠️ Te confirmaremos costo del envío por WhatsApp
+        html += `<div style="font-size:14px;color:var(--neon-orange);text-align:center;padding:8px 4px 0;line-height:1.35;">
+          ⚠️ Estás fuera de nuestra zona habitual. El envío ($4.000) ya está incluido.<br>
+          Intentaremos llevártelo igual; si no llegamos, te avisamos y te reintegramos lo abonado.
         </div>`;
       }
 
@@ -5241,7 +5272,7 @@
       // Total en la barra sticky (siempre visible)
       const ctaTotal = document.getElementById('ctaTotal');
       if (ctaTotal) {
-        ctaTotal.textContent = `$${finalTotal.toLocaleString('es-AR')}${isToConfirm ? '*' : ''}`;
+        ctaTotal.textContent = `$${finalTotal.toLocaleString('es-AR')}`;
         ctaTotal.style.color = totalColor;
       }
 
@@ -5808,14 +5839,15 @@
         deliveryCode = 'delivery-fuera';
         deliveryLabel = 'Delivery fuera de Gutiérrez';
       } else {
-        shippingCost = 0;
+        shippingCost = 4000;
         deliveryCode = 'delivery-aconfirmar';
-        deliveryLabel = 'Delivery a confirmar (fuera de zona)';
+        deliveryLabel = 'Delivery fuera de zona ($4.000)';
         needsShippingConfirmation = true;
 
         const ok = confirm(
           '⚠️ Tu dirección está fuera de nuestra zona habitual de delivery.\n\n' +
-          'Si enviás el pedido, vamos a revisarlo y confirmarte por WhatsApp si podemos llegar y cuánto cuesta el envío.\n\n' +
+          'El envío tiene un costo de $4.000 (ya incluido en el total). Vamos a intentar llevártelo igual; ' +
+          'si por distancia no llegamos a cubrir tu zona, te avisamos por WhatsApp a la brevedad y te reintegramos lo que hayas abonado.\n\n' +
           '¿Querés enviar el pedido igual?'
         );
         if (!ok) return;

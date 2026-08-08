@@ -13,6 +13,46 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 Bitácora con fecha y hora de qué se tocó en cada flujo de trabajo, para tener trazabilidad y
 poder reutilizar la lógica en otros proyectos.
 
+### 2026-08-08 20:57 (-03)
+
+**Envío fuera de zona: ahora cuesta $4.000 fijo + aviso claro en el seguimiento**
+
+Antes, una dirección a **más de 6 km** (`loc.distanceKm > MAX_RADIUS_KM`) quedaba como
+"delivery a confirmar" con **envío $0**: el cliente pagaba (incluso por MP) solo los productos y
+el costo del envío se resolvía después por WhatsApp. Ahora esas direcciones tienen un **envío fijo
+de $4.000 ya incluido en el total**, y la entrega sigue sin estar garantizada (flag
+`needsShippingConfirmation`).
+
+Cambios en `tienda/index.html` (la lógica de zonas vive repetida en 3 lugares, todos actualizados):
+
+- **`updateZoneStatus()`** (cartel del selector de dirección): el estado "outside" pasó de
+  "FUERA DE COBERTURA / te confirmaremos por WhatsApp" a **"FUERA DE ZONA HABITUAL · Envío $4.000"**
+  + nota "Intentaremos enviártelo igual. Si no llegamos, te avisamos y te reintegramos lo abonado".
+- **`updateCartTotals()`** (desglose en vivo del carrito): rama `> MAX_RADIUS_KM` ahora
+  `shippingCost = 4000`, `shippingLabel = '+$4.000'`, color naranja. Como el envío ya va incluido,
+  el total dejó de mostrarse como **"TOTAL (sin envío)"** amarillo → ahora es un **TOTAL** verde normal
+  y se quitó el `*` del total en la barra sticky (`#ctaTotal`). La nota bajo el total pasó a explicar
+  el fuera-de-zona (envío incluido + reintegro si no se puede entregar).
+- **`sendOrder()`** (cálculo real que se guarda en Firestore): rama fuera de zona `shippingCost = 4000`,
+  `deliveryLabel = 'Delivery fuera de zona ($4.000)'`, `needsShippingConfirmation = true`. El `confirm()`
+  previo al envío se reescribió: informa el costo de $4.000 ya incluido y el reintegro si no llegan a
+  cubrir la zona.
+- **Página de seguimiento** (`renderTracking()`, `...?pedido=<id>`): aviso nuevo `.track-outside`
+  (borde punteado naranja) que aparece **solo si `order.needsShippingConfirmation`** y el pedido sigue
+  vivo (no `delivered`/`cancelled`). Texto: la dirección quedó fuera del radio habitual, quedate tranqui,
+  intentaremos llevártelo igual; si por distancia no podemos, te contactamos a la brevedad por WhatsApp y
+  te reintegramos lo abonado. El texto del reintegro se adapta según `order.paid` (si ya pagó, "te
+  reintegramos el total abonado"; si no, "y si ya lo habías pagado, te reintegramos el importe completo").
+  CSS `.track-outside` / `.to-title` acorde a la estética retro.
+
+Sin cambios de modelo de datos ni de `firestore.rules` (`needsShippingConfirmation` y `shippingCost` ya
+existían en el pedido). Los umbrales (`FREE_RADIUS_KM = 1`, `MAX_RADIUS_KM = 6`) y los montos ($4.000)
+siguen **hardcodeados** en el código, no configurables desde el admin.
+
+**Nota pendiente (no resuelto acá):** ahora que fuera de zona cobra $4.000 por MP, el pago online incluye
+el envío, pero si al revisar no pueden entregar hay que hacer la **devolución manual por MP**. El aviso ya
+se lo anticipa al cliente.
+
 ### 2026-08-04 03:15 (-03)
 
 **Fix: pago de MP abandonado aparecía como "pedido en curso"**
