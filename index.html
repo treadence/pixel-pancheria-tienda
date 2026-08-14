@@ -2147,6 +2147,60 @@
     font-family: 'VT323', monospace;
   }
 
+  /* ====== MODO DE ENTREGA (envío a domicilio / retiro en el local) ====== */
+  .delivery-mode {
+    display: flex;
+    gap: 8px;
+    margin: 4px 0 14px;
+  }
+
+  .dm-btn {
+    flex: 1;
+    padding: 12px 8px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--neon-cyan);
+    background: var(--bg);
+    border: 2px solid var(--neon-cyan);
+    cursor: pointer;
+    transition: all .12s;
+  }
+
+  .dm-btn.sel {
+    color: var(--bg);
+    background: var(--neon-cyan);
+    box-shadow: 0 0 10px var(--neon-cyan);
+  }
+
+  .pickup-info {
+    background: var(--bg);
+    border: 2px solid var(--neon-green);
+    padding: 14px;
+    margin-bottom: 8px;
+    font-family: 'VT323', monospace;
+    text-align: center;
+  }
+
+  .pickup-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    color: var(--neon-green);
+    margin-bottom: 10px;
+  }
+
+  .pickup-addr {
+    font-size: 20px;
+    color: var(--neon-cyan);
+    margin-bottom: 6px;
+  }
+
+  .pickup-note {
+    font-size: 16px;
+    color: #c9b8e6;
+    line-height: 1.4;
+  }
+
   /* ============== ORDER SUCCESS MODAL ============== */
   .order-success-overlay {
     position: fixed;
@@ -4646,27 +4700,42 @@
         <label>TELÉFONO</label>
         <input type="tel" id="fPhone" placeholder="11-1234-5678">
       </div>
-      <div class="form-field">
-        <label>📍 DIRECCIÓN DE ENTREGA</label>
-        <div id="savedAddresses"></div>
-        <div class="address-wrap">
-          <input type="text" id="fAddress" placeholder="Empezá a escribir tu dirección..." autocomplete="off">
+      <!-- ====== MODO DE ENTREGA: envío a domicilio vs retiro en el local ====== -->
+      <div class="delivery-mode" id="deliveryMode">
+        <button type="button" class="dm-btn sel" id="dmDelivery" onclick="setDeliveryMode('delivery')">🛵 Envío a domicilio</button>
+        <button type="button" class="dm-btn" id="dmPickup" onclick="setDeliveryMode('pickup')">🏪 Retiro en el local</button>
+      </div>
+
+      <div id="deliveryFields">
+        <div class="form-field">
+          <label>📍 DIRECCIÓN DE ENTREGA</label>
+          <div id="savedAddresses"></div>
+          <div class="address-wrap">
+            <input type="text" id="fAddress" placeholder="Empezá a escribir tu dirección..." autocomplete="off">
+          </div>
+          <div class="map-confirm" id="mapConfirm">
+            <div class="map-hint">Si el pin no está en el lugar exacto, arrastralo para ajustar</div>
+            <div class="map-container" id="addressMap"></div>
+            <div class="zone-status" id="zoneStatus"></div>
+          </div>
         </div>
-        <div class="map-confirm" id="mapConfirm">
-          <div class="map-hint">Si el pin no está en el lugar exacto, arrastralo para ajustar</div>
-          <div class="map-container" id="addressMap"></div>
-          <div class="zone-status" id="zoneStatus"></div>
+
+        <div class="form-field">
+          <label>PISO / DEPTO (opcional)</label>
+          <input type="text" id="fAddressUnit" placeholder="Ej: 2 B">
+        </div>
+
+        <div class="form-field">
+          <label>REFERENCIAS (opcional)</label>
+          <input type="text" id="fAddressRef" placeholder="Ej: casa azul, timbre 2, portón gris">
         </div>
       </div>
 
-      <div class="form-field">
-        <label>PISO / DEPTO (opcional)</label>
-        <input type="text" id="fAddressUnit" placeholder="Ej: 2 B">
-      </div>
-
-      <div class="form-field">
-        <label>REFERENCIAS (opcional)</label>
-        <input type="text" id="fAddressRef" placeholder="Ej: casa azul, timbre 2, portón gris">
+      <!-- Info del local (solo visible en modo "retiro en el local") -->
+      <div id="pickupInfo" class="pickup-info" style="display:none;">
+        <div class="pickup-title">🏪 RETIRO EN EL LOCAL</div>
+        <div class="pickup-addr">📍 Calle 410 N°747 · Juan María Gutiérrez</div>
+        <div class="pickup-note">Preparamos tu pedido y lo pasás a retirar por el local. Envío sin costo.</div>
       </div>
 
       <input type="hidden" id="fDelivery" value="delivery-gutierrez">
@@ -4710,8 +4779,10 @@
       </div>
     `;
 
-      // Renderizar desglose inicial
-      updateCartTotals();
+      // Renderizar desglose inicial (re-aplica el modo de entrega elegido, ya que
+      // el form se reconstruye entero en cada render y el toggle vuelve al default)
+      if (typeof window.setDeliveryMode === 'function') window.setDeliveryMode(window.deliveryMode);
+      else updateCartTotals();
       if (typeof window.loyaltyOnCartRender === 'function') window.loyaltyOnCartRender();
 
       // El innerHTML de arriba destruyó el pacEl de Google Places (si existía).
@@ -5147,8 +5218,34 @@
       setTimeout(() => window.initAddressPicker(), 100);
     }
 
+    // ====== MODO DE ENTREGA ======
+    // 'delivery' = envío a domicilio (flujo normal, con zonas/coins).
+    // 'pickup'   = retiro en el local: envío $0, sin dirección y SIN sistema de
+    //              coins (no suma ni permite canjear recompensas).
+    window.deliveryMode = 'delivery';
+    window.setDeliveryMode = function(mode) {
+      window.deliveryMode = (mode === 'pickup') ? 'pickup' : 'delivery';
+      const isPickup = window.deliveryMode === 'pickup';
+
+      const dmDel = document.getElementById('dmDelivery');
+      const dmPick = document.getElementById('dmPickup');
+      if (dmDel) dmDel.classList.toggle('sel', !isPickup);
+      if (dmPick) dmPick.classList.toggle('sel', isPickup);
+
+      const delFields = document.getElementById('deliveryFields');
+      const pickInfo = document.getElementById('pickupInfo');
+      if (delFields) delFields.style.display = isPickup ? 'none' : '';
+      if (pickInfo) pickInfo.style.display = isPickup ? 'block' : 'none';
+
+      // En retiro se ignoran los coins: soltar cualquier recompensa elegida.
+      if (isPickup) { window.selectedReward = null; window.selectedRewardOptionIdx = 0; window.selectedRewardProductId = null; }
+
+      updateCartTotals();
+    };
+
     function updateCartTotals() {
       const subtotal = Object.values(cart).reduce((s, c) => s + cartItemSubtotal(c), 0);
+      const isPickup = window.deliveryMode === 'pickup';
 
       const paySelect = document.getElementById('fPay');
       const breakdown = document.getElementById('totalBreakdown');
@@ -5170,7 +5267,12 @@
       let shippingColor = 'var(--neon-yellow)';
       let isToConfirm = false;
 
-      if (!loc) {
+      if (isPickup) {
+        // Retiro en el local: sin costo de envío, sin depender de la dirección.
+        shippingCost = 0;
+        shippingLabel = 'RETIRO EN LOCAL';
+        shippingColor = 'var(--neon-green)';
+      } else if (!loc) {
         shippingLabel = '— elegí una dirección';
         shippingColor = 'var(--neon-yellow)';
       } else if (loc.distanceKm <= FREE_RADIUS_KM) {
@@ -5197,7 +5299,8 @@
       const subtotalAfterPromo = subtotal - promoSavings;
       // Cupón se calcula sobre el subtotal YA rebajado por la promo
       const discount = calcDiscount(subtotalAfterPromo, activeCoupon);
-      const rewardDesc = (typeof window.rewardDiscount === 'function') ? window.rewardDiscount() : 0;
+      // En retiro en el local no se aplican recompensas de coins.
+      const rewardDesc = (!isPickup && typeof window.rewardDiscount === 'function') ? window.rewardDiscount() : 0;
       const subtotalAfterDiscount = Math.max(0, subtotalAfterPromo - discount - rewardDesc);
       const beforeSurcharge = subtotalAfterDiscount + shippingCost;
       const surchargeAmount = Math.round(beforeSurcharge * surchargePct / 100);
@@ -5261,7 +5364,7 @@
 
       // Coins que suma esta compra (según la tasa configurada en el admin)
       const coinsQueSuma = Math.floor(finalTotal / getLoyaltyConfig().coinsPerPeso);
-      if (window.COINS_ENABLED && coinsQueSuma > 0) {
+      if (!isPickup && window.COINS_ENABLED && coinsQueSuma > 0) {
         html += `<div style="text-align:center;margin-top:10px;padding:8px;background:rgba(255,225,77,0.08);border:1px dashed var(--neon-yellow);color:var(--neon-yellow);font-size:17px;">
           🪙 Con esta compra sumás <strong>${coinsQueSuma}</strong> coins
         </div>`;
@@ -5276,8 +5379,14 @@
         ctaTotal.style.color = totalColor;
       }
 
-      // La caja de recompensas depende del carrito: la refrescamos con cada cambio
-      if (window.COINS_ENABLED && typeof renderVidaExtraBox === 'function') renderVidaExtraBox();
+      // La caja de recompensas depende del carrito: la refrescamos con cada cambio.
+      // En retiro en el local no hay coins: la ocultamos.
+      if (!isPickup && window.COINS_ENABLED && typeof renderVidaExtraBox === 'function') {
+        renderVidaExtraBox();
+      } else if (isPickup) {
+        const _vb = document.getElementById('vidaExtraBox');
+        if (_vb) { _vb.style.display = 'none'; _vb.innerHTML = ''; }
+      }
     }
     window.updateCartTotals = updateCartTotals;
 
@@ -5802,15 +5911,21 @@
       const addressRef = document.getElementById('fAddressRef').value.trim();
       const notes = document.getElementById('fNotes').value.trim();
 
+      const isPickup = window.deliveryMode === 'pickup';
+
       if (!name) { alert('⚠ Ingresá tu nombre'); return; }
       if (!phone) { alert('⚠ Ingresá tu teléfono'); return; }
-      if (!address) { alert('⚠ Ingresá la dirección'); return; }
 
-      // Verificar que se haya seleccionado una dirección con coordenadas
-      const loc = (typeof window.getSelectedLocation === 'function') ? window.getSelectedLocation() : null;
-      if (!loc) {
-        alert('⚠ Por favor seleccioná tu dirección del listado de sugerencias para confirmar la ubicación en el mapa.');
-        return;
+      // En retiro en el local no hace falta dirección ni ubicación en el mapa.
+      let loc = null;
+      if (!isPickup) {
+        if (!address) { alert('⚠ Ingresá la dirección'); return; }
+        // Verificar que se haya seleccionado una dirección con coordenadas
+        loc = (typeof window.getSelectedLocation === 'function') ? window.getSelectedLocation() : null;
+        if (!loc) {
+          alert('⚠ Por favor seleccioná tu dirección del listado de sugerencias para confirmar la ubicación en el mapa.');
+          return;
+        }
       }
 
       const entries = Object.entries(cart);
@@ -5830,7 +5945,12 @@
       let deliveryLabel = 'Delivery dentro de Gutiérrez';
       let needsShippingConfirmation = false;
 
-      if (loc.distanceKm <= FREE_RADIUS_KM) {
+      if (isPickup) {
+        // Retiro en el local: sin costo de envío ni dirección.
+        shippingCost = 0;
+        deliveryCode = 'retiro-local';
+        deliveryLabel = 'Retiro en el local';
+      } else if (loc.distanceKm <= FREE_RADIUS_KM) {
         shippingCost = 0;
         deliveryCode = 'delivery-gutierrez';
         deliveryLabel = 'Delivery dentro de Gutiérrez';
@@ -5857,7 +5977,7 @@
       const promoSavings = entries.reduce((s, [, c]) => s + promoDiscountForItem(c), 0);
       const subtotalAfterPromo = subtotal - promoSavings;
       const discount = calcDiscount(subtotalAfterPromo, activeCoupon);
-      const rewardDesc = (typeof window.rewardDiscount === 'function') ? window.rewardDiscount() : 0;
+      const rewardDesc = (!isPickup && typeof window.rewardDiscount === 'function') ? window.rewardDiscount() : 0;
       const subtotalAfterDiscount = Math.max(0, subtotalAfterPromo - discount - rewardDesc);
       const beforeSurcharge = subtotalAfterDiscount + shippingCost;
       const surchargeAmount = Math.round(beforeSurcharge * surchargePct / 100);
@@ -5957,13 +6077,16 @@
         delivery: deliveryLabel,
         deliveryCode,
         shippingCost,
-        address,
-        addressUnit: addressUnit || '',
-        addressRef: addressRef || '',
-        latitude: loc.lat,
-        longitude: loc.lng,
-        distanceKm: parseFloat(loc.distanceKm.toFixed(2)),
+        address: isPickup ? '' : address,
+        addressUnit: isPickup ? '' : (addressUnit || ''),
+        addressRef: isPickup ? '' : (addressRef || ''),
+        latitude: loc ? loc.lat : null,
+        longitude: loc ? loc.lng : null,
+        distanceKm: loc ? parseFloat(loc.distanceKm.toFixed(2)) : null,
         needsShippingConfirmation,
+        // Retiro en el local: sin envío y sin sistema de coins (el admin no acredita).
+        pickup: isPickup,
+        noCoins: isPickup,
         payment: payLabel,
         paymentCode: payCode,
         surchargePct,

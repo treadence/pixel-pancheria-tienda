@@ -13,6 +13,44 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 Bitácora con fecha y hora de qué se tocó en cada flujo de trabajo, para tener trazabilidad y
 poder reutilizar la lógica en otros proyectos.
 
+### 2026-08-13 21:39 (-03)
+
+**Carrito: opción "Retiro en el local" (envío $0 + sin sistema de coins)**
+
+Antes el checkout era solo delivery: obligaba a cargar dirección + ubicación en el mapa y calculaba
+el envío por zonas. Se agregó un **toggle de modo de entrega** arriba del bloque de dirección con dos
+botones: **🛵 Envío a domicilio** (default, flujo de siempre) y **🏪 Retiro en el local**. En modo
+retiro: **envío $0**, no se pide dirección y se **ignora el sistema de coins** (no suma coins ni permite
+canjear recompensas).
+
+Cambios en `tienda/index.html`:
+
+- **HTML del carrito**: nuevo `.delivery-mode` (`#dmDelivery` / `#dmPickup`). Los tres campos de
+  dirección (DIRECCIÓN + PISO/DEPTO + REFERENCIAS) se envolvieron en `#deliveryFields` para poder
+  ocultarlos. Nuevo bloque `#pickupInfo` (`.pickup-info`) con la dirección del local
+  (**Calle 410 N°747 · Juan María Gutiérrez**), visible solo en modo retiro. CSS nuevo:
+  `.delivery-mode`, `.dm-btn`(`.sel`), `.pickup-info`/`.pickup-title`/`.pickup-addr`/`.pickup-note`.
+- **Estado + toggle**: `window.deliveryMode` (`'delivery'`/`'pickup'`) + `window.setDeliveryMode(mode)`
+  que alterna clases `.sel`, muestra/oculta `#deliveryFields`/`#pickupInfo`, suelta cualquier
+  recompensa elegida y recalcula. Como `renderCart()` reconstruye el form entero en cada render, al
+  final de `renderCart()` se **re-aplica** el modo persistido (`setDeliveryMode(window.deliveryMode)`)
+  en vez del `updateCartTotals()` suelto.
+- **`updateCartTotals()`**: `isPickup` → rama de envío nueva (`shippingCost=0`, label "RETIRO EN LOCAL",
+  verde); `rewardDesc` forzado a 0; línea "🪙 sumás X coins" y la caja de canje `#vidaExtraBox`
+  ocultadas.
+- **`sendOrder()`**: `isPickup` saltea la validación de dirección/ubicación (`loc` queda `null`); rama
+  de zona nueva (`deliveryCode:'retiro-local'`, `deliveryLabel:'Retiro en el local'`, envío $0);
+  `latitude/longitude/distanceKm` a `null` y `address/addressUnit/addressRef` vacíos; el pedido se
+  marca con **`pickup:true`** y **`noCoins:true`**.
+
+Cambio en `admin/index.html`:
+
+- **`awardLoyaltyForOrder()`**: al entregar, si el pedido trae `noCoins` o `pickup` la transacción
+  **retorna sin acreditar coins** (`if (o.noCoins || o.pickup) return null;`). Así el retiro en el
+  local también ignora los coins del lado del panel.
+
+Sin colección nueva ni cambios en `firestore.rules`. Umbrales/dirección del local siguen hardcodeados.
+
 ### 2026-08-08 20:57 (-03)
 
 **Envío fuera de zona: ahora cuesta $4.000 fijo + aviso claro en el seguimiento**
