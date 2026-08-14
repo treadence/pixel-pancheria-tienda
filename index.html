@@ -5237,9 +5237,6 @@
       if (delFields) delFields.style.display = isPickup ? 'none' : '';
       if (pickInfo) pickInfo.style.display = isPickup ? 'block' : 'none';
 
-      // En retiro se ignoran los coins: soltar cualquier recompensa elegida.
-      if (isPickup) { window.selectedReward = null; window.selectedRewardOptionIdx = 0; window.selectedRewardProductId = null; }
-
       updateCartTotals();
     };
 
@@ -5299,8 +5296,7 @@
       const subtotalAfterPromo = subtotal - promoSavings;
       // Cupón se calcula sobre el subtotal YA rebajado por la promo
       const discount = calcDiscount(subtotalAfterPromo, activeCoupon);
-      // En retiro en el local no se aplican recompensas de coins.
-      const rewardDesc = (!isPickup && typeof window.rewardDiscount === 'function') ? window.rewardDiscount() : 0;
+      const rewardDesc = (typeof window.rewardDiscount === 'function') ? window.rewardDiscount() : 0;
       const subtotalAfterDiscount = Math.max(0, subtotalAfterPromo - discount - rewardDesc);
       const beforeSurcharge = subtotalAfterDiscount + shippingCost;
       const surchargeAmount = Math.round(beforeSurcharge * surchargePct / 100);
@@ -5364,7 +5360,7 @@
 
       // Coins que suma esta compra (según la tasa configurada en el admin)
       const coinsQueSuma = Math.floor(finalTotal / getLoyaltyConfig().coinsPerPeso);
-      if (!isPickup && window.COINS_ENABLED && coinsQueSuma > 0) {
+      if (window.COINS_ENABLED && coinsQueSuma > 0) {
         html += `<div style="text-align:center;margin-top:10px;padding:8px;background:rgba(255,225,77,0.08);border:1px dashed var(--neon-yellow);color:var(--neon-yellow);font-size:17px;">
           🪙 Con esta compra sumás <strong>${coinsQueSuma}</strong> coins
         </div>`;
@@ -5379,14 +5375,8 @@
         ctaTotal.style.color = totalColor;
       }
 
-      // La caja de recompensas depende del carrito: la refrescamos con cada cambio.
-      // En retiro en el local no hay coins: la ocultamos.
-      if (!isPickup && window.COINS_ENABLED && typeof renderVidaExtraBox === 'function') {
-        renderVidaExtraBox();
-      } else if (isPickup) {
-        const _vb = document.getElementById('vidaExtraBox');
-        if (_vb) { _vb.style.display = 'none'; _vb.innerHTML = ''; }
-      }
+      // La caja de recompensas depende del carrito: la refrescamos con cada cambio
+      if (window.COINS_ENABLED && typeof renderVidaExtraBox === 'function') renderVidaExtraBox();
     }
     window.updateCartTotals = updateCartTotals;
 
@@ -5946,10 +5936,11 @@
       let needsShippingConfirmation = false;
 
       if (isPickup) {
-        // Retiro en el local: sin costo de envío ni dirección.
+        // Retiro en el local: sin costo de envío ni dirección. Usa el mismo
+        // deliveryCode 'retira' que el admin reconoce en su modal de edición.
         shippingCost = 0;
-        deliveryCode = 'retiro-local';
-        deliveryLabel = 'Retiro en el local';
+        deliveryCode = 'retira';
+        deliveryLabel = 'Retira en el local';
       } else if (loc.distanceKm <= FREE_RADIUS_KM) {
         shippingCost = 0;
         deliveryCode = 'delivery-gutierrez';
@@ -5977,7 +5968,7 @@
       const promoSavings = entries.reduce((s, [, c]) => s + promoDiscountForItem(c), 0);
       const subtotalAfterPromo = subtotal - promoSavings;
       const discount = calcDiscount(subtotalAfterPromo, activeCoupon);
-      const rewardDesc = (!isPickup && typeof window.rewardDiscount === 'function') ? window.rewardDiscount() : 0;
+      const rewardDesc = (typeof window.rewardDiscount === 'function') ? window.rewardDiscount() : 0;
       const subtotalAfterDiscount = Math.max(0, subtotalAfterPromo - discount - rewardDesc);
       const beforeSurcharge = subtotalAfterDiscount + shippingCost;
       const surchargeAmount = Math.round(beforeSurcharge * surchargePct / 100);
@@ -6084,9 +6075,9 @@
         longitude: loc ? loc.lng : null,
         distanceKm: loc ? parseFloat(loc.distanceKm.toFixed(2)) : null,
         needsShippingConfirmation,
-        // Retiro en el local: sin envío y sin sistema de coins (el admin no acredita).
+        // Retiro en el local: sin envío ni dirección. Los coins funcionan igual
+        // que en delivery (el flag solo sirve para clasificar/analizar el pedido).
         pickup: isPickup,
-        noCoins: isPickup,
         payment: payLabel,
         paymentCode: payCode,
         surchargePct,

@@ -13,6 +13,33 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 Bitácora con fecha y hora de qué se tocó en cada flujo de trabajo, para tener trazabilidad y
 poder reutilizar la lógica en otros proyectos.
 
+### 2026-08-13 23:48 (-03)
+
+**Retiro en el local: ahora con las MISMAS features que delivery (coins + cliente)**
+
+El fix inicial de retiro (más abajo, 21:39) apagaba a propósito el sistema de coins. Se decidió que
+el retiro tenga las mismas prestaciones que el envío a domicilio: **suma y canjea coins** y **guarda
+al cliente** igual que un pedido de delivery. El guardado de cliente ya funcionaba (`sendOrder()`
+llama a `upsertCuenta()` sin importar el modo; en retiro no se guarda dirección, que es lo esperado),
+así que el cambio real fue **volver a enganchar los coins**.
+
+Cambios en `tienda/index.html` (revierten el apagado de coins en retiro; se mantiene el envío $0):
+
+- **`setDeliveryMode()`**: ya no suelta la recompensa elegida al pasar a retiro.
+- **`updateCartTotals()`**: `rewardDesc` vuelve a calcularse (permite canjear), y la línea
+  "🪙 sumás X coins" + la caja de canje `#vidaExtraBox` se vuelven a mostrar en retiro. La rama de
+  envío $0 ("RETIRO EN LOCAL") se mantiene.
+- **`sendOrder()`**: `rewardDesc` vuelve a aplicarse (canje al confirmar) y se **quitó `noCoins`** del
+  pedido. Se conserva **`pickup:true`** (solo para clasificar/analizar).
+- **Consistencia de `deliveryCode`**: el retiro pasó de `retiro-local` a **`retira`**, el mismo código
+  que el admin ya usa en su modal de edición (`getAutoShipping`/`editDelivery` → "Retira"), así el
+  panel lo reconoce y etiqueta bien al editar. `deliveryLabel` = "Retira en el local".
+
+Admin: `awardLoyaltyForOrder()` volvió a acreditar en estos pedidos (ver `admin/README.md`). Los
+pedidos de retiro creados con el fix viejo (`noCoins:true`, sin `loyaltyProcessed`) se acreditan
+re-disparando la entrega en el panel (Volver → Entregado). Sin colección nueva ni cambios en
+`firestore.rules`.
+
 ### 2026-08-13 21:39 (-03)
 
 **Carrito: opción "Retiro en el local" (envío $0 + sin sistema de coins)**
