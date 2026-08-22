@@ -12,3 +12,15 @@
 
 [functions]
   node_bundler = "esbuild"
+
+# Cabeceras seguras que no interfieren con Mercado Pago, Maps ni Firebase.
+# La CSP se incorporará al modularizar los scripts inline y poder probarla
+# con todos los proveedores externos activos.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(self), camera=(), microphone=(), payment=()"
+    Cross-Origin-Opener-Policy = "same-origin"

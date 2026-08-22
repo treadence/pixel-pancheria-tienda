@@ -13,6 +13,21 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 Bitácora con fecha y hora de qué se tocó en cada flujo de trabajo, para tener trazabilidad y
 poder reutilizar la lógica en otros proyectos.
 
+### 2026-08-21 23:29 (-03)
+
+**Seguridad: cabeceras HTTP y validación de webhooks de Mercado Pago**
+
+- `netlify.toml` incorpora cabeceras defensivas compatibles con Firebase, Google Maps y
+  Checkout Pro: bloqueo de iframes, protección de tipos MIME, política de referrer y permisos
+  mínimos del navegador.
+- `webhook-mp.js` ahora puede verificar la firma HMAC que Mercado Pago adjunta a sus avisos.
+  Se activa en modo estricto con `MP_WEBHOOK_SECRET` y
+  `ENFORCE_MP_WEBHOOK_SIGNATURE=true`; mientras se configura, conserva el flujo actual y
+  registra una advertencia en logs para no interrumpir pagos.
+
+**Pendiente de habilitación en Netlify:** cargar el secreto de Webhooks de Mercado Pago,
+probar una compra real o de prueba y luego activar `ENFORCE_MP_WEBHOOK_SIGNATURE=true`.
+
 ### 2026-08-13 23:48 (-03)
 
 **Retiro en el local: ahora con las MISMAS features que delivery (coins + cliente)**

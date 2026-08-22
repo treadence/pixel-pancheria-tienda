@@ -6,6 +6,7 @@
 //
 // Requiere MP_ACCESS_TOKEN en las variables de entorno de Netlify.
 
+const crypto = require('crypto');
 const PROJECT_ID = 'pixelpancheria';
 const API_KEY = 'AIzaSyBQGQlfNxRVMk7UfvGI6VRqURwAw7JIMuI';
 
@@ -93,6 +94,32 @@ async function fsPatch(path, data) {
 
 function ok(headers) { return { statusCode: 200, headers, body: JSON.stringify({ received: true }) }; }
 
+// Mercado Pago firma los webhooks con x-signature y x-request-id. La clave se
+// configura en el panel de Webhooks de MP y se guarda solo en Netlify.
+// Mientras ENFORCE_MP_WEBHOOK_SIGNATURE no sea "true" mantenemos compatibilidad
+// con la configuración anterior, pero dejamos un aviso explícito en logs.
+function verifyMpSignature(event, paymentId) {
+  const secret = process.env.MP_WEBHOOK_SECRET;
+  const enforce = process.env.ENFORCE_MP_WEBHOOK_SIGNATURE === 'true';
+  const signature = event.headers['x-signature'] || event.headers['X-Signature'] || '';
+  const requestId = event.headers['x-request-id'] || event.headers['X-Request-Id'] || '';
+  if (!secret || !signature || !requestId || !paymentId) {
+    if (enforce) return false;
+    console.warn('Webhook MP sin firma verificada: falta MP_WEBHOOK_SECRET o headers de firma.');
+    return true;
+  }
+  const parts = Object.fromEntries(signature.split(',').map(p => {
+    const i = p.indexOf('=');
+    return i < 0 ? [p.trim(), ''] : [p.slice(0, i).trim(), p.slice(i + 1).trim()];
+  }));
+  if (!parts.ts || !parts.v1) return !enforce;
+  const manifest = `id:${String(paymentId).toLowerCase()};request-id:${requestId};ts:${parts.ts};`;
+  const expected = crypto.createHmac('sha256', secret).update(manifest).digest('hex');
+  try {
+    return crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(parts.v1, 'hex'));
+  } catch (e) { return false; }
+}
+
 exports.handler = async (event) => {
   const headers = { 'Content-Type': 'application/json' };
   // MP espera 200 rápido; ante la duda respondemos 200 para que no reintente en loop.
@@ -117,6 +144,10 @@ exports.handler = async (event) => {
   // Solo nos interesan las notificaciones de pago
   if (type && !String(type).includes('payment')) return ok(headers);
   if (!paymentId) return ok(headers);
+  if (!verifyMpSignature(event, paymentId)) {
+    console.warn('Webhook MP rechazado: firma inválida.');
+    return ok(headers);
+  }
 
   // Consultar el pago real a MP
   let payment;
