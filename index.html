@@ -3441,6 +3441,11 @@
       // La promo de "Menú completo" vive en settings; re-renderizar las cards para que muestren el badge/precio
       if (typeof window.renderProductCards === 'function') window.renderProductCards();
       if (typeof window.updateCartTotals === 'function') window.updateCartTotals();
+      // Si el admin ajusta el tiempo de preparación, recalcular el ETA en el
+      // seguimiento abierto sin esperar el refresco periódico de 30 segundos.
+      if (__trackOrder && document.body.classList.contains('tracking-mode')) {
+        renderTracking(__trackOrder);
+      }
       if (!_storeSnapshotReceived) {
         _storeSnapshotReceived = true;
         document.getElementById('loadingScreen').classList.add('hidden');

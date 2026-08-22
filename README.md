@@ -13,6 +13,16 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 Bitácora con fecha y hora de qué se tocó en cada flujo de trabajo, para tener trazabilidad y
 poder reutilizar la lógica en otros proyectos.
 
+### 2026-08-22 19:51 (-03)
+
+**Seguimiento: el tiempo de preparación se aplica en el acto**
+
+- Al modificarlo desde Admin → Configuración, el `prepTimeMin` guardado en
+  `settings/store` ahora recalcula inmediatamente el ETA de cualquier página de seguimiento
+  abierta; ya no espera el refresco periódico de 30 segundos.
+- El botón **Guardar** de esa configuración vuelve a restaurar su SVG original tras el aviso
+  de éxito o error, por lo que no pierde el ícono después del primer uso.
+
 ### 2026-08-21 23:29 (-03)
 
 **Seguridad: cabeceras HTTP y validación de webhooks de Mercado Pago**
