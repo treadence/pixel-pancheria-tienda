@@ -2571,15 +2571,24 @@
   .track-eta .te-cola { display: block; font-size: 17px; color: var(--neon-yellow); margin-top: 6px; }
 
   .track-push-btn {
-    width: 100%; margin: 0 0 16px;
-    background: transparent; border: 2px solid var(--neon-yellow); color: var(--neon-yellow);
-    font-family: 'Press Start 2P', monospace; font-size: 10px; padding: 12px;
+    width: 100%; margin: 0 0 16px; border: 2px solid var(--neon-yellow);
+    background: rgba(255,238,0,0.12); color: var(--neon-yellow); border-radius: 8px;
+    box-shadow: 0 0 18px rgba(255,238,0,0.3), inset 0 0 16px rgba(255,238,0,0.07);
+    font-family: 'Press Start 2P', monospace; padding: 13px 12px;
     cursor: pointer; text-shadow: 0 0 6px var(--neon-yellow);
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    animation: track-push-glow 2.2s ease-in-out infinite;
   }
-  .track-push-btn:hover { background: rgba(255,238,0,0.08); }
+  .track-push-btn:hover { background: rgba(255,238,0,0.22); transform: translateY(-1px); }
+  .track-push-btn .tp-icon { font-size: 25px; line-height: 1; }
+  .track-push-btn .tp-copy { display: flex; flex-direction: column; gap: 5px; text-align: left; }
+  .track-push-btn strong { font-size: 10px; line-height: 1.35; }
+  .track-push-btn small { font-family: 'VT323', monospace; font-size: 17px; color: #fff4a8; line-height: 1; }
+  @keyframes track-push-glow { 0%,100% { box-shadow: 0 0 14px rgba(255,238,0,0.25), inset 0 0 16px rgba(255,238,0,0.07); } 50% { box-shadow: 0 0 27px rgba(255,238,0,0.58), inset 0 0 20px rgba(255,238,0,0.12); } }
   .track-push.on {
-    font-family: 'VT323', monospace; font-size: 18px; color: var(--neon-yellow);
-    margin: 0 0 16px;
+    font-family: 'VT323', monospace; font-size: 19px; color: var(--neon-green);
+    background: rgba(57,255,20,0.08); border: 1px solid var(--neon-green);
+    border-radius: 8px; padding: 10px 12px; margin: 0 0 16px;
   }
 
   .track-transfer {
@@ -3127,7 +3136,7 @@
         const pushHtmlT = pushSupported() ? (
           localStorage.getItem('pixel_push_' + order.id) === '1'
             ? `<div class="track-push on">🔔 Te avisamos apenas confirmemos el pago</div>`
-            : `<button class="track-push-btn" onclick="trackEnablePush('${order.id}')">🔔 AVISARME CUANDO SE CONFIRME</button>`
+            : `<button class="track-push-btn" onclick="trackEnablePush('${order.id}')"><span class="tp-icon">🔔</span><span class="tp-copy"><strong>ACTIVÁ LA CAMPANA</strong><small>Te avisamos al confirmar el pago</small></span></button>`
         ) : '';
         const itemsHtmlT = (order.items || []).map(it =>
           `<div class="track-item"><span>${it.qty || 1}× ${trackEscape(it.name)}</span><span>$${Number(it.subtotal ?? ((it.qty || 1) * (it.unitPrice || it.price || 0))).toLocaleString('es-AR')}</span></div>`
@@ -3178,6 +3187,7 @@
       // --- ETA ---
       const prep = trackPrepMinutes();
       const travel = trackTravelMinutes(order);
+      const TRACK_PREP_MARGIN_MIN = 10; // margen fijo antes de que salga el repartidor
       let etaHtml = '';
       // GPS en vivo: el celu del repartidor escribe en el pedido la distancia
       // y el ETA ya calculados (sus coordenadas nunca se publican). Si hay
@@ -3198,6 +3208,14 @@
       } else if (status === 'delivered') {
         const t = trackTsToDate((order.statusHistory || {}).delivered);
         etaHtml = `<div class="track-eta ok">✅ Entregado${t ? ' a las ' + t.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : ''}<br>¡Gracias por tu compra! 🌭</div>`;
+      } else if (status === 'preparing') {
+        // Mientras cocina lo prepara mostramos una hora clara, no un contador
+        // que dé la sensación de que el repartidor ya está en camino.
+        const h = order.statusHistory || {};
+        const base = trackTsToDate(h.preparing) || new Date();
+        const llega = new Date(base.getTime() + (prep + travel + TRACK_PREP_MARGIN_MIN) * 60000);
+        const verbo = esRetiro ? 'Listo para retirar' : 'Llega';
+        etaHtml = `<div class="track-eta">👨‍🍳 Estamos preparando tu pedido<br>${verbo} aprox. <strong>${llega.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</strong></div>`;
       } else {
         const h = order.statusHistory || {};
         let base, restanteMin;
@@ -3243,7 +3261,7 @@
         const yaSuscripto = localStorage.getItem('pixel_push_' + order.id) === '1';
         pushHtml = yaSuscripto
           ? `<div class="track-push on">🔔 Te vamos a avisar ante cada cambio</div>`
-          : `<button class="track-push-btn" onclick="trackEnablePush('${order.id}')">🔔 AVISARME CUANDO CAMBIE</button>`;
+          : `<button class="track-push-btn" onclick="trackEnablePush('${order.id}')"><span class="tp-icon">🔔</span><span class="tp-copy"><strong>ACTIVÁ LA CAMPANA</strong><small>Te avisamos cada cambio de tu pedido</small></span></button>`;
       }
 
       box.innerHTML = `
@@ -3251,10 +3269,10 @@
           <div class="track-head-title">🌭 PIXEL PANCHERÍA</div>
           <div class="track-title">${cancelled ? 'PEDIDO CANCELADO' : 'SEGUÍ TU PEDIDO'}</div>
           <div class="track-customer">${trackEscape(order.customer || '')}</div>
+          ${pushHtml}
           <div class="track-steps ${cancelled ? 'cancelled' : ''}">${stepsHtml}</div>
           ${etaHtml}
           ${outsideHtml}
-          ${pushHtml}
           <div class="track-summary">
             ${itemsHtml}
             <div class="track-item total"><span>TOTAL</span><span>$${Number(order.total || 0).toLocaleString('es-AR')}</span></div>

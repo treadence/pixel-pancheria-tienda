@@ -13,6 +13,18 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 Bitácora con fecha y hora de qué se tocó en cada flujo de trabajo, para tener trazabilidad y
 poder reutilizar la lógica en otros proyectos.
 
+### 2026-08-22 20:03 (-03)
+
+**Seguimiento: ETA más claro + campana visible**
+
+- En estado **En preparación**, el seguimiento dejó de mostrar el contador `(~X min)`.
+  Ahora fija una hora estimada de llegada calculada al entrar a cocina: tiempo de preparación
+  configurado + viaje estimado + 10 minutos de margen. El contador vuelve a aparecer recién
+  cuando el pedido está **En camino**.
+- La campana se mueve arriba de la barra de progreso, con tarjeta amarilla y pulso suave;
+  explica que avisa cada cambio del pedido. Tras activarse, se convierte en una confirmación verde.
+  El mismo estilo se aplica al aviso de transferencia pendiente.
+
 ### 2026-08-22 19:51 (-03)
 
 **Seguimiento: el tiempo de preparación se aplica en el acto**
