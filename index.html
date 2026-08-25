@@ -2789,8 +2789,8 @@
     const firebaseApp = initializeApp(firebaseConfig);
     const db = getFirestore(firebaseApp);
 
-    // Mapa de stock: { productId: boolean }
-    // true = disponible, false = agotado
+    // Mapa de stock efectivo: combina el apagado manual del admin con el
+    // agotamiento automático que provoca una receta sin materias primas.
     const stockMap = {};
 
     // Mapa de overrides de productos: { productId: { name?, desc?, price?, sprite? } }
@@ -2802,7 +2802,8 @@
     // Escucha cambios en tiempo real de la colección "stock"
     onSnapshot(collection(db, "stock"), (snapshot) => {
       snapshot.forEach(doc => {
-        stockMap[doc.id] = doc.data().available !== false;
+        const data = doc.data();
+        stockMap[doc.id] = data.available !== false && data.autoUnavailable !== true;
       });
       updateStockInUI();
     });
