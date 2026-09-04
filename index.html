@@ -6,10 +6,19 @@
   <!-- Google Analytics 4 -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-KF22RZJNS3"></script>
   <script>
+    const PIXEL_GA4_ID = 'G-KF22RZJNS3';
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-KF22RZJNS3');
+    // Evita que el regreso desde Mercado Pago abra una sesión atribuida al
+    // procesador de pagos en vez de conservar la campaña original.
+    const pixelPaymentReturn = /(^|\.)mercadopago\.(com|com\.ar)$/i.test(
+      document.referrer ? new URL(document.referrer).hostname : ''
+    );
+    const pixelGa4Config = {};
+    if (pixelPaymentReturn) pixelGa4Config.ignore_referrer = true;
+    if (new URLSearchParams(location.search).get('ga_debug') === '1') pixelGa4Config.debug_mode = true;
+    gtag('config', PIXEL_GA4_ID, pixelGa4Config);
   </script>
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -2789,6 +2798,92 @@
     const firebaseApp = initializeApp(firebaseConfig);
     const db = getFirestore(firebaseApp);
 
+    // ====== GOOGLE ANALYTICS 4 · EMBUDO Y PEDIDOS ======
+    function ga4OrderItems(order) {
+      return (Array.isArray(order && order.items) ? order.items : []).map(item => ({
+        item_id: String(item.productId || item.id || item.name || 'producto'),
+        item_name: String(item.name || 'Producto'),
+        price: Number(item.discountedUnitPrice != null ? item.discountedUnitPrice : item.unitPrice) || 0,
+        quantity: Math.max(1, Number(item.qty) || 1)
+      }));
+    }
+
+    function ga4DebugEnabled() {
+      return new URLSearchParams(location.search).get('ga_debug') === '1';
+    }
+
+    function sendGa4Event(eventName, params = {}) {
+      if (typeof window.gtag !== 'function') return;
+      const eventParams = { ...params };
+      if (ga4DebugEnabled()) eventParams.debug_mode = true;
+      window.gtag('event', eventName, eventParams);
+    }
+
+    function ga4CartItems() {
+      return Object.values(cart || {}).map(line => ({
+        item_id: String(line.item.id || line.item.name || 'producto'),
+        item_name: String(line.item.name || 'Producto'),
+        price: line.qty > 0 ? Number((cartItemSubtotal(line) / line.qty).toFixed(2)) : 0,
+        quantity: Math.max(1, Number(line.qty) || 1)
+      }));
+    }
+
+    function ga4CartValue() {
+      return Number(Object.values(cart || {}).reduce((sum, line) => sum + cartItemSubtotal(line), 0).toFixed(2));
+    }
+
+    function sendGa4CartEvent(eventName) {
+      const items = ga4CartItems();
+      if (!items.length) return;
+      sendGa4Event(eventName, { currency: 'ARS', value: ga4CartValue(), items });
+    }
+
+    function sendGa4CheckoutError(errorType) {
+      sendGa4Event('checkout_error', {
+        error_type: String(errorType),
+        delivery_type: window.deliveryMode === 'pickup' ? 'pickup' : 'delivery'
+      });
+    }
+
+    // transaction_id es el id único de Firestore. El storage evita dobles
+    // emisiones si el pedido se actualiza o la pantalla se refresca.
+    function sendGa4OrderEvent(eventName, orderId, order) {
+      if (!orderId || !order || typeof window.gtag !== 'function') return Promise.resolve(false);
+      const storageKey = `pixel_ga4_${eventName}_${orderId}`;
+      try {
+        if (localStorage.getItem(storageKey) === '1') return Promise.resolve(false);
+        localStorage.setItem(storageKey, '1');
+      } catch (e) {}
+
+      return new Promise(resolve => {
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          resolve(true);
+        };
+        const params = {
+          transaction_id: String(orderId),
+          value: Number(order.total) || 0,
+          currency: 'ARS',
+          shipping: Number(order.shippingCost) || 0,
+          payment_type: String(order.paymentCode || order.paidVia || order.payment || ''),
+          items: ga4OrderItems(order),
+          event_callback: finish,
+          event_timeout: 1200
+        };
+        if (ga4DebugEnabled()) params.debug_mode = true;
+        window.gtag('event', eventName, params);
+        setTimeout(finish, 1300);
+      });
+    }
+
+    window.pixelGa4 = {
+      sendEvent: sendGa4Event,
+      sendOrderEvent: sendGa4OrderEvent,
+      orderItems: ga4OrderItems
+    };
+
     // Mapa de stock efectivo: combina el apagado manual del admin con el
     // agotamiento automático que provoca una receta sin materias primas.
     const stockMap = {};
@@ -3102,6 +3197,12 @@
             <a class="track-back" href="${location.pathname}">◀ VOLVER A LA TIENDA</a>
           </div>`;
         return;
+      }
+
+      // Una compra solo existe cuando el pago fue aprobado. El webhook de
+      // Mercado Pago es quien establece paid=true tras validar el importe.
+      if (order.paid === true && Number(order.total) > 0) {
+        sendGa4OrderEvent('purchase', order.id, order);
       }
 
       // Pendiente de pago (Mercado Pago): el cliente volvió del checkout pero el
@@ -3739,6 +3840,16 @@
       currentComboPanchos = [];
       currentComboBebidas = [];
       currentComboSausages = {};
+      sendGa4Event('view_item', {
+        currency: 'ARS',
+        value: Number(item.price) || 0,
+        items: [{
+          item_id: String(item.id || item.name || 'producto'),
+          item_name: String(item.name || 'Producto'),
+          price: Number(item.price) || 0,
+          quantity: 1
+        }]
+      });
       renderProductModal();
       document.getElementById('productOverlay').classList.add('open');
       const scrollY = window.scrollY;
@@ -4315,6 +4426,19 @@
       }
       cart[cartKey].qty += currentQty;
 
+      const addedLine = cart[cartKey];
+      const addedUnitPrice = Number((cartItemSubtotal(addedLine) / addedLine.qty).toFixed(2));
+      sendGa4Event('add_to_cart', {
+        currency: 'ARS',
+        value: Number((addedUnitPrice * currentQty).toFixed(2)),
+        items: [{
+          item_id: String(addedLine.item.id || addedLine.item.name || 'producto'),
+          item_name: String(addedLine.item.name || 'Producto'),
+          price: addedUnitPrice,
+          quantity: currentQty
+        }]
+      });
+
       updateBadge();
       flashBadge();
       if (navigator.vibrate) navigator.vibrate(20);
@@ -4323,6 +4447,20 @@
 
     function changeQty(cartKey, delta) {
       if (!cart[cartKey]) return;
+      const line = cart[cartKey];
+      const eventName = delta > 0 ? 'add_to_cart' : 'remove_from_cart';
+      const changedQty = Math.min(Math.abs(delta), line.qty);
+      const unitPrice = line.qty > 0 ? Number((cartItemSubtotal(line) / line.qty).toFixed(2)) : 0;
+      sendGa4Event(eventName, {
+        currency: 'ARS',
+        value: Number((unitPrice * changedQty).toFixed(2)),
+        items: [{
+          item_id: String(line.item.id || line.item.name || 'producto'),
+          item_name: String(line.item.name || 'Producto'),
+          price: unitPrice,
+          quantity: changedQty
+        }]
+      });
       cart[cartKey].qty += delta;
       if (cart[cartKey].qty <= 0) delete cart[cartKey];
       updateBadge();
@@ -4344,6 +4482,7 @@
     function openCart() {
       document.getElementById('cartOverlay').classList.add('open');
       renderCart();
+      sendGa4CartEvent('view_cart');
       // Inicializar Google Places autocomplete si está disponible
       setTimeout(() => {
         if (window.googleMapsReady && typeof window.initAddressPicker === 'function') {
@@ -4410,6 +4549,7 @@
 
     // Handler del botón de pago: intercepta una vez para ofrecer el upsell
     function onCheckoutClick() {
+      sendGa4CartEvent('begin_checkout');
       if (!upsellShown) {
         const sugg = upsellSuggestions();
         if (sugg.length) { openUpsell(sugg); return; }
@@ -5927,27 +6067,29 @@
 
       const isPickup = window.deliveryMode === 'pickup';
 
-      if (!name) { alert('⚠ Ingresá tu nombre'); return; }
-      if (!phone) { alert('⚠ Ingresá tu teléfono'); return; }
+      if (!name) { sendGa4CheckoutError('missing_name'); alert('⚠ Ingresá tu nombre'); return; }
+      if (!phone) { sendGa4CheckoutError('missing_phone'); alert('⚠ Ingresá tu teléfono'); return; }
 
       // En retiro en el local no hace falta dirección ni ubicación en el mapa.
       let loc = null;
       if (!isPickup) {
-        if (!address) { alert('⚠ Ingresá la dirección'); return; }
+        if (!address) { sendGa4CheckoutError('missing_address'); alert('⚠ Ingresá la dirección'); return; }
         // Verificar que se haya seleccionado una dirección con coordenadas
         loc = (typeof window.getSelectedLocation === 'function') ? window.getSelectedLocation() : null;
         if (!loc) {
+          sendGa4CheckoutError('address_not_selected');
           alert('⚠ Por favor seleccioná tu dirección del listado de sugerencias para confirmar la ubicación en el mapa.');
           return;
         }
       }
 
       const entries = Object.entries(cart);
-      if (!entries.length) { alert('⚠ El carrito está vacío'); return; }
+      if (!entries.length) { sendGa4CheckoutError('empty_cart'); alert('⚠ El carrito está vacío'); return; }
 
       if (window.isStoreOpen) {
         const status = window.isStoreOpen();
         if (!status.open) {
+          sendGa4CheckoutError('store_closed');
           alert('😔 ' + status.reason);
           return;
         }
@@ -5985,7 +6127,7 @@
           'si por distancia no llegamos a cubrir tu zona, te avisamos por WhatsApp a la brevedad y te reintegramos lo que hayas abonado.\n\n' +
           '¿Querés enviar el pedido igual?'
         );
-        if (!ok) return;
+        if (!ok) { sendGa4CheckoutError('shipping_not_confirmed'); return; }
       }
 
       const subtotal = entries.reduce((s, [, c]) => s + cartItemSubtotal(c), 0);
@@ -6114,6 +6256,19 @@
         source: 'web'
       };
 
+      sendGa4Event('add_shipping_info', {
+        currency: 'ARS',
+        value: finalTotal,
+        shipping_tier: deliveryCode,
+        items: ga4OrderItems(firebaseOrder)
+      });
+      sendGa4Event('add_payment_info', {
+        currency: 'ARS',
+        value: finalTotal,
+        payment_type: payCode,
+        items: ga4OrderItems(firebaseOrder)
+      });
+
       // Recompensa canjeada (el admin descuenta los coins correspondientes al entregar)
       if (window.selectedReward && rewardDesc > 0) {
         const _pid = rewardChosenProductId();
@@ -6177,6 +6332,10 @@
 
         const savedId = await window.saveOrderToFirebase(order, orderId);
         if (!savedId) throw new Error('no se pudo guardar el pedido');
+
+        if (payCode === 'efectivo' || payCode === 'transferencia') {
+          await sendGa4OrderEvent('order_submitted', orderId, order);
+        }
 
         try { localStorage.setItem('pixel_pedido_activo', JSON.stringify({ id: orderId, at: Date.now() })); } catch (e) {}
 
