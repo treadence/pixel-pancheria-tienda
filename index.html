@@ -7,6 +7,8 @@
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-KF22RZJNS3"></script>
   <script>
     const PIXEL_GA4_ID = 'G-KF22RZJNS3';
+    const PIXEL_ADS_ID = 'AW-18430482083';
+    const PIXEL_ADS_PURCHASE_SEND_TO = 'AW-18430482083/FDuJCPKolO4cEKOtq9RE';
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
@@ -19,6 +21,7 @@
     if (pixelPaymentReturn) pixelGa4Config.ignore_referrer = true;
     if (new URLSearchParams(location.search).get('ga_debug') === '1') pixelGa4Config.debug_mode = true;
     gtag('config', PIXEL_GA4_ID, pixelGa4Config);
+    gtag('config', PIXEL_ADS_ID);
   </script>
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -2874,6 +2877,14 @@
         };
         if (ga4DebugEnabled()) params.debug_mode = true;
         window.gtag('event', eventName, params);
+        if (eventName === 'purchase') {
+          window.gtag('event', 'conversion', {
+            send_to: PIXEL_ADS_PURCHASE_SEND_TO,
+            value: Number(order.total) || 0,
+            currency: 'ARS',
+            transaction_id: String(orderId)
+          });
+        }
         setTimeout(finish, 1300);
       });
     }
