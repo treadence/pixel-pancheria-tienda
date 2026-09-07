@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { handler } = require('./cotizar-envio');
+const { handler } = require('../netlify/functions/cotizar-envio');
 
 async function invoke(lat, lng) {
   const result = await handler({ httpMethod: 'POST', body: JSON.stringify({ lat, lng }) });
