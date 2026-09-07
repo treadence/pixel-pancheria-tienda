@@ -13,6 +13,23 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 Bitácora con fecha y hora de qué se tocó en cada flujo de trabajo, para tener trazabilidad y
 poder reutilizar la lógica en otros proyectos.
 
+### 2026-09-07 18:26 (-03)
+
+**Portada móvil más liviana y orientada a comprar**
+
+- Se redujeron la altura del encabezado, los espacios y la navegación de categorías para que los
+  productos aparezcan antes, sin perder la estética pixel-art.
+- Los tres mensajes superiores se condensaron a uno: se conserva `1UP EN CADA PANCHO` y se ocultan
+  los datos redundantes de delivery y nivel de hambre en pantallas chicas.
+- El acceso grande a seguimiento aparece únicamente cuando ese navegador tiene un pedido vigente;
+  sin pedido deja de ocupar lugar antes del menú.
+- La cuenta del cliente y su dirección activa pasan a filas compactas. Se eliminaron mensajes de
+  premios repetidos y se conserva el acceso directo a premios, cambio de dirección y cierre de sesión.
+- Los combos destacados se muestran en dos columnas, sin descripciones repetidas, y el carrito fijo
+  aparece recién después de agregar un producto.
+
+Verificación: sintaxis del módulo, pruebas automatizadas de cobertura y revisión móvil 390×844.
+
 ### 2026-09-07 12:34 (-03)
 
 **Identificación previa, cobertura por tiempo de ruta y envío unificado**

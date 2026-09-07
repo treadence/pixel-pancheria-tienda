@@ -356,7 +356,7 @@
     }
 
     .my-order-access {
-      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+      display: none; align-items: center; justify-content: center; gap: 10px;
       margin-top: 18px; padding: 11px 15px; max-width: 440px; width: 100%;
       color: var(--neon-cyan); background: rgba(0, 240, 255, 0.06);
       border: 2px solid var(--neon-cyan); border-radius: 8px;
@@ -369,6 +369,7 @@
     .my-order-access small { color: #c9b8e6; font-size: 16px; line-height: 1.1; }
     .my-order-access .mo-arrow { font-family: 'Press Start 2P', monospace; font-size: 10px; }
     .my-order-access.has-order {
+      display: inline-flex;
       color: var(--bg); background: var(--neon-green); border-color: #fff;
       box-shadow: 4px 4px 0 var(--neon-purple), 0 0 18px rgba(0,255,102,0.45);
       animation: ts-pulse 2.4s ease-in-out infinite;
@@ -485,8 +486,14 @@
     .featured-combo-btn span { font-family: 'VT323', monospace; font-size: 18px; }
     .featured-combo-btn b { color: var(--neon-green); font-family: 'Press Start 2P', monospace; font-size: 10px; }
     @media (max-width: 600px) {
-      .featured-combos { padding: 15px 12px; }
-      .featured-combos-grid { grid-template-columns: 1fr; }
+      .featured-combos { margin: 2px 0 20px; padding: 11px 9px; border-width: 2px; box-shadow: 4px 4px 0 var(--neon-pink); }
+      .featured-combos-title { font-size: 11px; margin-bottom: 9px; }
+      .featured-combos-sub { display: none; }
+      .featured-combos-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .featured-combo-btn { gap: 4px; padding: 10px 6px; box-shadow: 2px 2px 0 var(--neon-purple); }
+      .featured-combo-btn strong { font-size: 8px; }
+      .featured-combo-btn span { display: none; }
+      .featured-combo-btn b { font-size: 8px; line-height: 1.45; }
     }
 
     .grid {
@@ -778,6 +785,8 @@
       box-shadow: 4px 4px 0 var(--neon-purple), 0 0 25px var(--neon-pink);
       animation: pulse 2s infinite;
     }
+
+    .cart-fab.is-empty { display: none; }
 
     @keyframes pulse {
 
@@ -1787,44 +1796,56 @@
       }
 
       header {
-        padding: 28px 16px 20px;
+        padding: 16px 14px 12px;
+        border-bottom-width: 2px;
       }
 
       .title {
-        font-size: 29px;
+        font-size: 24px;
         letter-spacing: 1px;
-        line-height: 1.4;
+        line-height: 1.3;
+        margin-bottom: 7px;
       }
 
       .subtitle {
-        font-size: 16px;
-        letter-spacing: 2px;
+        font-size: 14px;
+        letter-spacing: 1px;
       }
 
       .coin-row {
-        gap: 8px;
-        margin-top: 16px;
+        margin-top: 9px;
       }
 
       .coin-stat {
+        display: none;
         font-size: 8px;
-        padding: 6px 10px;
+        padding: 5px 9px;
       }
+
+      .coin-stat:last-child { display: block; }
+
+      .my-order-access.has-order {
+        margin-top: 10px; padding: 8px 10px; max-width: 360px;
+      }
+
+      .my-order-access .mo-pin { font-size: 18px; }
+      .my-order-access strong { font-size: 8px; }
+      .my-order-access small { font-size: 14px; }
 
       /* Categorias: scroll horizontal suave */
       .categories {
-        padding: 12px 8px;
+        padding: 7px 6px;
       }
 
       .cat-btn {
-        font-size: 9px;
-        padding: 10px 12px;
-        margin: 0 3px;
+        font-size: 8px;
+        padding: 8px 10px;
+        margin: 0 2px;
       }
 
       /* Secciones */
       main {
-        padding: 20px 12px 140px;
+        padding: 12px 10px 90px;
       }
 
       .cat-title {
@@ -1905,11 +1926,11 @@
 
       /* FAB del carrito: mas grande para dedo */
       .cart-fab {
-        bottom: 16px;
-        right: 16px;
-        left: 16px;
-        padding: 16px;
-        font-size: 12px;
+        bottom: 12px;
+        right: 12px;
+        left: 12px;
+        padding: 12px;
+        font-size: 10px;
         text-align: center;
         box-shadow: 3px 3px 0 var(--neon-purple), 0 0 20px var(--neon-pink);
       }
@@ -2157,10 +2178,36 @@
     flex: none; padding: 7px 9px; border: 1px solid var(--neon-yellow); background: transparent;
     color: var(--neon-yellow); font-family: 'Press Start 2P', monospace; font-size: 8px; cursor: pointer;
   }
+  .account-summary {
+    max-width: 900px; margin: 0 auto; padding: 9px 16px;
+    font-family: 'VT323', monospace; color: #e8e0ff;
+  }
+  .account-summary-row { display: flex; align-items: center; gap: 10px; }
+  .account-summary-main {
+    flex: 1; min-width: 0; border: 0; padding: 0; background: transparent; color: inherit;
+    font-family: inherit; font-size: 19px; text-align: left; cursor: pointer;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .account-summary-main .account-prizes { color: var(--neon-yellow); text-decoration: underline; }
+  .account-summary-logout {
+    flex: none; border: 1px solid #6b5b95; padding: 4px 8px; background: transparent;
+    color: #9b8bb8; font-family: inherit; font-size: 14px; cursor: pointer;
+  }
+  .account-progress { margin-top: 5px; }
   @media (max-width: 600px) {
     .customer-setup-card { padding: 22px 16px; }
     .customer-setup-grid { grid-template-columns: 1fr; }
     .customer-setup-map { height: 180px; }
+    .customer-delivery-bar { margin-top: 6px; padding: 0 10px; }
+    .customer-delivery-inner { gap: 7px; padding: 7px 9px; border-width: 1px; font-size: 15px; }
+    .customer-delivery-copy { display: flex; align-items: baseline; gap: 7px; }
+    .customer-delivery-copy strong { flex: none; font-size: 16px; }
+    .customer-delivery-copy span { flex: 1; font-size: 15px; }
+    .customer-delivery-change { padding: 6px 7px; font-size: 7px; }
+    .account-summary { padding: 7px 10px 5px; }
+    .account-summary-main { font-size: 17px; }
+    .account-summary-logout { padding: 3px 6px; font-size: 12px; }
+    .account-progress { display: none; }
   }
 
   /* Direcciones guardadas */
@@ -4832,6 +4879,11 @@
     function updateBadge() {
       const total = Object.values(cart).reduce((s, c) => s + c.qty, 0);
       document.getElementById('cartCount').textContent = total;
+      const button = document.querySelector('.cart-fab');
+      if (button) {
+        button.classList.toggle('is-empty', total === 0);
+        button.setAttribute('aria-hidden', total === 0 ? 'true' : 'false');
+      }
     }
 
     function flashBadge() {
@@ -6246,19 +6298,20 @@
           const prevThreshold = [...cfg.rewards].reverse().find(r => r.coins <= coins);
           const base = prevThreshold ? prevThreshold.coins : 0;
           const pct = Math.min(100, Math.round(((coins - base) / (next.coins - base)) * 100));
-          progresoHtml = `
-            <div style="height:10px;background:rgba(255,255,255,0.1);border-radius:6px;overflow:hidden;margin:6px 0 4px;"><div style="height:100%;width:${pct}%;background:#ffe14d;transition:width .3s;"></div></div>
-            <div style="font-size:16px;color:#c9b8e6;">Te faltan ${next.coins - coins} coins para: ${escHtmlL(next.label)}</div>`;
+          progresoHtml = `<div class="account-progress">
+            <div style="height:8px;background:rgba(255,255,255,0.1);border-radius:6px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:#ffe14d;transition:width .3s;"></div></div>
+            <div style="font-size:15px;color:#c9b8e6;">Te faltan ${next.coins - coins} coins para: ${escHtmlL(next.label)}</div>
+          </div>`;
         } else if (cfg.rewards.length) {
-          progresoHtml = `<div style="font-size:16px;color:var(--neon-green);margin-top:4px;">¡Tenés recompensas para canjear en tu próximo pedido! 🎉</div>`;
+          progresoHtml = '';
         } else {
           progresoHtml = '';
         }
         bar.innerHTML = `
-          <div style="max-width:900px;margin:0 auto;padding:10px 16px;font-family:'VT323',monospace;color:#e8e0ff;">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:19px;">
-              <span onclick="openPrizes()" style="cursor:pointer;" title="Ver tus premios">👾 Hola <strong>${escHtmlL(window.cuenta.nombre || '')}</strong> · 🪙 <strong>${coins}</strong> coins${alcanzadas > 0 ? ` · <strong style="color:#ffe14d;">${alcanzadas} recompensa${alcanzadas > 1 ? 's' : ''} disponible${alcanzadas > 1 ? 's' : ''}</strong> 🎉` : ''} <span style="text-decoration:underline;color:#ffe14d;font-size:16px;white-space:nowrap;">ver premios ▸</span></span>
-              <button onclick="cuentaLogout()" style="background:transparent;border:1px solid #6b5b95;color:#9b8bb8;padding:4px 10px;font-family:inherit;font-size:14px;cursor:pointer;">salir</button>
+          <div class="account-summary">
+            <div class="account-summary-row">
+              <button type="button" class="account-summary-main" onclick="openPrizes()" title="Ver tus premios">👾 <strong>${escHtmlL(window.cuenta.nombre || '')}</strong> · 🪙 <strong>${coins}</strong>${alcanzadas > 0 ? ` · <span class="account-prizes">${alcanzadas} premio${alcanzadas > 1 ? 's' : ''} ▸</span>` : ' · <span class="account-prizes">premios ▸</span>'}</button>
+              <button type="button" class="account-summary-logout" onclick="cuentaLogout()">SALIR</button>
             </div>
             ${progresoHtml}
           </div>`;
