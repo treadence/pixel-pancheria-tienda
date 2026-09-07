@@ -466,36 +466,6 @@
       margin-top: 10px;
     }
 
-    .featured-combos {
-      margin: 4px 0 34px; padding: 18px; border: 3px solid var(--neon-yellow);
-      background: linear-gradient(135deg, rgba(180,0,255,.18), rgba(255,46,147,.12));
-      box-shadow: 6px 6px 0 var(--neon-pink);
-    }
-    .featured-combos-title {
-      color: var(--neon-yellow); font-family: 'Press Start 2P', monospace;
-      font-size: 15px; line-height: 1.5; text-align: center; margin-bottom: 6px;
-    }
-    .featured-combos-sub { color: #e8e0ff; text-align: center; font-size: 21px; margin-bottom: 14px; }
-    .featured-combos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .featured-combo-btn {
-      display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 14px 10px;
-      border: 2px solid var(--neon-cyan); border-radius: 7px; background: var(--bg-2);
-      color: #fff; cursor: pointer; box-shadow: 3px 3px 0 var(--neon-purple);
-    }
-    .featured-combo-btn strong { color: var(--neon-cyan); font-family: 'Press Start 2P', monospace; font-size: 10px; line-height: 1.4; }
-    .featured-combo-btn span { font-family: 'VT323', monospace; font-size: 18px; }
-    .featured-combo-btn b { color: var(--neon-green); font-family: 'Press Start 2P', monospace; font-size: 10px; }
-    @media (max-width: 600px) {
-      .featured-combos { margin: 2px 0 20px; padding: 11px 9px; border-width: 2px; box-shadow: 4px 4px 0 var(--neon-pink); }
-      .featured-combos-title { font-size: 11px; margin-bottom: 9px; }
-      .featured-combos-sub { display: none; }
-      .featured-combos-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-      .featured-combo-btn { gap: 4px; padding: 10px 6px; box-shadow: 2px 2px 0 var(--neon-purple); }
-      .featured-combo-btn strong { font-size: 8px; }
-      .featured-combo-btn span { display: none; }
-      .featured-combo-btn b { font-size: 8px; line-height: 1.45; }
-    }
-
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -4017,6 +3987,13 @@
     ];
 
     const MENU = {
+      'combos': {
+        title: '🎮 COMBOS',
+        items: [
+          { id: 'c1', name: '1 Player Game', desc: 'Un pancho a elección + una bebida a elección', price: 8500, sprite: '🕹️', combo: { panchos: 1, bebidas: 1 } },
+          { id: 'c2', name: '2 Players Game', desc: 'Dos panchos a elección + dos bebidas', price: 16000, sprite: '👾', combo: { panchos: 2, bebidas: 2 } }
+        ]
+      },
       'panchos': {
         title: '🌭 PANCHOS',
         items: [
@@ -4041,13 +4018,6 @@
             { id: 'add_cheddar', name: 'Agregar cheddar', price: 500 },
             { id: 'add_panceta', name: 'Agregar panceta', price: 500 }
           ] }
-        ]
-      },
-      'combos': {
-        title: '🎮 COMBOS',
-        items: [
-          { id: 'c1', name: '1 Player Game', desc: 'Un pancho a elección + una bebida a elección', price: 8500, sprite: '🕹️', combo: { panchos: 1, bebidas: 1 } },
-          { id: 'c2', name: '2 Players Game', desc: 'Dos panchos a elección + dos bebidas', price: 16000, sprite: '👾', combo: { panchos: 2, bebidas: 2 } }
         ]
       },
       'bebidas': {
@@ -4116,19 +4086,6 @@
     function renderProductCards() {
       // Limpiar main antes de re-renderear (evita duplicados al actualizar)
       main.innerHTML = '';
-
-      const featured = document.createElement('section');
-      featured.className = 'featured-combos';
-      const featuredItems = ['c1', 'c2'].map(findItem).filter(Boolean);
-      featured.innerHTML = `<div class="featured-combos-title">🎮 ELEGÍ TU PARTIDA</div>
-        <div class="featured-combos-sub">Un combo para vos o para compartir. Elegí y empezá tu pedido.</div>
-        <div class="featured-combos-grid">${featuredItems.map(item => `
-          <button type="button" class="featured-combo-btn" onclick="openProduct('${item.id}')">
-            <strong>${escHtmlL(item.name)}</strong>
-            <span>${escHtmlL(item.desc)}</span>
-            <b>$${discountedPrice(item.price, item.id).toLocaleString('es-AR')} · ELEGIR</b>
-          </button>`).join('')}</div>`;
-      main.appendChild(featured);
 
       Object.keys(MENU).forEach(key => {
         const cat = MENU[key];

@@ -25,8 +25,9 @@ poder reutilizar la lógica en otros proyectos.
   sin pedido deja de ocupar lugar antes del menú.
 - La cuenta del cliente y su dirección activa pasan a filas compactas. Se eliminaron mensajes de
   premios repetidos y se conserva el acceso directo a premios, cambio de dirección y cierre de sesión.
-- Los combos destacados se muestran en dos columnas, sin descripciones repetidas, y el carrito fijo
-  aparece recién después de agregar un producto.
+- Se eliminó el bloque especial de combos para volver al catálogo normal. `Combos` pasa a ser la
+  primera categoría tanto en la navegación como en el contenido. El carrito fijo aparece recién
+  después de agregar un producto.
 
 Verificación: sintaxis del módulo, pruebas automatizadas de cobertura y revisión móvil 390×844.
 
