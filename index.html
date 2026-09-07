@@ -2778,6 +2778,7 @@
   .track-addr { font-family: 'VT323', monospace; font-size: 17px; color: #9b8bb8; text-align: left; margin-top: 8px; }
 
   .track-live { font-family: 'VT323', monospace; font-size: 15px; color: var(--neon-green); margin: 16px 0 14px; }
+  .track-live.offline { color: var(--neon-yellow); }
   .track-back {
     display: inline-block; font-family: 'Press Start 2P', monospace; font-size: 10px;
     color: var(--neon-cyan); text-decoration: none; border: 2px solid var(--neon-cyan);
@@ -3398,6 +3399,13 @@
     }
 
     let __trackOrder = null;
+    let __trackConnection = 'connecting';
+
+    function trackLiveLabel() {
+      if (__trackConnection === 'live') return '<p class="track-live">● Esta pantalla se actualiza sola en tiempo real</p>';
+      if (__trackConnection === 'offline') return '<p class="track-live offline">● Sin conexión: mostramos el último estado recibido. Reconectando…</p>';
+      return '<p class="track-live offline">● Conectando el seguimiento en tiempo real…</p>';
+    }
 
     function trackUrlFor(orderId) {
       const url = new URL(location.pathname, location.origin);
@@ -3748,7 +3756,7 @@
             ${order.address && !esRetiro ? `<div class="track-addr">📍 ${trackEscape(order.address)}</div>` : ''}
             ${order.payment ? `<div class="track-addr">💳 ${trackEscape(order.payment)}</div>` : ''}
           </div>
-          <p class="track-live">● Esta pantalla se actualiza sola en tiempo real</p>
+          ${trackLiveLabel()}
           ${trackLinkToolsHtml(order.id)}
           <a class="track-wa" href="https://wa.me/5491178257432?text=${encodeURIComponent('Hola! Tengo una consulta sobre mi pedido' + (order.id ? ' #' + String(order.id).slice(-5).toUpperCase() : '') + ' 🌭')}" target="_blank" rel="noopener">💬 ¿ALGÚN PROBLEMA? CONTACTANOS</a>
           <a class="track-back" href="${location.pathname}">◀ VOLVER A LA TIENDA</a>
@@ -3760,9 +3768,26 @@
       document.body.classList.add('tracking-mode');
       const box = document.getElementById('trackingScreen');
       if (box) box.style.display = 'flex';
+      const refreshTrackConnection = () => {
+        if (__trackOrder) renderTracking(__trackOrder);
+      };
+      window.addEventListener('online', () => {
+        __trackConnection = 'connecting';
+        refreshTrackConnection();
+      });
+      window.addEventListener('offline', () => {
+        __trackConnection = 'offline';
+        refreshTrackConnection();
+      });
       onSnapshot(doc(db, "orders", __trackId), (snap) => {
+        __trackConnection = snap.metadata.fromCache ? 'offline' : 'live';
         renderTracking(snap.exists() ? { id: snap.id, ...snap.data() } : null);
-      }, () => renderTracking(null));
+      }, (err) => {
+        console.warn('Seguimiento sin conexión en tiempo real:', err);
+        __trackConnection = 'offline';
+        if (__trackOrder) renderTracking(__trackOrder);
+        else renderTracking(null);
+      });
       // Refrescar el "faltan X min" aunque no cambie el estado
       setInterval(() => { if (__trackOrder) renderTracking(__trackOrder); }, 15000);
     }
