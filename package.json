@@ -2,6 +2,9 @@
   "name": "pixel-pancheria-tienda",
   "private": true,
   "description": "Tienda Pixel Panchería (sitio estático + Netlify functions de pago)",
+  "scripts": {
+    "test": "node netlify/functions/cotizar-envio.test.js"
+  },
   "dependencies": {
     "firebase-admin": "^12.7.0",
     "mercadopago": "^2.0.15"

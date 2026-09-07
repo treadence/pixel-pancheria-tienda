@@ -13,6 +13,63 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 Bitácora con fecha y hora de qué se tocó en cada flujo de trabajo, para tener trazabilidad y
 poder reutilizar la lógica en otros proyectos.
 
+### 2026-09-07 12:34 (-03)
+
+**Identificación previa, cobertura por tiempo de ruta y envío unificado**
+
+- Los clientes nuevos completan nombre, teléfono y modalidad antes de entrar al menú. Para delivery
+  seleccionan la dirección con Google Places, confirman el pin y reciben únicamente el resultado
+  comercial: envío gratis, envío $3.000 o fuera de cobertura; nunca se muestran minutos ni kilómetros.
+- La regla de delivery quedó unificada: hasta 1 km es gratis; por encima de 1 km se consultan por
+  separado la ida y el regreso en auto con tráfico mediante Google Routes; hasta 45 minutos totales
+  cuesta $3.000 y por encima se bloquea el delivery ofreciendo retiro gratis.
+- Nueva Netlify Function `cotizar-envio.js`: origen fijo en el local, validación de coordenadas,
+  pre-filtro antiabuso, caché de 15 minutos y clave privada exclusivamente en
+  `GOOGLE_ROUTES_API_KEY`/`GOOGLE_MAPS_API_KEY`. Incluye pruebas para las tres zonas.
+- El perfil, la dirección activa y la cotización quedan guardados para futuras visitas. Una barra
+  sobre el menú permite cambiar entre direcciones guardadas, agregar otra o elegir retiro. El carrito
+  se completa con esos datos y vuelve a validar la cobertura antes de confirmar el pedido.
+- Los pedidos conservan internamente distancia, duración de ida, regreso y total, fecha de cotización,
+  nivel de envío y elegibilidad. Esa información no se presenta al cliente.
+- Se agregaron eventos GA4 sin datos personales para identificación, cotización, cobertura, cambio de
+  modalidad, direcciones guardadas y rendimiento del upsell. `purchase` continúa siendo la venta.
+- En la propiedad GA4 de PixelPancheria quedaron registradas las dimensiones `shipping_tier`,
+  `delivery_type` y `customer_status`, más las audiencias de carrito abandonado y checkout iniciado
+  sin compra. La audiencia de compradores existente se conserva.
+- Los combos `1 Player Game` y `2 Players Game` tienen un acceso destacado antes del menú completo.
+
+Verificación: sintaxis del módulo y de la Function, `npm test` con envío gratis/$3.000/fuera de
+cobertura, y revisión visual móvil 390×844 de la identificación y la alternativa de retiro.
+
+### 2026-08-31
+
+**Seguimiento: flujo claro para volver después de cerrar la página**
+
+- La portada ahora muestra siempre un botón reconocible **"Seguimiento de pedido"** arriba del menú.
+  Si hay un pedido guardado en ese navegador, cambia a verde y abre directamente su estado en vivo.
+- La pantalla de seguimiento explica el recorrido exacto: volver a la tienda desde el mismo celular
+  y tocar ese botón. Copiar el link queda como opción secundaria, no como requisito.
+- El carrito anticipa el mismo recorrido antes de confirmar: avisa que el seguimiento queda guardado
+  y dónde encontrarlo si el cliente cierra la página.
+- Si el cliente entra desde otro dispositivo, usa modo incógnito o perdió los datos del navegador,
+  el mismo botón abre una ayuda con acceso directo a WhatsApp para pedir que le reenvíen el link.
+- El acceso superior reemplaza al chip flotante, que podía pasar desapercibido o quedar tapado por
+  otros controles.
+
+### 2026-08-30
+
+**Seguimiento: link guardado, recuperable y fácil de compartir**
+
+- Al crear un pedido, la tienda guarda en el navegador su link de seguimiento completo además del
+  identificador. El acceso aparece al volver a la tienda sin esperar la consulta a Firebase,
+  por lo que también queda disponible ante una conexión inestable.
+- El acceso se conserva mientras el pedido siga vigente. Para Mercado Pago
+  pendiente se rotula como estado del pago y se elimina a los 30 minutos si nunca se confirmó, para
+  no confundir un checkout abandonado con un pedido activo.
+- La pantalla de seguimiento incorpora **"Copiar / compartir seguimiento"** en pedidos confirmados,
+  transferencias y pagos en confirmación. En celular abre el menú de compartir; donde no está
+  disponible, copia el link al portapapeles.
+
 ### 2026-08-22 20:03 (-03)
 
 **Seguimiento: ETA más claro + campana visible**
@@ -282,3 +339,10 @@ contacto directo al WhatsApp del local.
   resto de la pantalla, junto al bloque de `.track-back`.
 - **Nota**: el link del footer (`desarrollado con <3 by GastrOS · contactate`,
   `wa.me/5491167920464`) es el contacto del desarrollador, **no** el del local — se dejó intacto.
+# 2026-08-31 — Seguimiento GPS y ETA precisos
+
+- El cliente ve recorrido restante y ETA de ruta, junto con la antigüedad real de la posición. “GPS en vivo” exige una muestra de menos de 45 segundos.
+- Si el teléfono del repartidor pierde señal, la pantalla lo dice y conserva temporalmente el último ETA sin fingir una ubicación actual.
+- “Está llegando” requiere dos posiciones precisas consecutivas a menos de 120 m.
+- En preparación se muestra un rango horario basado en el plan del pedido, sin sumar un margen fijo de 10 minutos.
+- El checkout permite ajustar el pin elegido con el GPS del cliente y rechaza señales de más de 100 m de error. Editar el texto invalida las coordenadas anteriores.

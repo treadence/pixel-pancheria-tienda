@@ -355,6 +355,28 @@
       text-shadow: 0 0 5px var(--neon-green);
     }
 
+    .my-order-access {
+      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+      margin-top: 18px; padding: 11px 15px; max-width: 440px; width: 100%;
+      color: var(--neon-cyan); background: rgba(0, 240, 255, 0.06);
+      border: 2px solid var(--neon-cyan); border-radius: 8px;
+      font-family: 'VT323', monospace; cursor: pointer;
+      box-shadow: 3px 3px 0 var(--neon-purple); text-align: left;
+    }
+    .my-order-access .mo-pin { font-size: 22px; line-height: 1; }
+    .my-order-access .mo-copy { display: flex; flex: 1; flex-direction: column; gap: 3px; }
+    .my-order-access strong { font-family: 'Press Start 2P', monospace; font-size: 9px; line-height: 1.35; }
+    .my-order-access small { color: #c9b8e6; font-size: 16px; line-height: 1.1; }
+    .my-order-access .mo-arrow { font-family: 'Press Start 2P', monospace; font-size: 10px; }
+    .my-order-access.has-order {
+      color: var(--bg); background: var(--neon-green); border-color: #fff;
+      box-shadow: 4px 4px 0 var(--neon-purple), 0 0 18px rgba(0,255,102,0.45);
+      animation: ts-pulse 2.4s ease-in-out infinite;
+    }
+    .my-order-access.has-order small { color: #123b25; }
+    .my-order-access:hover { filter: brightness(1.12); }
+    .my-order-access:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--neon-purple); }
+
     /* CATEGORIES NAV */
     .categories {
       position: sticky;
@@ -441,6 +463,30 @@
 
     main > section:first-of-type .cat-title {
       margin-top: 10px;
+    }
+
+    .featured-combos {
+      margin: 4px 0 34px; padding: 18px; border: 3px solid var(--neon-yellow);
+      background: linear-gradient(135deg, rgba(180,0,255,.18), rgba(255,46,147,.12));
+      box-shadow: 6px 6px 0 var(--neon-pink);
+    }
+    .featured-combos-title {
+      color: var(--neon-yellow); font-family: 'Press Start 2P', monospace;
+      font-size: 15px; line-height: 1.5; text-align: center; margin-bottom: 6px;
+    }
+    .featured-combos-sub { color: #e8e0ff; text-align: center; font-size: 21px; margin-bottom: 14px; }
+    .featured-combos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .featured-combo-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 14px 10px;
+      border: 2px solid var(--neon-cyan); border-radius: 7px; background: var(--bg-2);
+      color: #fff; cursor: pointer; box-shadow: 3px 3px 0 var(--neon-purple);
+    }
+    .featured-combo-btn strong { color: var(--neon-cyan); font-family: 'Press Start 2P', monospace; font-size: 10px; line-height: 1.4; }
+    .featured-combo-btn span { font-family: 'VT323', monospace; font-size: 18px; }
+    .featured-combo-btn b { color: var(--neon-green); font-family: 'Press Start 2P', monospace; font-size: 10px; }
+    @media (max-width: 600px) {
+      .featured-combos { padding: 15px 12px; }
+      .featured-combos-grid { grid-template-columns: 1fr; }
     }
 
     .grid {
@@ -1512,6 +1558,19 @@
       line-height: 1.4;
     }
 
+    .cart-tracking-note {
+      display: flex; align-items: flex-start; gap: 11px;
+      background: rgba(0, 240, 255, 0.07); border: 2px dashed var(--neon-cyan);
+      border-radius: 8px; padding: 13px 14px; margin: 4px 0 12px;
+      color: #c9b8e6; font-family: 'VT323', monospace; line-height: 1.25;
+    }
+    .cart-tracking-note .ctn-icon { font-size: 24px; line-height: 1; }
+    .cart-tracking-note strong {
+      display: block; color: var(--neon-cyan); font-family: 'Press Start 2P', monospace;
+      font-size: 9px; line-height: 1.45; margin-bottom: 5px;
+    }
+    .cart-tracking-note span { font-size: 17px; }
+
     /* ── UPSELL "¿QUERÉS ALGO MÁS?" ── */
     #upsellOverlay {
       z-index: 400;
@@ -2028,6 +2087,80 @@
   /* ============== ADDRESS PICKER ============== */
   .address-wrap {
     position: relative;
+  }
+
+  .address-gps-btn {
+    width: 100%; margin-top: 8px; padding: 10px 12px;
+    border: 1px solid var(--neon-cyan); border-radius: 4px;
+    background: rgba(0,240,255,.08); color: var(--neon-cyan);
+    font: inherit; font-size: 16px; cursor: pointer;
+  }
+  .address-gps-btn:disabled { opacity: .65; cursor: wait; }
+
+  /* Identificación y cobertura antes de entrar al menú */
+  .customer-setup-overlay {
+    position: fixed; inset: 0; z-index: 20000; display: none;
+    align-items: flex-start; justify-content: center; overflow-y: auto;
+    padding: max(18px, env(safe-area-inset-top)) 14px max(32px, env(safe-area-inset-bottom));
+    background: rgba(10,1,24,.97);
+  }
+  .customer-setup-overlay.open { display: flex; }
+  .customer-setup-card {
+    width: min(560px, 100%); position: relative; margin: auto;
+    padding: 24px 20px; background: var(--bg-2);
+    border: 3px solid var(--neon-cyan); border-radius: 10px;
+    box-shadow: 0 0 28px rgba(0,240,255,.24), 6px 6px 0 var(--neon-purple);
+  }
+  .customer-setup-close {
+    position: absolute; top: 10px; right: 10px; border: 0; background: transparent;
+    color: #fff; font-family: 'Press Start 2P', monospace; font-size: 13px; cursor: pointer;
+  }
+  .customer-setup-overlay.required .customer-setup-close { display: none; }
+  .customer-setup-title {
+    color: var(--neon-yellow); font-family: 'Press Start 2P', monospace;
+    font-size: clamp(14px,4vw,19px); line-height: 1.5; text-align: center; margin: 4px 28px 8px;
+  }
+  .customer-setup-sub { color: #c9b8e6; text-align: center; font-size: 19px; line-height: 1.25; margin-bottom: 18px; }
+  .customer-setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .customer-setup-grid .form-field { margin: 0; }
+  .customer-setup-mode { margin: 16px 0; }
+  .customer-setup-address { display: block; }
+  .customer-setup-map { height: 210px; border-radius: 6px; overflow: hidden; margin-top: 10px; }
+  .customer-setup-result {
+    display: none; margin-top: 12px; padding: 12px; border: 2px solid var(--neon-cyan);
+    border-radius: 7px; text-align: center; font-size: 19px; line-height: 1.25;
+  }
+  .customer-setup-result.show { display: block; }
+  .customer-setup-result.ok { color: var(--neon-green); border-color: var(--neon-green); background: rgba(0,255,102,.06); }
+  .customer-setup-result.out { color: var(--neon-orange); border-color: var(--neon-orange); background: rgba(255,107,0,.07); }
+  .customer-setup-result.loading { color: var(--neon-cyan); }
+  .customer-setup-submit {
+    width: 100%; margin-top: 18px; padding: 15px 12px; border: 2px solid #fff;
+    border-radius: 7px; background: var(--neon-green); color: var(--bg);
+    font-family: 'Press Start 2P', monospace; font-size: 11px; line-height: 1.45;
+    box-shadow: 4px 4px 0 var(--neon-purple); cursor: pointer;
+  }
+  .customer-setup-submit:disabled { opacity: .55; cursor: wait; }
+  .customer-delivery-bar {
+    display: none; max-width: 900px; margin: 10px auto 0; padding: 0 16px;
+  }
+  .customer-delivery-bar.show { display: block; }
+  .customer-delivery-inner {
+    display: flex; align-items: center; gap: 10px; padding: 11px 13px;
+    color: #e8e0ff; background: rgba(0,240,255,.06); border: 2px solid var(--neon-cyan);
+    border-radius: 8px; font-size: 18px;
+  }
+  .customer-delivery-copy { flex: 1; min-width: 0; }
+  .customer-delivery-copy strong { display: block; color: var(--neon-green); }
+  .customer-delivery-copy span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .customer-delivery-change {
+    flex: none; padding: 7px 9px; border: 1px solid var(--neon-yellow); background: transparent;
+    color: var(--neon-yellow); font-family: 'Press Start 2P', monospace; font-size: 8px; cursor: pointer;
+  }
+  @media (max-width: 600px) {
+    .customer-setup-card { padding: 22px 16px; }
+    .customer-setup-grid { grid-template-columns: 1fr; }
+    .customer-setup-map { height: 180px; }
   }
 
   /* Direcciones guardadas */
@@ -2643,6 +2776,23 @@
   }
   .track-wa:hover { background: rgba(57,255,20,0.14); }
 
+  .track-link-box {
+    font-family: 'VT323', monospace; text-align: center;
+    color: #c9b8e6; background: rgba(0,229,255,0.06);
+    border: 2px dashed var(--neon-cyan); border-radius: 8px;
+    padding: 13px 14px; margin: 4px 0 14px;
+  }
+  .track-link-box p { font-size: 17px; line-height: 1.3; margin: 0 0 10px; }
+  .track-link-box strong { color: #fff; }
+  .track-link-btn {
+    width: 100%; font-family: 'Press Start 2P', monospace; font-size: 9px;
+    line-height: 1.5; color: var(--bg); background: var(--neon-cyan);
+    border: 2px solid #fff; border-radius: 7px; padding: 11px 10px;
+    cursor: pointer; box-shadow: 3px 3px 0 var(--neon-purple);
+  }
+  .track-link-btn:hover { filter: brightness(1.12); }
+  .track-link-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--neon-purple); }
+
   /* Aviso para pedidos fuera de la zona habitual (entrega no garantizada) */
   .track-outside {
     font-family: 'VT323', monospace; text-align: left; line-height: 1.35;
@@ -2656,27 +2806,6 @@
     margin-bottom: 8px; line-height: 1.5;
   }
   .track-outside p { font-size: 18px; margin: 6px 0 0; }
-
-  .track-chip {
-    position: fixed; bottom: 20px; left: 16px; z-index: 150;
-    background: var(--bg-2); border: 2px solid var(--neon-green);
-    color: var(--neon-green); text-decoration: none;
-    font-family: 'VT323', monospace; font-size: 18px;
-    padding: 10px 16px; border-radius: 24px;
-    box-shadow: 0 0 12px rgba(0,255,102,0.4);
-    animation: ts-pulse 2.4s ease-in-out infinite;
-  }
-
-  /* En mobile el FAB del carrito ocupa todo el ancho (left+right:16px) y taparía
-     el chip de "pedido en curso": lo subimos justo por encima del FAB.
-     (Va después de la regla base para ganar por orden de fuente.) */
-  @media (max-width: 600px) {
-    .track-chip {
-      bottom: calc(84px + env(safe-area-inset-bottom));
-      left: 16px; right: 16px;
-      z-index: 210; text-align: center;
-    }
-  }
 
   </style>
 </head>
@@ -2731,9 +2860,15 @@
       <div class="coin-stat">🏆 LEVEL: HAMBRE</div>
       <div class="coin-stat">💎 1UP EN CADA PANCHO</div>
     </div>
+    <button type="button" id="myOrderAccess" class="my-order-access" onclick="openMyOrderAccess()">
+      <span class="mo-pin">📍</span>
+      <span class="mo-copy"><strong>SEGUIMIENTO DE PEDIDO</strong><small>¿Ya pediste? Entrá acá</small></span>
+      <span class="mo-arrow">▶</span>
+    </button>
   </header>
 
   <div id="cuentaBar" style="display:none;"></div>
+  <div id="customerDeliveryBar" class="customer-delivery-bar"></div>
   <div id="coinChip" style="display:none;"></div>
 
   <nav class="categories" id="cats"></nav>
@@ -2775,6 +2910,59 @@
     </div>
   </div>
 
+  <div class="product-overlay mini" id="trackingHelpOverlay" onclick="closeTrackingHelp(event)">
+    <div class="product-modal" onclick="event.stopPropagation()">
+      <button class="close-btn" onclick="closeTrackingHelp()">X</button>
+      <div style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--neon-cyan);line-height:1.5;margin:8px 34px 14px;">BUSCAR MI PEDIDO</div>
+      <div style="font-family:'VT323',monospace;font-size:20px;color:#c9b8e6;line-height:1.3;margin-bottom:16px;">
+        No encontramos un pedido guardado en este navegador. Si pediste desde otro celular o se borraron los datos, pedinos el link y te lo reenviamos.
+      </div>
+      <a class="track-wa" href="https://wa.me/5491178257432?text=Hola!%20Hice%20un%20pedido%20y%20necesito%20recuperar%20el%20link%20de%20seguimiento%20%F0%9F%8C%AD" target="_blank" rel="noopener">💬 PEDIR MI LINK POR WHATSAPP</a>
+      <button type="button" class="track-back" style="width:100%;" onclick="closeTrackingHelp()">VOLVER A LA TIENDA</button>
+    </div>
+  </div>
+
+  <div class="customer-setup-overlay" id="customerSetupOverlay">
+    <div class="customer-setup-card">
+      <button type="button" class="customer-setup-close" onclick="closeCustomerSetup()" aria-label="Cerrar">X</button>
+      <div class="customer-setup-title">¿DÓNDE LLEVAMOS TU PEDIDO?</div>
+      <div class="customer-setup-sub">Completalo una vez. La próxima entrás directo y elegís una dirección guardada.</div>
+      <div class="customer-setup-grid">
+        <div class="form-field">
+          <label>NOMBRE</label>
+          <input type="text" id="setupName" placeholder="Tu nombre" autocomplete="name">
+        </div>
+        <div class="form-field">
+          <label>TELÉFONO</label>
+          <input type="tel" id="setupPhone" placeholder="11-1234-5678" autocomplete="tel">
+        </div>
+      </div>
+      <div class="delivery-mode customer-setup-mode">
+        <button type="button" class="dm-btn sel" id="setupDeliveryBtn" onclick="setCustomerSetupMode('delivery')">🛵 Envío a domicilio</button>
+        <button type="button" class="dm-btn" id="setupPickupBtn" onclick="setCustomerSetupMode('pickup')">🏪 Retiro gratis</button>
+      </div>
+      <div id="setupDeliveryFields" class="customer-setup-address">
+        <div id="setupSavedAddresses"></div>
+        <div class="form-field">
+          <label>📍 DIRECCIÓN DE ENTREGA</label>
+          <div class="address-wrap" id="setupAddressWrap">
+            <input type="text" id="setupAddress" placeholder="Empezá a escribir tu dirección..." autocomplete="off">
+          </div>
+          <button type="button" class="address-gps-btn" id="setupGpsBtn" onclick="useSetupGps(this)">◎ Ajustar el pin con mi GPS</button>
+        </div>
+        <div id="setupMap" class="customer-setup-map" style="display:none;"></div>
+        <div id="setupQuoteResult" class="customer-setup-result"></div>
+      </div>
+      <div id="setupPickupInfo" class="pickup-info" style="display:none;">
+        <div class="pickup-title">🏪 RETIRO GRATIS</div>
+        <div class="pickup-addr">Calle 410 N°747 · Juan María Gutiérrez</div>
+        <div class="pickup-note">Preparamos tu pedido y lo pasás a retirar por el local.</div>
+      </div>
+      <div class="cart-privacy-note" style="margin-top:14px;">Guardamos estos datos para preparar tus pedidos y agilizar tu próxima compra.</div>
+      <button type="button" id="customerSetupSubmit" class="customer-setup-submit" onclick="saveCustomerSetup()">CONTINUAR AL MENÚ</button>
+    </div>
+  </div>
+
   <!-- Popup de feedback: "¿Cómo fue tu último pedido?" (al volver a la tienda) -->
   <div class="product-overlay mini" id="feedbackOverlay">
     <div class="product-modal">
@@ -2802,6 +2990,8 @@
     const db = getFirestore(firebaseApp);
 
     // ====== GOOGLE ANALYTICS 4 · EMBUDO Y PEDIDOS ======
+    // Los ids de Firestore son también transaction_id: un mismo pedido conserva
+    // siempre el mismo identificador en GA4 y puede deduplicarse correctamente.
     function ga4OrderItems(order) {
       return (Array.isArray(order && order.items) ? order.items : []).map(item => ({
         item_id: String(item.productId || item.id || item.name || 'producto'),
@@ -2835,10 +3025,15 @@
       return Number(Object.values(cart || {}).reduce((sum, line) => sum + cartItemSubtotal(line), 0).toFixed(2));
     }
 
-    function sendGa4CartEvent(eventName) {
+    function sendGa4CartEvent(eventName, extra = {}) {
       const items = ga4CartItems();
       if (!items.length) return;
-      sendGa4Event(eventName, { currency: 'ARS', value: ga4CartValue(), items });
+      sendGa4Event(eventName, {
+        currency: 'ARS',
+        value: ga4CartValue(),
+        items,
+        ...extra
+      });
     }
 
     function sendGa4CheckoutError(errorType) {
@@ -2855,6 +3050,8 @@
       const storageKey = `pixel_ga4_${eventName}_${orderId}`;
       try {
         if (localStorage.getItem(storageKey) === '1') return Promise.resolve(false);
+        // Se marca antes de encolar para bloquear emisiones simultáneas del
+        // onSnapshot y del refresco periódico de la pantalla de seguimiento.
         localStorage.setItem(storageKey, '1');
       } catch (e) {}
 
@@ -3148,8 +3345,29 @@
 
     function trackTravelMinutes(order) {
       if ((order.delivery || '').toLowerCase().includes('retiro')) return 0;
+      const planned = Number(order.etaPlan && order.etaPlan.travelMin);
+      if (planned >= 0) return planned;
       const km = Number(order.distanceKm) || 0;
       return Math.min(40, Math.max(3, Math.round((km * STREET_FACTOR / VEL_MOTO_KMH) * 60)));
+    }
+
+    function trackLiveAge(live) {
+      const at = live && trackTsToDate(live.capturedAt || live.at);
+      return at ? Math.max(0, Date.now() - at.getTime()) : Infinity;
+    }
+
+    function trackAgeLabel(ms) {
+      if (!Number.isFinite(ms)) return 'sin actualización reciente';
+      if (ms < 15000) return 'actualizado recién';
+      if (ms < 60000) return `actualizado hace ${Math.max(1, Math.round(ms / 1000))} s`;
+      return `última actualización hace ${Math.max(1, Math.round(ms / 60000))} min`;
+    }
+
+    function trackEtaRange(base, lowMinutes, highMinutes) {
+      const low = new Date(base.getTime() + Math.max(0, Number(lowMinutes) || 0) * 60000);
+      const high = new Date(base.getTime() + Math.max(0, Number(highMinutes) || 0) * 60000);
+      const fmt = d => d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+      return `${fmt(low)}–${fmt(high)}`;
     }
 
     function trackNormStatus(s) {
@@ -3163,6 +3381,106 @@
     }
 
     let __trackOrder = null;
+
+    function trackUrlFor(orderId) {
+      const url = new URL(location.pathname, location.origin);
+      url.searchParams.set('pedido', String(orderId || ''));
+      return url.href;
+    }
+
+    // El acceso queda guardado en este navegador apenas se crea o se abre un
+    // pedido. Así el cliente puede cerrar la pantalla y volver desde la tienda.
+    function rememberTrackedOrder(orderId, statusHint) {
+      if (!orderId) return;
+      try {
+        const previous = JSON.parse(localStorage.getItem('pixel_pedido_activo') || 'null') || {};
+        const saved = {
+          id: String(orderId),
+          at: previous.id === String(orderId) && previous.at ? previous.at : Date.now(),
+          trackUrl: trackUrlFor(orderId),
+          statusHint: statusHint || previous.statusHint || 'received'
+        };
+        localStorage.setItem('pixel_pedido_activo', JSON.stringify(saved));
+        refreshMyOrderAccess(saved);
+      } catch (e) {}
+    }
+
+    function refreshMyOrderAccess(saved) {
+      const btn = document.getElementById('myOrderAccess');
+      if (!btn) return;
+      const copy = btn.querySelector('.mo-copy');
+      if (saved && saved.id) {
+        btn.classList.add('has-order');
+        copy.innerHTML = saved.statusHint === 'pending_payment'
+          ? '<strong>VER ESTADO DEL PAGO</strong><small>Tu pedido quedó guardado acá</small>'
+          : '<strong>SEGUIR MI PEDIDO</strong><small>Volvé al estado en vivo</small>';
+      } else {
+        btn.classList.remove('has-order');
+        copy.innerHTML = '<strong>SEGUIMIENTO DE PEDIDO</strong><small>¿Ya pediste? Entrá acá</small>';
+      }
+    }
+
+    function forgetTrackedOrder() {
+      try { localStorage.removeItem('pixel_pedido_activo'); } catch (e) {}
+      refreshMyOrderAccess(null);
+    }
+
+    window.openMyOrderAccess = function() {
+      let saved = null;
+      try { saved = JSON.parse(localStorage.getItem('pixel_pedido_activo') || 'null'); } catch (e) {}
+      const age = saved && saved.at ? Date.now() - saved.at : Infinity;
+      const expiredPayment = saved && saved.statusHint === 'pending_payment' && age > 30 * 60 * 1000;
+      if (saved && saved.id && age <= 30 * 24 * 60 * 60 * 1000 && !expiredPayment) {
+        window.location.href = trackUrlFor(saved.id);
+        return;
+      }
+      if (saved) forgetTrackedOrder();
+      const overlay = document.getElementById('trackingHelpOverlay');
+      if (overlay) overlay.classList.add('open');
+    };
+
+    window.closeTrackingHelp = function(event) {
+      if (event && event.target && event.target.id !== 'trackingHelpOverlay') return;
+      const overlay = document.getElementById('trackingHelpOverlay');
+      if (overlay) overlay.classList.remove('open');
+    };
+
+    function trackLinkToolsHtml(orderId) {
+      if (!orderId) return '';
+      return `<div class="track-link-box">
+        <p><strong>Si cerrás esta pantalla:</strong> volvé a la tienda desde este celular y tocá <strong>SEGUIMIENTO DE PEDIDO</strong> arriba del menú. No hace falta que recuerdes el link.</p>
+        <button type="button" class="track-link-btn" onclick="trackShareLink('${trackEscape(orderId)}', this)">🔗 COPIAR / COMPARTIR SEGUIMIENTO</button>
+      </div>`;
+    }
+
+    window.trackShareLink = async function(orderId, btn) {
+      const url = trackUrlFor(orderId);
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: 'Seguimiento de mi pedido · Pixel Panchería', text: 'Seguimiento de mi pedido:', url });
+          return;
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+        }
+      }
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(url);
+        } else {
+          const input = document.createElement('textarea');
+          input.value = url; input.setAttribute('readonly', '');
+          input.style.cssText = 'position:fixed;opacity:0;pointer-events:none;';
+          document.body.appendChild(input); input.select(); document.execCommand('copy'); input.remove();
+        }
+        if (btn) {
+          const original = btn.textContent;
+          btn.textContent = '✓ LINK COPIADO';
+          setTimeout(() => { if (btn.isConnected) btn.textContent = original; }, 2200);
+        }
+      } catch (err) {
+        window.prompt('Copiá este link para seguir tu pedido:', url);
+      }
+    };
 
     // Activar avisos push para este pedido
     window.trackEnablePush = async function(orderId) {
@@ -3216,6 +3534,8 @@
         sendGa4OrderEvent('purchase', order.id, order);
       }
 
+      rememberTrackedOrder(order.id, trackNormStatus(order.status));
+
       // Pendiente de pago (Mercado Pago): el cliente volvió del checkout pero el
       // webhook todavía no confirmó (o el pago se rechazó). onSnapshot está activo,
       // así que cuando el pago entra, la pantalla salta sola al seguimiento.
@@ -3224,6 +3544,12 @@
         const mpStatus = p.get('status') || p.get('collection_status');
         const rechazado = ['failure', 'rejected', 'cancelled', 'null'].includes(String(mpStatus)) ||
           order.paymentStatus === 'rejected' || order.paymentStatus === 'cancelled';
+        if (rechazado) {
+          try {
+            const saved = JSON.parse(localStorage.getItem('pixel_pedido_activo') || 'null');
+            if (saved && saved.id === order.id) localStorage.removeItem('pixel_pedido_activo');
+          } catch (e) {}
+        }
         box.innerHTML = rechazado
           ? `<div class="track-card">
                <div class="track-icon">😕</div>
@@ -3235,8 +3561,9 @@
                <div class="track-head-title">🌭 PIXEL PANCHERÍA</div>
                <div class="track-icon">⏳</div>
                <div class="track-title">CONFIRMANDO TU PAGO</div>
-               <p class="track-sub">Estamos confirmando tu pago con Mercado Pago. Esto puede tardar unos segundos.<br><strong>No cierres esta página</strong> — se actualiza sola.</p>
+               <p class="track-sub">Estamos confirmando tu pago con Mercado Pago. Esto puede tardar unos segundos.<br>La pantalla se actualiza sola y podés guardar el link para volver.</p>
                <p class="track-live">● Esperando confirmación…</p>
+               ${trackLinkToolsHtml(order.id)}
              </div>`;
         return;
       }
@@ -3271,6 +3598,7 @@
               <div class="track-item total"><span>TOTAL</span><span>$${Number(order.total || 0).toLocaleString('es-AR')}</span></div>
             </div>
             <p class="track-live">● Esta pantalla se actualiza sola al confirmar</p>
+            ${trackLinkToolsHtml(order.id)}
             <a class="track-back" href="${location.pathname}">◀ VOLVER A LA TIENDA</a>
           </div>`;
         return;
@@ -3300,35 +3628,44 @@
       // --- ETA ---
       const prep = trackPrepMinutes();
       const travel = trackTravelMinutes(order);
-      const TRACK_PREP_MARGIN_MIN = 10; // margen fijo antes de que salga el repartidor
       let etaHtml = '';
-      // GPS en vivo: el celu del repartidor escribe en el pedido la distancia
-      // y el ETA ya calculados (sus coordenadas nunca se publican). Si hay
-      // varias entregas en cola, el ETA ya incluye las paradas anteriores.
       const live = order.live;
-      const gpsFresh = live && live.at && (Date.now() - new Date(live.at).getTime()) < 3 * 60000;
+      const liveAge = trackLiveAge(live);
+      const gpsFresh = live && live.active !== false && liveAge < 45000;
+      const gpsRecent = live && liveAge < 10 * 60000;
       if (!cancelled && status === 'ontheway' && !esRetiro && gpsFresh) {
         const km = Number(live.distKm) || 0;
         const mins = Math.max(1, Number(live.etaMin) || Math.round((km * STREET_FACTOR / VEL_MOTO_KMH) * 60));
         const colaHtml = (Number(live.totalStops) > 1 && Number(live.stop) > 1)
           ? `<div class="te-cola">🛑 Hay ${live.stop - 1} entrega${live.stop > 2 ? 's' : ''} antes que la tuya</div>`
           : '';
-        etaHtml = (km < 0.15 && Number(live.stop) <= 1)
+        const source = live.routeBased ? 'ruta y tránsito actuales' : 'recorrido estimado';
+        etaHtml = (live.arriving === true && Number(live.stop) <= 1)
           ? `<div class="track-eta ok">🛵 ¡El repartidor está llegando a tu puerta!</div>`
-          : `<div class="track-eta gps">🛵 El repartidor está a <strong>${km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1) + ' km'}</strong><br>llega en ~<strong>${mins} min</strong> <span class="te-live">● GPS en vivo</span>${colaHtml}</div>`;
+          : `<div class="track-eta gps">🛵 Recorrido restante: <strong>${km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1) + ' km'}</strong><br>llega en ~<strong>${mins} min</strong> <span class="te-live">● GPS en vivo · ${source} · ${trackAgeLabel(liveAge)}</span>${colaHtml}</div>`;
+      } else if (!cancelled && status === 'ontheway' && !esRetiro && gpsRecent) {
+        const elapsedMin = Math.floor(liveAge / 60000);
+        const mins = Math.max(1, (Number(live.etaMin) || travel) - elapsedMin);
+        const signalLabel = live.active === false ? 'GPS pausado por el repartidor' : 'Señal GPS interrumpida';
+        etaHtml = `<div class="track-eta">📡 ${signalLabel}<br>Último tiempo estimado: <strong>~${Math.ceil(mins)} min</strong><span class="te-mins">${trackAgeLabel(liveAge)}</span></div>`;
       } else if (cancelled) {
         etaHtml = `<div class="track-eta cancel">❌ Pedido cancelado.<br>Cualquier duda escribinos por WhatsApp.</div>`;
       } else if (status === 'delivered') {
         const t = trackTsToDate((order.statusHistory || {}).delivered);
         etaHtml = `<div class="track-eta ok">✅ Entregado${t ? ' a las ' + t.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : ''}<br>¡Gracias por tu compra! 🌭</div>`;
       } else if (status === 'preparing') {
-        // Mientras cocina lo prepara mostramos una hora clara, no un contador
-        // que dé la sensación de que el repartidor ya está en camino.
         const h = order.statusHistory || {};
         const base = trackTsToDate(h.preparing) || new Date();
-        const llega = new Date(base.getTime() + (prep + travel + TRACK_PREP_MARGIN_MIN) * 60000);
+        const plan = order.etaPlan || {};
+        const low = Number(plan.totalLowMin ?? ((Number(plan.prepLowMin) || Math.max(3, prep - 5)) + travel));
+        const high = Number(plan.totalHighMin ?? ((Number(plan.prepHighMin) || (prep + 8)) + travel));
         const verbo = esRetiro ? 'Listo para retirar' : 'Llega';
-        etaHtml = `<div class="track-eta">👨‍🍳 Estamos preparando tu pedido<br>${verbo} aprox. <strong>${llega.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</strong></div>`;
+        const rangeLow = esRetiro ? (plan.prepLowMin ?? low) : low;
+        const rangeHigh = esRetiro ? (plan.prepHighMin ?? high) : high;
+        const rangeExpired = Date.now() > base.getTime() + Number(rangeHigh) * 60000;
+        etaHtml = rangeExpired
+          ? `<div class="track-eta">👨‍🍳 La preparación está demorando más de lo previsto.<br>Seguimos con tu pedido y estamos actualizando el horario.</div>`
+          : `<div class="track-eta">👨‍🍳 Estamos preparando tu pedido<br>${verbo} entre <strong>${trackEtaRange(base, rangeLow, rangeHigh)}</strong></div>`;
       } else {
         const h = order.statusHistory || {};
         let base, restanteMin;
@@ -3345,8 +3682,10 @@
         const llega = new Date(base.getTime() + restanteMin * 60000);
         const minsLeft = Math.round((llega.getTime() - Date.now()) / 60000);
         const verbo = esRetiro ? 'Listo para retirar' : 'Llega';
-        etaHtml = minsLeft <= 0
-          ? `<div class="track-eta ok">🔥 ${esRetiro ? 'Ya casi está listo' : 'Está llegando'} — ¡en cualquier momento!</div>`
+        etaHtml = minsLeft <= 0 && status !== 'ontheway'
+          ? `<div class="track-eta">⏳ La estimación inicial ya se cumplió.<br>Estamos actualizando el estado de tu pedido.</div>`
+          : minsLeft <= 0
+            ? `<div class="track-eta">📡 Sin señal GPS reciente.<br>El repartidor sigue en camino.</div>`
           : `<div class="track-eta">⏱ ${verbo} aprox. <strong>${llega.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</strong> <span class="te-mins">(~${minsLeft} min)</span></div>`;
       }
 
@@ -3393,6 +3732,7 @@
             ${order.payment ? `<div class="track-addr">💳 ${trackEscape(order.payment)}</div>` : ''}
           </div>
           <p class="track-live">● Esta pantalla se actualiza sola en tiempo real</p>
+          ${trackLinkToolsHtml(order.id)}
           <a class="track-wa" href="https://wa.me/5491178257432?text=${encodeURIComponent('Hola! Tengo una consulta sobre mi pedido' + (order.id ? ' #' + String(order.id).slice(-5).toUpperCase() : '') + ' 🌭')}" target="_blank" rel="noopener">💬 ¿ALGÚN PROBLEMA? CONTACTANOS</a>
           <a class="track-back" href="${location.pathname}">◀ VOLVER A LA TIENDA</a>
         </div>`;
@@ -3407,7 +3747,7 @@
         renderTracking(snap.exists() ? { id: snap.id, ...snap.data() } : null);
       }, () => renderTracking(null));
       // Refrescar el "faltan X min" aunque no cambie el estado
-      setInterval(() => { if (__trackOrder) renderTracking(__trackOrder); }, 30000);
+      setInterval(() => { if (__trackOrder) renderTracking(__trackOrder); }, 15000);
     }
 
     // ====== FEEDBACK DEL ÚLTIMO PEDIDO ("¿Cómo fue tu último pedido?") ======
@@ -3470,42 +3810,39 @@
       if (ov) ov.addEventListener('click', e => { if (e.target.id === 'feedbackOverlay') window.dismissFeedback(); });
     })();
 
-    // Al volver a la tienda: chip "pedido en curso" (fresco) o prompt de feedback
-    // si el último pedido ya está entregado y todavía no lo calificaste.
+    // Al volver a la tienda, el botón fijo del header lleva al último pedido.
+    // Primero se activa con el dato local (sin esperar red) y luego Firebase
+    // confirma si el pedido sigue vigente o si corresponde pedir feedback.
     if (!__trackId) {
-      (function activeOrderChip() {
+      (function activeOrderAccess() {
         let saved = null;
         try { saved = JSON.parse(localStorage.getItem('pixel_pedido_activo') || 'null'); } catch (e) {}
         if (!saved || !saved.id) return;
         const age = Date.now() - (saved.at || 0);
-        if (age > 30 * 24 * 60 * 60 * 1000) { try { localStorage.removeItem('pixel_pedido_activo'); } catch (e) {} return; }
+        if (age > 30 * 24 * 60 * 60 * 1000) { forgetTrackedOrder(); return; }
+        refreshMyOrderAccess(saved);
         getDoc(doc(db, "orders", saved.id)).then(snap => {
-          if (!snap.exists()) return;
+          if (!snap.exists()) { forgetTrackedOrder(); return; }
           const order = snap.data();
           const st = trackNormStatus(order.status);
-          if (st === 'cancelled') { try { localStorage.removeItem('pixel_pedido_activo'); } catch (e) {} return; }
+          if (st === 'cancelled') { forgetTrackedOrder(); return; }
           // Pago con Mercado Pago que nunca se confirmó: NO es un pedido "en curso"
-          // real (si el pago entra, el webhook lo pasa a 'received' y ahí sí se
-          // muestra). No mostramos el chip; y si ya pasó un rato lo damos por
-          // abandonado y limpiamos el marcador para no seguir consultándolo.
+          // real. Lo rotulamos como pago/pedido para no confundirlo; si ya pasó
+          // media hora, lo damos por abandonado y limpiamos el acceso.
           if (st === 'pending_payment') {
-            if (age > 30 * 60 * 1000) { try { localStorage.removeItem('pixel_pedido_activo'); } catch (e) {} }
+            const paymentRejected = order.paymentStatus === 'rejected' || order.paymentStatus === 'cancelled';
+            if (paymentRejected || age > 30 * 60 * 1000) forgetTrackedOrder();
+            else refreshMyOrderAccess({ ...saved, statusHint: 'pending_payment' });
             return;
           }
           if (st === 'delivered') {
             const dismissed = localStorage.getItem('pixel_fb_done_' + saved.id) === '1';
-            if (order.feedback || dismissed) { try { localStorage.removeItem('pixel_pedido_activo'); } catch (e) {} return; }
+            refreshMyOrderAccess(null);
+            if (order.feedback || dismissed) { forgetTrackedOrder(); return; }
             showFeedbackPrompt(saved.id, order);
             return;
           }
-          // Pedido en curso: el chip solo si es reciente (< 3 h)
-          if (age <= 3 * 60 * 60 * 1000) {
-            const a = document.createElement('a');
-            a.className = 'track-chip';
-            a.href = location.pathname + '?pedido=' + saved.id;
-            a.innerHTML = '📍 Tu pedido en curso →';
-            document.body.appendChild(a);
-          }
+          rememberTrackedOrder(saved.id, st);
         }).catch(() => {});
       })();
     }
@@ -3732,6 +4069,19 @@
     function renderProductCards() {
       // Limpiar main antes de re-renderear (evita duplicados al actualizar)
       main.innerHTML = '';
+
+      const featured = document.createElement('section');
+      featured.className = 'featured-combos';
+      const featuredItems = ['c1', 'c2'].map(findItem).filter(Boolean);
+      featured.innerHTML = `<div class="featured-combos-title">🎮 ELEGÍ TU PARTIDA</div>
+        <div class="featured-combos-sub">Un combo para vos o para compartir. Elegí y empezá tu pedido.</div>
+        <div class="featured-combos-grid">${featuredItems.map(item => `
+          <button type="button" class="featured-combo-btn" onclick="openProduct('${item.id}')">
+            <strong>${escHtmlL(item.name)}</strong>
+            <span>${escHtmlL(item.desc)}</span>
+            <b>$${discountedPrice(item.price, item.id).toLocaleString('es-AR')} · ELEGIR</b>
+          </button>`).join('')}</div>`;
+      main.appendChild(featured);
 
       Object.keys(MENU).forEach(key => {
         const cat = MENU[key];
@@ -4577,6 +4927,7 @@
       _upsellAdded.clear();
       renderUpsellList();
       document.getElementById('upsellOverlay').classList.add('open');
+      sendGa4Event('upsell_viewed', { item_count: suggestions.length });
     }
 
     // Pantalla principal del upsell: la lista de sugerencias
@@ -4661,6 +5012,10 @@
         };
       }
       cart[cartKey].qty += 1;
+      sendGa4Event('upsell_item_added', {
+        currency: 'ARS', value: Number(item.price) || 0,
+        item_id: String(item.id), item_name: String(item.name || '')
+      });
       updateBadge();
       flashBadge();
       if (navigator.vibrate) navigator.vibrate(15);
@@ -4700,6 +5055,7 @@
 
     // "FINALIZAR PEDIDO": cerrar upsell, reflejar lo agregado y continuar al pago
     function upsellProceed() {
+      if (!_upsellAdded.size) sendGa4Event('upsell_skipped');
       document.getElementById('upsellOverlay').classList.remove('open');
       refreshCartKeepingForm();
       sendOrder();
@@ -4888,6 +5244,7 @@
           <div class="address-wrap">
             <input type="text" id="fAddress" placeholder="Empezá a escribir tu dirección..." autocomplete="off">
           </div>
+          <button type="button" class="address-gps-btn" id="customerGpsBtn" onclick="useCustomerGps(this)">◎ Ajustar el pin con mi GPS</button>
           <div class="map-confirm" id="mapConfirm">
             <div class="map-hint">Si el pin no está en el lugar exacto, arrastralo para ajustar</div>
             <div class="map-container" id="addressMap"></div>
@@ -4944,6 +5301,11 @@
 
       <div id="totalBreakdown" style="background: var(--bg); border: 2px solid var(--neon-green); padding: 14px; margin: 16px 0; font-family: 'VT323', monospace;"></div>
 
+      <div class="cart-tracking-note">
+        <span class="ctn-icon">📍</span>
+        <span><strong>TU SEGUIMIENTO QUEDA GUARDADO</strong>Después de confirmar te mostramos el estado en vivo. Si cerrás la página, volvé desde este celular y tocá <b>SEGUIMIENTO DE PEDIDO</b> arriba del menú.</span>
+      </div>
+
       <div class="cart-privacy-note">
         Al hacer tu pedido guardamos tu nombre, teléfono y dirección para que tu próxima compra sea más rápida
       </div>
@@ -4974,7 +5336,7 @@
           // Restaurar la dirección predeterminada de la cuenta (sin re-seleccionar en Google)
           const d = getDefaultDir();
           selectedDirId = d.id;
-          selectedLocation = { lat: d.lat, lng: d.lng, address: d.address || '', distanceKm: d.distanceKm || 0, needsConfirmation: (d.distanceKm || 0) > MAX_RADIUS_KM };
+          selectedLocation = locationFromSavedAddress(d);
           const input = document.getElementById('fAddress');
           if (input && selectedLocation.address) input.value = selectedLocation.address;
           if (typeof showMapAndStatus === 'function') showMapAndStatus();
@@ -5157,7 +5519,8 @@
       address: 'Calle 410 747, Juan María Gutiérrez'
     };
     const FREE_RADIUS_KM = 1;
-    const MAX_RADIUS_KM = 6;
+    const STANDARD_SHIPPING_COST = 3000;
+    const SHIPPING_QUOTE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 
     let selectedLocation = null;
     let addressMap = null;
@@ -5176,6 +5539,65 @@
                 Math.sin(dLng/2) ** 2;
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       return R * c;
+    }
+
+    function locationFromSavedAddress(address) {
+      if (!address || typeof address.lat !== 'number' || typeof address.lng !== 'number') return null;
+      return {
+        lat: address.lat,
+        lng: address.lng,
+        address: address.address || '',
+        distanceKm: Number(address.distanceKm) || 0,
+        deliveryEligible: address.deliveryEligible !== false,
+        shippingTier: address.shippingTier || null,
+        shippingCost: Number(address.shippingCost) || 0,
+        outboundSeconds: Number(address.outboundSeconds) || 0,
+        returnSeconds: Number(address.returnSeconds) || 0,
+        roundTripSeconds: Number(address.roundTripSeconds) || 0,
+        routeKm: Number(address.routeKm) || null,
+        quoteAt: address.quoteAt || null
+      };
+    }
+
+    function quoteIsFresh(loc) {
+      if (!loc || !loc.shippingTier || !loc.quoteAt) return false;
+      const age = Date.now() - new Date(loc.quoteAt).getTime();
+      return Number.isFinite(age) && age >= 0 && age < SHIPPING_QUOTE_MAX_AGE_MS;
+    }
+
+    async function quoteDeliveryLocation(loc, force) {
+      if (!loc || typeof loc.lat !== 'number' || typeof loc.lng !== 'number') throw new Error('Elegí una dirección válida');
+      if (!force && quoteIsFresh(loc)) return loc;
+      const response = await fetch('/.netlify/functions/cotizar-envio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat: loc.lat, lng: loc.lng })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'No pudimos verificar la cobertura');
+      Object.assign(loc, {
+        distanceKm: Number(data.directKm) || Number(loc.distanceKm) || 0,
+        deliveryEligible: data.eligible === true,
+        shippingTier: String(data.shippingTier || ''),
+        shippingCost: Number(data.shippingCost) || 0,
+        outboundSeconds: Number(data.outboundSeconds) || 0,
+        returnSeconds: Number(data.returnSeconds) || 0,
+        roundTripSeconds: Number(data.roundTripSeconds) || 0,
+        routeKm: Number(data.routeKm) || null,
+        quoteAt: data.quotedAt || new Date().toISOString()
+      });
+      return loc;
+    }
+
+    function shippingInfo(loc, isPickup) {
+      if (isPickup) return { cost: 0, tier: 'pickup', label: 'RETIRO EN LOCAL', color: 'var(--neon-green)', eligible: true };
+      if (!loc) return { cost: 0, tier: 'missing', label: '— elegí una dirección', color: 'var(--neon-yellow)', eligible: false };
+      if (!loc.shippingTier) return { cost: 0, tier: 'pending', label: '— verificando cobertura', color: 'var(--neon-cyan)', eligible: false };
+      if (loc.deliveryEligible === false || loc.shippingTier === 'out_of_coverage') {
+        return { cost: 0, tier: 'out_of_coverage', label: 'FUERA DE COBERTURA', color: 'var(--neon-orange)', eligible: false };
+      }
+      if (loc.shippingTier === 'free') return { cost: 0, tier: 'free', label: 'GRATIS', color: 'var(--neon-green)', eligible: true };
+      return { cost: STANDARD_SHIPPING_COST, tier: 'standard_3000', label: '+$3.000', color: 'var(--neon-cyan)', eligible: true };
     }
 
     // Inicializar autocompletado de Google Places (NEW API)
@@ -5271,19 +5693,60 @@
 
     function setSelectedLocation(lat, lng, addressStr) {
       const distance = haversineKm(STORE_LOCATION.lat, STORE_LOCATION.lng, lat, lng);
-      const needsConfirmation = distance > MAX_RADIUS_KM;
-      selectedLocation = { lat, lng, address: addressStr, distanceKm: distance, needsConfirmation };
+      selectedLocation = { lat, lng, address: addressStr, distanceKm: distance, shippingTier: null, deliveryEligible: null };
 
       const deliveryHidden = document.getElementById('fDelivery');
-      if (distance <= FREE_RADIUS_KM) {
-        deliveryHidden.value = 'delivery-gutierrez';
-      } else {
-        deliveryHidden.value = 'delivery-fuera';
-      }
+      if (deliveryHidden) deliveryHidden.value = distance <= FREE_RADIUS_KM ? 'delivery-gutierrez' : 'delivery-ruta';
 
       showMapAndStatus();
       if (typeof window.updateCartTotals === 'function') updateCartTotals();
+      const quotedLocation = selectedLocation;
+      quoteDeliveryLocation(quotedLocation, true).then(() => {
+        if (selectedLocation !== quotedLocation) return;
+        updateZoneStatus();
+        updateCartTotals();
+        sendGa4Event('shipping_quote_viewed', {
+          delivery_type: 'delivery',
+          shipping_tier: quotedLocation.shippingTier,
+          shipping_cost: quotedLocation.shippingCost
+        });
+      }).catch(error => {
+        if (selectedLocation !== quotedLocation) return;
+        quotedLocation.quoteError = error.message;
+        updateZoneStatus();
+        updateCartTotals();
+      });
     }
+
+    window.useCustomerGps = function(btn) {
+      const input = document.getElementById('fAddress');
+      const address = input && input.value.trim();
+      if (!address || !selectedLocation) {
+        alert('Primero elegí tu dirección del listado. Después podés ajustar el pin con el GPS del teléfono.');
+        return;
+      }
+      if (!('geolocation' in navigator)) {
+        alert('Este dispositivo no ofrece ubicación GPS. Podés ajustar el pin arrastrándolo en el mapa.');
+        return;
+      }
+      const original = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = '◎ Buscando señal precisa…'; }
+      navigator.geolocation.getCurrentPosition(pos => {
+        const accuracy = Number(pos.coords.accuracy) || 999;
+        if (accuracy > 100) {
+          if (btn) { btn.disabled = false; btn.textContent = original; }
+          alert(`La señal todavía es imprecisa (±${Math.round(accuracy)} m). Acercate a una ventana o activá la ubicación precisa y probá otra vez.`);
+          return;
+        }
+        setSelectedLocation(pos.coords.latitude, pos.coords.longitude, address);
+        if (btn) { btn.disabled = false; btn.textContent = `✓ Pin ajustado con GPS (±${Math.round(accuracy)} m)`; }
+        const status = document.getElementById('zoneStatus');
+        if (status) status.insertAdjacentHTML('beforeend', `<br><span style="font-size:13px">Pin confirmado con GPS · precisión ±${Math.round(accuracy)} m</span>`);
+      }, err => {
+        if (btn) { btn.disabled = false; btn.textContent = original; }
+        alert('No pudimos obtener tu ubicación: ' + err.message + '. Podés ajustar el pin manualmente.');
+      }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
+    };
 
     function showMapAndStatus() {
       if (!selectedLocation) return;
@@ -5322,19 +5785,31 @@
           addressMarker.on('dragend', (e) => {
             const pos = e.target.getLatLng();
             const distance = haversineKm(STORE_LOCATION.lat, STORE_LOCATION.lng, pos.lat, pos.lng);
-            const needsConfirmation = distance > MAX_RADIUS_KM;
             selectedLocation = {
               ...selectedLocation,
               lat: pos.lat,
               lng: pos.lng,
               distanceKm: distance,
-              needsConfirmation
+              shippingTier: null,
+              deliveryEligible: null,
+              quoteAt: null,
+              quoteError: null
             };
             const deliveryHidden = document.getElementById('fDelivery');
-            if (distance <= FREE_RADIUS_KM) deliveryHidden.value = 'delivery-gutierrez';
-            else deliveryHidden.value = 'delivery-fuera';
+            if (deliveryHidden) deliveryHidden.value = distance <= FREE_RADIUS_KM ? 'delivery-gutierrez' : 'delivery-ruta';
             updateZoneStatus();
             if (typeof window.updateCartTotals === 'function') updateCartTotals();
+            const quotedLocation = selectedLocation;
+            quoteDeliveryLocation(quotedLocation, true).then(() => {
+              if (selectedLocation !== quotedLocation) return;
+              updateZoneStatus();
+              updateCartTotals();
+            }).catch(error => {
+              if (selectedLocation !== quotedLocation) return;
+              quotedLocation.quoteError = error.message;
+              updateZoneStatus();
+              updateCartTotals();
+            });
           });
         } else {
           addressMap.setView([selectedLocation.lat, selectedLocation.lng], 17);
@@ -5350,19 +5825,22 @@
     function updateZoneStatus() {
       const el = document.getElementById('zoneStatus');
       if (!el || !selectedLocation) return;
-      const km = selectedLocation.distanceKm;
-
-      if (km <= FREE_RADIUS_KM) {
+      if (selectedLocation.quoteError) {
+        el.className = 'zone-status outside';
+        el.innerHTML = `⚠️ NO PUDIMOS VERIFICAR LA COBERTURA<br><span style="font-size:13px;font-weight:normal;">Probá nuevamente o elegí retiro gratis.</span>`;
+      } else if (!selectedLocation.shippingTier) {
+        el.className = 'zone-status paid';
+        el.innerHTML = `⌛ VERIFICANDO COBERTURA…`;
+      } else if (selectedLocation.shippingTier === 'free') {
         el.className = 'zone-status free';
         el.innerHTML = `✅ ENVÍO GRATIS`;
-      } else if (km <= MAX_RADIUS_KM) {
+      } else if (selectedLocation.deliveryEligible !== false) {
         el.className = 'zone-status paid';
-        el.innerHTML = `📍 Envío $2.500`;
+        el.innerHTML = `✅ LLEGAMOS A TU DOMICILIO · ENVÍO $3.000`;
       } else {
         el.className = 'zone-status outside';
-        el.innerHTML = `⚠️ FUERA DE ZONA HABITUAL · Envío $4.000<br>
-          <span style="font-size:13px;font-weight:normal;">Intentaremos enviártelo igual.<br>
-          Si no llegamos a cubrir tu zona, te avisamos y te reintegramos lo abonado.</span>`;
+        el.innerHTML = `❌ ESTA DIRECCIÓN ESTÁ FUERA DE NUESTRA ZONA DE ENTREGA<br>
+          <span style="font-size:13px;font-weight:normal;">Podés elegir retiro gratis en el local.</span>`;
       }
     }
 
@@ -5374,6 +5852,13 @@
         const wrap = document.getElementById('mapConfirm');
         if (wrap) wrap.classList.remove('active');
         selectedLocation = null;
+        if (typeof window.updateCartTotals === 'function') updateCartTotals();
+      } else if (selectedLocation && q !== String(selectedLocation.address || '').trim()) {
+        // El texto ya no representa el pin elegido: nunca conservar coordenadas
+        // viejas detrás de una dirección que el cliente corrigió a mano.
+        selectedLocation = null;
+        const wrap = document.getElementById('mapConfirm');
+        if (wrap) wrap.classList.remove('active');
         if (typeof window.updateCartTotals === 'function') updateCartTotals();
       }
     });
@@ -5399,8 +5884,12 @@
     //              coins (no suma ni permite canjear recompensas).
     window.deliveryMode = 'delivery';
     window.setDeliveryMode = function(mode) {
+      const previousMode = window.deliveryMode;
       window.deliveryMode = (mode === 'pickup') ? 'pickup' : 'delivery';
       const isPickup = window.deliveryMode === 'pickup';
+      if (!isPickup && !selectedLocation && typeof getDefaultDir === 'function') {
+        selectedLocation = locationFromSavedAddress(getDefaultDir());
+      }
 
       const dmDel = document.getElementById('dmDelivery');
       const dmPick = document.getElementById('dmPickup');
@@ -5413,6 +5902,14 @@
       if (pickInfo) pickInfo.style.display = isPickup ? 'block' : 'none';
 
       updateCartTotals();
+      if (window.cuenta) {
+        window.cuenta.preferredDeliveryMode = window.deliveryMode;
+        saveCuentaLocal();
+        renderCustomerDeliveryBar();
+      }
+      if (previousMode !== window.deliveryMode) {
+        sendGa4Event('delivery_mode_changed', { delivery_type: window.deliveryMode });
+      }
     };
 
     function updateCartTotals() {
@@ -5432,37 +5929,12 @@
           : '🌭 CONFIRMAR PEDIDO';
       }
 
-      // Determinar zona y costo según ubicación seleccionada
+      // Determinar cobertura y costo según la cotización de ruta seleccionada.
       const loc = (typeof window.getSelectedLocation === 'function') ? window.getSelectedLocation() : null;
-      let shippingCost = 0;
-      let shippingLabel = 'GRATIS';
-      let shippingColor = 'var(--neon-yellow)';
-      let isToConfirm = false;
-
-      if (isPickup) {
-        // Retiro en el local: sin costo de envío, sin depender de la dirección.
-        shippingCost = 0;
-        shippingLabel = 'RETIRO EN LOCAL';
-        shippingColor = 'var(--neon-green)';
-      } else if (!loc) {
-        shippingLabel = '— elegí una dirección';
-        shippingColor = 'var(--neon-yellow)';
-      } else if (loc.distanceKm <= FREE_RADIUS_KM) {
-        shippingCost = 0;
-        shippingLabel = 'GRATIS';
-        shippingColor = 'var(--neon-yellow)';
-      } else if (loc.distanceKm <= MAX_RADIUS_KM) {
-        shippingCost = 2500;
-        shippingLabel = '+$2.500';
-        shippingColor = 'var(--neon-cyan)';
-      } else {
-        // Fuera de zona: envío fijo de $4.000 (incluido en el total). La entrega
-        // no está garantizada, así que igual marcamos isOutside para el aviso.
-        shippingCost = 4000;
-        shippingLabel = '+$4.000';
-        shippingColor = 'var(--neon-orange)';
-        isToConfirm = true;
-      }
+      const shipping = shippingInfo(loc, isPickup);
+      const shippingCost = shipping.cost;
+      const shippingLabel = shipping.label;
+      const shippingColor = shipping.color;
 
       const surchargePct = parseInt(paySelect.selectedOptions[0].dataset.surcharge || '0');
 
@@ -5518,7 +5990,6 @@
       </div>`;
       }
 
-      // El envío ($4.000 fuera de zona) ya va incluido en el total: siempre es un total real.
       const totalLabel = 'TOTAL';
       const totalColor = 'var(--neon-green)';
 
@@ -5526,12 +5997,17 @@
       <span>${totalLabel}</span><span>$${finalTotal.toLocaleString('es-AR')}</span>
     </div>`;
 
-      if (isToConfirm) {
+      if (shipping.tier === 'out_of_coverage') {
         html += `<div style="font-size:14px;color:var(--neon-orange);text-align:center;padding:8px 4px 0;line-height:1.35;">
-          ⚠️ Estás fuera de nuestra zona habitual. El envío ($4.000) ya está incluido.<br>
-          Intentaremos llevártelo igual; si no llegamos, te avisamos y te reintegramos lo abonado.
+          ❌ Esta dirección está fuera de nuestra zona de entrega.<br>
+          Elegí otra dirección o retiro gratis para continuar.
         </div>`;
+      } else if (shipping.tier === 'pending') {
+        html += `<div style="font-size:14px;color:var(--neon-cyan);text-align:center;padding:8px 4px 0;">⌛ Verificando cobertura…</div>`;
       }
+
+      if (sendBtn && !isPickup && !shipping.eligible) sendBtn.disabled = true;
+      else if (sendBtn) sendBtn.disabled = false;
 
       // Coins que suma esta compra (según la tasa configurada en el admin)
       const coinsQueSuma = Math.floor(finalTotal / getLoyaltyConfig().coinsPerPeso);
@@ -5622,9 +6098,24 @@
       if (!window.cuenta || !loc || typeof loc.lat !== 'number') return null;
       ensureDirecciones();
       const existing = window.cuenta.direcciones.find(d => Math.abs(d.lat - loc.lat) < 1e-6 && Math.abs(d.lng - loc.lng) < 1e-6);
-      if (existing) return existing.id;
+      const routeData = {
+        address: loc.address || '', lat: loc.lat, lng: loc.lng,
+        distanceKm: Number(loc.distanceKm) || 0,
+        deliveryEligible: loc.deliveryEligible !== false,
+        shippingTier: loc.shippingTier || null,
+        shippingCost: Number(loc.shippingCost) || 0,
+        outboundSeconds: Number(loc.outboundSeconds) || 0,
+        returnSeconds: Number(loc.returnSeconds) || 0,
+        roundTripSeconds: Number(loc.roundTripSeconds) || 0,
+        routeKm: Number(loc.routeKm) || null,
+        quoteAt: loc.quoteAt || null
+      };
+      if (existing) {
+        Object.assign(existing, routeData);
+        return existing.id;
+      }
       const id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 4);
-      window.cuenta.direcciones.push({ id, address: loc.address || '', lat: loc.lat, lng: loc.lng, distanceKm: loc.distanceKm || 0 });
+      window.cuenta.direcciones.push({ id, ...routeData });
       if (!window.cuenta.defaultDirId) window.cuenta.defaultDirId = id;
       return id;
     }
@@ -5643,12 +6134,13 @@
       window.cuenta = {
         nombre, telefono, coins: prev ? (prev.coins || 0) : 0,
         direcciones: prev ? (prev.direcciones || []) : [],
-        defaultDirId: prev ? prev.defaultDirId : null
+        defaultDirId: prev ? prev.defaultDirId : null,
+        preferredDeliveryMode: prev ? (prev.preferredDeliveryMode || 'delivery') : 'delivery'
       };
       ensureDirecciones();
       // Agregar/ubicar la dirección usada en este pedido (guarda coordenadas + zona)
       if (loc && typeof loc.lat === 'number' && typeof loc.lng === 'number') {
-        const id = addDireccion({ address: direccion || loc.address, lat: loc.lat, lng: loc.lng, distanceKm: loc.distanceKm });
+        const id = addDireccion({ ...loc, address: direccion || loc.address });
         selectedDirId = id;
       }
       // Dirección "principal" (default) para mostrar en el admin y compat
@@ -5658,6 +6150,7 @@
       const fbData = {
         nombre, telefono: p, direccion: window.cuenta.direccion,
         direcciones: window.cuenta.direcciones, defaultDirId: window.cuenta.defaultDirId || null,
+        preferredDeliveryMode: window.cuenta.preferredDeliveryMode || 'delivery',
         updatedAt: serverTimestamp()
       };
       try { await setDoc(doc(db, 'loyalty', p), fbData, { merge: true }); }
@@ -5855,10 +6348,13 @@
     window.cuentaLogout = function() {
       if (!confirm('¿Cerrar sesión de tu cuenta en este dispositivo?')) return;
       window.cuenta = null; window.selectedReward = null; window.selectedRewardOptionIdx = 0; window.selectedRewardProductId = null;
+      selectedLocation = null; selectedDirId = null; window.deliveryMode = 'delivery';
       try { localStorage.removeItem(LOYALTY_KEY); } catch (e) {}
       renderCuentaBar();
+      renderCustomerDeliveryBar();
       const ov = document.getElementById('cartOverlay');
       if (ov && ov.classList.contains('open')) renderCart();
+      setTimeout(() => window.openCustomerSetup(true), 100);
     };
 
     function renderVidaExtraBox() {
@@ -5919,11 +6415,22 @@
     window.selectSavedDireccion = function(id) {
       const d = getDirById(id); if (!d) return;
       selectedDirId = id;
-      selectedLocation = { lat: d.lat, lng: d.lng, address: d.address, distanceKm: d.distanceKm || 0, needsConfirmation: (d.distanceKm || 0) > MAX_RADIUS_KM };
+      selectedLocation = locationFromSavedAddress(d);
       const input = document.getElementById('fAddress'); if (input) input.value = d.address || '';
       if (typeof showMapAndStatus === 'function') showMapAndStatus();
       if (typeof updateCartTotals === 'function') updateCartTotals();
       renderSavedAddresses();
+      quoteDeliveryLocation(selectedLocation, !quoteIsFresh(selectedLocation)).then(() => {
+        addDireccion(selectedLocation);
+        saveCuentaLocal();
+        updateZoneStatus();
+        updateCartTotals();
+        renderCustomerDeliveryBar();
+      }).catch(error => {
+        selectedLocation.quoteError = error.message;
+        updateZoneStatus();
+        updateCartTotals();
+      });
     };
     window.nuevaDireccion = function() {
       selectedDirId = null; selectedLocation = null;
@@ -5970,13 +6477,356 @@
       renderSavedAddresses();
     };
 
+    // ---- Identificación previa al menú + dirección activa ----
+    let customerSetupMode = 'delivery';
+    let setupLocation = null;
+    let setupAddressMap = null;
+    let setupAddressMarker = null;
+    let setupPlacesAutocomplete = null;
+
+    function renderCustomerDeliveryBar() {
+      const bar = document.getElementById('customerDeliveryBar');
+      if (!bar || !window.cuenta || !window.cuenta.telefono) {
+        if (bar) { bar.classList.remove('show'); bar.innerHTML = ''; }
+        return;
+      }
+      const pickup = (window.cuenta.preferredDeliveryMode || window.deliveryMode) === 'pickup';
+      const current = selectedLocation || locationFromSavedAddress(getDefaultDir());
+      const shipping = shippingInfo(current, pickup);
+      const status = pickup
+        ? 'Retiro gratis en el local'
+        : shipping.tier === 'free'
+          ? 'Envío gratis'
+          : shipping.tier === 'standard_3000'
+            ? 'Envío $3.000'
+            : shipping.tier === 'out_of_coverage'
+              ? 'Fuera de cobertura · elegí retiro gratis'
+              : 'Cobertura pendiente de verificar';
+      const address = pickup ? 'Calle 410 N°747 · Juan María Gutiérrez' : ((current && current.address) || 'Elegí una dirección');
+      bar.innerHTML = `<div class="customer-delivery-inner">
+        <span>${pickup ? '🏪' : '📍'}</span>
+        <div class="customer-delivery-copy"><strong>${status}</strong><span>${escHtmlL(address)}</span></div>
+        <button type="button" class="customer-delivery-change" onclick="openCustomerSetup(false)">CAMBIAR</button>
+      </div>`;
+      bar.classList.add('show');
+    }
+    window.renderCustomerDeliveryBar = renderCustomerDeliveryBar;
+
+    function renderSetupSavedAddresses() {
+      const box = document.getElementById('setupSavedAddresses');
+      if (!box) return;
+      const addresses = getDirecciones();
+      if (!addresses.length) { box.innerHTML = ''; box.style.display = 'none'; return; }
+      box.style.display = 'block';
+      box.innerHTML = `<div class="dir-list" style="margin-bottom:10px;">${addresses.map(address => {
+        const selected = setupLocation && Math.abs(address.lat - setupLocation.lat) < 1e-6 && Math.abs(address.lng - setupLocation.lng) < 1e-6;
+        return `<button type="button" class="dir-chip-main ${selected ? 'sel' : ''}" style="border:2px solid ${selected ? 'var(--neon-green)' : 'var(--neon-purple)'};border-radius:6px;" onclick="selectSetupSavedAddress('${address.id}')">📍 ${escHtmlL(address.address || 'Dirección guardada')}</button>`;
+      }).join('')}<button type="button" class="dir-nueva" onclick="newSetupAddress()">➕ Otra dirección</button></div>`;
+    }
+
+    function renderSetupQuote() {
+      const result = document.getElementById('setupQuoteResult');
+      if (!result) return;
+      result.className = 'customer-setup-result';
+      if (customerSetupMode === 'pickup') { result.innerHTML = ''; return; }
+      if (!setupLocation) { result.innerHTML = ''; return; }
+      result.classList.add('show');
+      if (setupLocation.quoteError) {
+        result.classList.add('out');
+        result.innerHTML = '⚠️ No pudimos verificar la cobertura.<br><small>Probá nuevamente o elegí retiro gratis.</small>';
+      } else if (!setupLocation.shippingTier) {
+        result.classList.add('loading');
+        result.textContent = '⌛ Verificando cobertura…';
+      } else if (setupLocation.deliveryEligible === false) {
+        result.classList.add('out');
+        result.innerHTML = '❌ ESTA DIRECCIÓN ESTÁ FUERA DE NUESTRA ZONA DE ENTREGA<br><small>Podés elegir retiro gratis en el local.</small>';
+      } else {
+        result.classList.add('ok');
+        result.textContent = setupLocation.shippingTier === 'free'
+          ? '✅ ENVÍO GRATIS'
+          : '✅ LLEGAMOS A TU DOMICILIO · ENVÍO $3.000';
+      }
+    }
+
+    async function quoteSetupLocation(force) {
+      if (!setupLocation) return;
+      setupLocation.shippingTier = force ? null : setupLocation.shippingTier;
+      setupLocation.quoteError = null;
+      renderSetupQuote();
+      try {
+        await quoteDeliveryLocation(setupLocation, force);
+        sendGa4Event('shipping_quote_viewed', {
+          delivery_type: 'delivery',
+          shipping_tier: setupLocation.shippingTier,
+          shipping_cost: setupLocation.shippingCost
+        });
+        if (setupLocation.deliveryEligible === false) {
+          sendGa4Event('delivery_unavailable', { shipping_tier: 'out_of_coverage' });
+        }
+      } catch (error) {
+        setupLocation.quoteError = error.message;
+      }
+      renderSetupQuote();
+    }
+
+    function showSetupMap() {
+      const mapEl = document.getElementById('setupMap');
+      if (!mapEl || !setupLocation || typeof L === 'undefined') return;
+      mapEl.style.display = 'block';
+      if (!setupAddressMap) {
+        setupAddressMap = L.map('setupMap', { zoomControl: true, scrollWheelZoom: false })
+          .setView([setupLocation.lat, setupLocation.lng], 17);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19, attribution: '© OpenStreetMap'
+        }).addTo(setupAddressMap);
+        L.marker([STORE_LOCATION.lat, STORE_LOCATION.lng], { title: 'Pixel Panchería', opacity: .8 })
+          .addTo(setupAddressMap).bindPopup('🌭 Pixel Panchería');
+        setupAddressMarker = L.marker([setupLocation.lat, setupLocation.lng], { draggable: true, title: 'Tu dirección' })
+          .addTo(setupAddressMap).bindPopup('Ajustá el pin si hace falta').openPopup();
+        setupAddressMarker.on('dragend', event => {
+          const point = event.target.getLatLng();
+          setupLocation = {
+            ...setupLocation,
+            lat: point.lat,
+            lng: point.lng,
+            distanceKm: haversineKm(STORE_LOCATION.lat, STORE_LOCATION.lng, point.lat, point.lng),
+            shippingTier: null,
+            deliveryEligible: null,
+            quoteAt: null
+          };
+          quoteSetupLocation(true);
+        });
+      } else {
+        setupAddressMap.setView([setupLocation.lat, setupLocation.lng], 17);
+        if (setupAddressMarker) setupAddressMarker.setLatLng([setupLocation.lat, setupLocation.lng]);
+      }
+      setTimeout(() => setupAddressMap && setupAddressMap.invalidateSize(), 100);
+    }
+
+    async function initCustomerSetupAddressPicker() {
+      const input = document.getElementById('setupAddress');
+      if (!input || !window.google || !window.google.maps) return;
+      if (setupPlacesAutocomplete && setupPlacesAutocomplete.isConnected) return;
+      setupPlacesAutocomplete = null;
+      try {
+        const { PlaceAutocompleteElement } = await google.maps.importLibrary('places');
+        const picker = new PlaceAutocompleteElement({
+          locationBias: { center: { lat: STORE_LOCATION.lat, lng: STORE_LOCATION.lng }, radius: 20000 },
+          includedRegionCodes: ['ar'],
+          types: ['address']
+        });
+        input.style.display = 'none';
+        input.parentElement.appendChild(picker);
+        picker.style.width = '100%';
+        picker.style.display = 'block';
+        setupPlacesAutocomplete = picker;
+        picker.addEventListener('gmp-select', async event => {
+          const prediction = event.placePrediction;
+          if (!prediction) return;
+          const place = prediction.toPlace();
+          await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location', 'addressComponents'] });
+          if (!place.location) return;
+          const address = formatPlaceAddress(place);
+          input.value = address;
+          setupLocation = {
+            lat: place.location.lat(), lng: place.location.lng(), address,
+            distanceKm: haversineKm(STORE_LOCATION.lat, STORE_LOCATION.lng, place.location.lat(), place.location.lng()),
+            shippingTier: null, deliveryEligible: null
+          };
+          renderSetupSavedAddresses();
+          showSetupMap();
+          quoteSetupLocation(true);
+          sendGa4Event('delivery_address_selected', { customer_status: window.cuenta ? 'returning' : 'new' });
+        });
+      } catch (error) {
+        console.warn('No se pudo iniciar la dirección previa', error);
+        input.style.display = '';
+      }
+    }
+
+    window.setCustomerSetupMode = function(mode) {
+      const previousMode = customerSetupMode;
+      customerSetupMode = mode === 'pickup' ? 'pickup' : 'delivery';
+      document.getElementById('setupDeliveryBtn').classList.toggle('sel', customerSetupMode === 'delivery');
+      document.getElementById('setupPickupBtn').classList.toggle('sel', customerSetupMode === 'pickup');
+      document.getElementById('setupDeliveryFields').style.display = customerSetupMode === 'delivery' ? 'block' : 'none';
+      document.getElementById('setupPickupInfo').style.display = customerSetupMode === 'pickup' ? 'block' : 'none';
+      renderSetupQuote();
+      if (previousMode !== customerSetupMode) {
+        sendGa4Event('delivery_mode_changed', { delivery_type: customerSetupMode });
+      }
+    };
+
+    window.selectSetupSavedAddress = function(id) {
+      const address = getDirById(id);
+      if (!address) return;
+      setupLocation = locationFromSavedAddress(address);
+      const input = document.getElementById('setupAddress');
+      if (input) input.value = address.address || '';
+      renderSetupSavedAddresses();
+      showSetupMap();
+      quoteSetupLocation(!quoteIsFresh(setupLocation));
+      sendGa4Event('saved_address_selected', { shipping_tier: setupLocation.shippingTier || 'pending' });
+    };
+
+    window.newSetupAddress = function() {
+      setupLocation = null;
+      const input = document.getElementById('setupAddress');
+      if (input) input.value = '';
+      const mapEl = document.getElementById('setupMap');
+      if (mapEl) mapEl.style.display = 'none';
+      renderSetupSavedAddresses();
+      renderSetupQuote();
+    };
+
+    window.useSetupGps = function(button) {
+      if (!setupLocation) { alert('Primero elegí tu dirección del listado.'); return; }
+      if (!('geolocation' in navigator)) { alert('Este dispositivo no ofrece ubicación GPS.'); return; }
+      const original = button.textContent;
+      button.disabled = true;
+      button.textContent = '◎ Buscando señal precisa…';
+      navigator.geolocation.getCurrentPosition(position => {
+        const accuracy = Number(position.coords.accuracy) || 999;
+        button.disabled = false;
+        button.textContent = original;
+        if (accuracy > 100) {
+          alert(`La señal todavía es imprecisa (±${Math.round(accuracy)} m). Probá nuevamente cerca de una ventana.`);
+          return;
+        }
+        setupLocation = {
+          ...setupLocation,
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          distanceKm: haversineKm(STORE_LOCATION.lat, STORE_LOCATION.lng, position.coords.latitude, position.coords.longitude),
+          shippingTier: null,
+          deliveryEligible: null,
+          quoteAt: null
+        };
+        showSetupMap();
+        quoteSetupLocation(true);
+      }, error => {
+        button.disabled = false;
+        button.textContent = original;
+        alert('No pudimos obtener tu ubicación: ' + error.message);
+      }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
+    };
+
+    window.openCustomerSetup = function(required) {
+      const overlay = document.getElementById('customerSetupOverlay');
+      if (!overlay) return;
+      overlay.classList.toggle('required', required === true);
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      const name = document.getElementById('setupName');
+      const phone = document.getElementById('setupPhone');
+      if (name) name.value = (window.cuenta && window.cuenta.nombre) || '';
+      if (phone) phone.value = (window.cuenta && window.cuenta.telefono) || '';
+      customerSetupMode = (window.cuenta && window.cuenta.preferredDeliveryMode) || window.deliveryMode || 'delivery';
+      const active = selectedLocation || locationFromSavedAddress(getDefaultDir());
+      setupLocation = active ? { ...active } : null;
+      window.setCustomerSetupMode(customerSetupMode);
+      renderSetupSavedAddresses();
+      renderSetupQuote();
+      if (setupLocation) showSetupMap();
+      setTimeout(initCustomerSetupAddressPicker, 100);
+      if (required === true) sendGa4Event('customer_setup_started', { customer_status: 'new' });
+    };
+
+    window.closeCustomerSetup = function() {
+      const overlay = document.getElementById('customerSetupOverlay');
+      if (!overlay || overlay.classList.contains('required')) return;
+      overlay.classList.remove('open');
+      document.body.style.overflow = '';
+    };
+
+    window.saveCustomerSetup = async function() {
+      const name = (document.getElementById('setupName').value || '').trim();
+      const phone = normPhoneL(document.getElementById('setupPhone').value);
+      const wasKnownCustomer = !!(window.cuenta && window.cuenta.telefono);
+      const button = document.getElementById('customerSetupSubmit');
+      if (!name) { alert('⚠ Ingresá tu nombre'); return; }
+      if (phone.length < 8) { alert('⚠ Ingresá un teléfono válido'); return; }
+      if (customerSetupMode === 'delivery' && !setupLocation) { alert('⚠ Elegí tu dirección del listado'); return; }
+      button.disabled = true;
+      button.textContent = customerSetupMode === 'delivery' ? 'VERIFICANDO COBERTURA…' : 'GUARDANDO…';
+      try {
+        if (customerSetupMode === 'delivery') {
+          await quoteDeliveryLocation(setupLocation, !quoteIsFresh(setupLocation));
+          if (setupLocation.deliveryEligible === false) {
+            renderSetupQuote();
+            alert('Esta dirección está fuera de nuestra zona de entrega. Elegí otra dirección o retiro gratis.');
+            return;
+          }
+        }
+        await window.upsertCuenta(name, phone, setupLocation ? setupLocation.address : '', customerSetupMode === 'delivery' ? setupLocation : null);
+        window.cuenta.preferredDeliveryMode = customerSetupMode;
+        window.deliveryMode = customerSetupMode;
+        if (customerSetupMode === 'delivery') {
+          selectedLocation = { ...setupLocation };
+          selectedDirId = addDireccion(selectedLocation);
+          window.cuenta.defaultDirId = selectedDirId || window.cuenta.defaultDirId;
+        } else {
+          selectedLocation = null;
+        }
+        saveCuentaLocal();
+        try {
+          await setDoc(doc(db, 'loyalty', phone), {
+            nombre: name,
+            telefono: phone,
+            direccion: window.cuenta.direccion || '',
+            direcciones: window.cuenta.direcciones || [],
+            defaultDirId: window.cuenta.defaultDirId || null,
+            preferredDeliveryMode: customerSetupMode,
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+        } catch (error) { console.warn('No se pudo sincronizar el perfil previo', error); }
+        document.getElementById('customerSetupOverlay').classList.remove('required', 'open');
+        document.body.style.overflow = '';
+        renderCuentaBar();
+        renderCustomerDeliveryBar();
+        sendGa4Event('customer_setup_completed', {
+          customer_status: wasKnownCustomer ? 'returning' : 'new',
+          delivery_type: customerSetupMode,
+          shipping_tier: customerSetupMode === 'pickup' ? 'pickup' : setupLocation.shippingTier,
+          shipping_cost: customerSetupMode === 'pickup' ? 0 : setupLocation.shippingCost
+        });
+      } catch (error) {
+        alert('No pudimos guardar tus datos: ' + error.message);
+      } finally {
+        button.disabled = false;
+        button.textContent = 'CONTINUAR AL MENÚ';
+      }
+    };
+
     // Init
     loadCuenta();
     renderCuentaBar();
+    const initialAddress = getDefaultDir();
+    if (initialAddress) {
+      selectedDirId = initialAddress.id;
+      selectedLocation = locationFromSavedAddress(initialAddress);
+      const initialLocation = selectedLocation;
+      quoteDeliveryLocation(initialLocation, !quoteIsFresh(initialLocation)).then(() => {
+        if (selectedLocation !== initialLocation) return;
+        addDireccion(initialLocation);
+        saveCuentaLocal();
+        renderCustomerDeliveryBar();
+        if (typeof updateCartTotals === 'function') updateCartTotals();
+      }).catch(error => {
+        if (selectedLocation === initialLocation) initialLocation.quoteError = error.message;
+        renderCustomerDeliveryBar();
+      });
+    }
+    window.deliveryMode = (window.cuenta && window.cuenta.preferredDeliveryMode) || 'delivery';
+    renderCustomerDeliveryBar();
     if (window.cuenta && window.cuenta.telefono) {
       // Cartel de bienvenida con los coins cacheados (aparece al toque)
       setTimeout(showWelcomeToast, 600);
       fetchCoins(window.cuenta.telefono).then(c => { window.cuenta.coins = c; saveCuentaLocal(); renderCuentaBar(); });
+    }
+    if (!__trackId && (!window.cuenta || !window.cuenta.nombre || !window.cuenta.telefono ||
+        ((window.cuenta.preferredDeliveryMode || 'delivery') === 'delivery' && !initialAddress))) {
+      setTimeout(() => window.openCustomerSetup(true), 700);
     }
 
     // Aplicar cupón
@@ -6030,7 +6880,7 @@
         const savedId = await window.saveOrderToFirebase(order, orderId);
         if (!savedId) throw new Error('no se pudo guardar el pedido');
 
-        try { localStorage.setItem('pixel_pedido_activo', JSON.stringify({ id: orderId, at: Date.now() })); } catch (e) {}
+        rememberTrackedOrder(orderId, 'pending_payment');
 
         const r = await fetch('/.netlify/functions/crear-pago', {
           method: 'POST',
@@ -6092,6 +6942,18 @@
           alert('⚠ Por favor seleccioná tu dirección del listado de sugerencias para confirmar la ubicación en el mapa.');
           return;
         }
+        try {
+          await quoteDeliveryLocation(loc, !quoteIsFresh(loc));
+        } catch (error) {
+          sendGa4CheckoutError('shipping_quote_failed');
+          alert('⚠ No pudimos verificar la cobertura de esta dirección. Probá nuevamente o elegí retiro gratis.');
+          return;
+        }
+        if (loc.deliveryEligible === false) {
+          sendGa4CheckoutError('delivery_out_of_coverage');
+          alert('⚠ Esta dirección está fuera de nuestra zona de entrega. Elegí otra dirección o retiro gratis.');
+          return;
+        }
       }
 
       const entries = Object.entries(cart);
@@ -6106,11 +6968,10 @@
         }
       }
 
-      // Determinar costo y label según zona
+      // Determinar costo y etiqueta desde la cotización de cobertura vigente.
       let shippingCost = 0;
       let deliveryCode = 'delivery-gutierrez';
       let deliveryLabel = 'Delivery dentro de Gutiérrez';
-      let needsShippingConfirmation = false;
 
       if (isPickup) {
         // Retiro en el local: sin costo de envío ni dirección. Usa el mismo
@@ -6118,27 +6979,14 @@
         shippingCost = 0;
         deliveryCode = 'retira';
         deliveryLabel = 'Retira en el local';
-      } else if (loc.distanceKm <= FREE_RADIUS_KM) {
+      } else if (loc.shippingTier === 'free') {
         shippingCost = 0;
         deliveryCode = 'delivery-gutierrez';
         deliveryLabel = 'Delivery dentro de Gutiérrez';
-      } else if (loc.distanceKm <= MAX_RADIUS_KM) {
-        shippingCost = 2500;
-        deliveryCode = 'delivery-fuera';
-        deliveryLabel = 'Delivery fuera de Gutiérrez';
       } else {
-        shippingCost = 4000;
-        deliveryCode = 'delivery-aconfirmar';
-        deliveryLabel = 'Delivery fuera de zona ($4.000)';
-        needsShippingConfirmation = true;
-
-        const ok = confirm(
-          '⚠️ Tu dirección está fuera de nuestra zona habitual de delivery.\n\n' +
-          'El envío tiene un costo de $4.000 (ya incluido en el total). Vamos a intentar llevártelo igual; ' +
-          'si por distancia no llegamos a cubrir tu zona, te avisamos por WhatsApp a la brevedad y te reintegramos lo que hayas abonado.\n\n' +
-          '¿Querés enviar el pedido igual?'
-        );
-        if (!ok) { sendGa4CheckoutError('shipping_not_confirmed'); return; }
+        shippingCost = STANDARD_SHIPPING_COST;
+        deliveryCode = 'delivery-ruta-3000';
+        deliveryLabel = 'Delivery $3.000';
       }
 
       const subtotal = entries.reduce((s, [, c]) => s + cartItemSubtotal(c), 0);
@@ -6251,7 +7099,14 @@
         latitude: loc ? loc.lat : null,
         longitude: loc ? loc.lng : null,
         distanceKm: loc ? parseFloat(loc.distanceKm.toFixed(2)) : null,
-        needsShippingConfirmation,
+        routeKm: loc && Number.isFinite(Number(loc.routeKm)) ? Number(Number(loc.routeKm).toFixed(2)) : null,
+        routeOutboundSeconds: loc ? Number(loc.outboundSeconds) || 0 : 0,
+        routeReturnSeconds: loc ? Number(loc.returnSeconds) || 0 : 0,
+        routeRoundTripSeconds: loc ? Number(loc.roundTripSeconds) || 0 : 0,
+        routeQuotedAt: loc ? (loc.quoteAt || null) : null,
+        shippingTier: isPickup ? 'pickup' : loc.shippingTier,
+        deliveryEligible: true,
+        needsShippingConfirmation: false,
         // Retiro en el local: sin envío ni dirección. Los coins funcionan igual
         // que en delivery (el flag solo sirve para clasificar/analizar el pedido).
         pickup: isPickup,
@@ -6344,11 +7199,13 @@
         const savedId = await window.saveOrderToFirebase(order, orderId);
         if (!savedId) throw new Error('no se pudo guardar el pedido');
 
+        // Efectivo/transferencia representan pedidos recibidos, no pagos
+        // aprobados. Se miden aparte y no alimentan la conversión purchase.
         if (payCode === 'efectivo' || payCode === 'transferencia') {
           await sendGa4OrderEvent('order_submitted', orderId, order);
         }
 
-        try { localStorage.setItem('pixel_pedido_activo', JSON.stringify({ id: orderId, at: Date.now() })); } catch (e) {}
+        rememberTrackedOrder(orderId, 'received');
 
         // Pedido guardado: limpiar el carrito y llevar al seguimiento en vivo
         Object.keys(cart).forEach(k => delete cart[k]);
