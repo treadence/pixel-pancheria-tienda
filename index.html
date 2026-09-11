@@ -7223,6 +7223,14 @@
         const savedId = await window.saveOrderToFirebase(order, orderId);
         if (!savedId) throw new Error('no se pudo guardar el pedido');
 
+        // Aviso al celular del admin. Es best-effort: una falla del push nunca
+        // debe impedir que el cliente termine ni que el pedido quede guardado.
+        fetch('/.netlify/functions/notify-admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId })
+        }).catch(() => {});
+
         // Efectivo/transferencia representan pedidos recibidos, no pagos
         // aprobados. Se miden aparte y no alimentan la conversión purchase.
         if (payCode === 'efectivo' || payCode === 'transferencia') {

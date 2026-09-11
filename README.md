@@ -386,3 +386,8 @@ contacto directo al WhatsApp del local.
 - “Está llegando” requiere dos posiciones precisas consecutivas a menos de 120 m.
 - En preparación se muestra un rango horario basado en el plan del pedido, sin sumar un margen fijo de 10 minutos.
 - El checkout permite ajustar el pin elegido con el GPS del cliente y rechaza señales de más de 100 m de error. Editar el texto invalida las coordenadas anteriores.
+# 2026-09-11 — Aviso push al admin al entrar un pedido
+
+- Los pedidos en efectivo o transferencia disparan una notificación push al celular registrado del admin inmediatamente después de guardarse.
+- Los pedidos de Mercado Pago disparan el aviso recién cuando el webhook confirma el pago y el pedido pasa a recibido.
+- El envío es idempotente (`adminPushSentAt`): cada pedido puede generar un solo aviso y un fallo del push nunca impide guardar o cobrar el pedido.

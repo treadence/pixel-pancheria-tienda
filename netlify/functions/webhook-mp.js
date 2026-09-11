@@ -7,6 +7,7 @@
 // Requiere MP_ACCESS_TOKEN en las variables de entorno de Netlify.
 
 const crypto = require('crypto');
+const { notifyOrder: notifyAdminOrder } = require('./notify-admin');
 const PROJECT_ID = 'pixelpancheria';
 const API_KEY = 'AIzaSyBQGQlfNxRVMk7UfvGI6VRqURwAw7JIMuI';
 
@@ -191,6 +192,10 @@ exports.handler = async (event) => {
       patch.statusHistory = Object.assign({}, order.statusHistory || {}, { received: now });
     }
     await fsPatch('orders/' + orderId, patch);
+    if (order.status === 'pending_payment') {
+      try { await notifyAdminOrder(String(orderId)); }
+      catch (e) { console.error('No se pudo avisar el pedido MP al admin:', e.message); }
+    }
     return ok(headers);
   }
 
