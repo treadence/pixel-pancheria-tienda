@@ -24,7 +24,7 @@
     gtag('config', PIXEL_ADS_ID);
   </script>
   <meta name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0a0118">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1810,6 +1810,7 @@
       .cat-btn {
         font-size: 8px;
         padding: 8px 10px;
+        min-height: 44px;
         margin: 0 2px;
       }
 
@@ -1896,10 +1897,11 @@
 
       /* FAB del carrito: mas grande para dedo */
       .cart-fab {
-        bottom: 12px;
+        bottom: calc(12px + env(safe-area-inset-bottom));
         right: 12px;
         left: 12px;
         padding: 12px;
+        min-height: 48px;
         font-size: 10px;
         text-align: center;
         box-shadow: 3px 3px 0 var(--neon-purple), 0 0 20px var(--neon-pink);
@@ -1943,8 +1945,8 @@
       }
 
       .close-btn {
-        width: 40px;
-        height: 40px;
+        width: 44px;
+        height: 44px;
         top: 16px;
         right: 16px;
       }
@@ -2105,6 +2107,7 @@
   .customer-setup-close {
     position: absolute; top: 10px; right: 10px; border: 0; background: transparent;
     color: #fff; font-family: 'Press Start 2P', monospace; font-size: 13px; cursor: pointer;
+    width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
   }
   .customer-setup-overlay.required .customer-setup-close { display: none; }
   .customer-setup-title {
@@ -2173,11 +2176,12 @@
     .customer-delivery-copy { display: flex; align-items: baseline; gap: 7px; }
     .customer-delivery-copy strong { flex: none; font-size: 16px; }
     .customer-delivery-copy span { flex: 1; font-size: 15px; }
-    .customer-delivery-change { padding: 6px 7px; font-size: 7px; }
+    .customer-delivery-change { padding: 8px 9px; min-height: 44px; font-size: 7px; }
     .account-summary { padding: 7px 10px 5px; }
     .account-summary-main { font-size: 17px; }
-    .account-summary-logout { padding: 3px 6px; font-size: 12px; }
+    .account-summary-logout { padding: 8px 9px; min-width: 44px; min-height: 44px; font-size: 12px; }
     .account-progress { display: none; }
+    .dir-chip-main, .dir-star, .dir-del, .dir-nueva, .dm-btn, .address-gps-btn { min-height: 44px; }
   }
 
   /* Direcciones guardadas */
@@ -2893,7 +2897,7 @@
 
   <main id="main"></main>
 
-  <button class="cart-fab" onclick="openCart()">
+  <button class="cart-fab" onclick="openCart()" aria-label="Ver carrito">
     🛒 CARRITO <span class="cart-badge" id="cartCount">0</span>
   </button>
 
@@ -2944,17 +2948,7 @@
     <div class="customer-setup-card">
       <button type="button" class="customer-setup-close" onclick="closeCustomerSetup()" aria-label="Cerrar">X</button>
       <div class="customer-setup-title">¿DÓNDE LLEVAMOS TU PEDIDO?</div>
-      <div class="customer-setup-sub">Completalo una vez. La próxima entrás directo y elegís una dirección guardada.</div>
-      <div class="customer-setup-grid">
-        <div class="form-field">
-          <label>NOMBRE</label>
-          <input type="text" id="setupName" placeholder="Tu nombre" autocomplete="name">
-        </div>
-        <div class="form-field">
-          <label>TELÉFONO</label>
-          <input type="tel" id="setupPhone" placeholder="11-1234-5678" autocomplete="tel">
-        </div>
-      </div>
+      <div class="customer-setup-sub">Primero confirmá si llegamos a tu dirección. Tu nombre y teléfono te los pedimos recién al finalizar el pedido.</div>
       <div class="delivery-mode customer-setup-mode">
         <button type="button" class="dm-btn sel" id="setupDeliveryBtn" onclick="setCustomerSetupMode('delivery')">🛵 Envío a domicilio</button>
         <button type="button" class="dm-btn" id="setupPickupBtn" onclick="setCustomerSetupMode('pickup')">🏪 Retiro gratis</button>
@@ -2976,7 +2970,7 @@
         <div class="pickup-addr">Calle 410 N°747 · Juan María Gutiérrez</div>
         <div class="pickup-note">Preparamos tu pedido y lo pasás a retirar por el local.</div>
       </div>
-      <div class="cart-privacy-note" style="margin-top:14px;">Guardamos estos datos para preparar tus pedidos y agilizar tu próxima compra.</div>
+      <div class="cart-privacy-note" style="margin-top:14px;">Guardamos tu modalidad y dirección para agilizar tu pedido.</div>
       <button type="button" id="customerSetupSubmit" class="customer-setup-submit" onclick="saveCustomerSetup()">CONTINUAR AL MENÚ</button>
     </div>
   </div>
@@ -4139,6 +4133,9 @@
       // Footer dentro del scroll
       const footer = document.createElement('footer');
       footer.innerHTML = `<div class="hs">HIGH SCORE: TU PRÓXIMO PANCHO</div>© PIXEL PANCHERÍA — PRESS START TO ORDER
+        <div style="margin-top:14px;">
+          <a href="https://www.instagram.com/pixelpancheria/" target="_blank" rel="noopener" aria-label="Pixel Panchería en Instagram" style="display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 12px;color:var(--neon-pink);text-decoration:none;font-family:'Press Start 2P',monospace;font-size:9px;border:2px solid var(--neon-pink);">◎ @PIXELPANCHERIA</a>
+        </div>
         <div style="margin-top:12px;">
           <a href="https://wa.me/5491167920464" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-decoration:none;font-family:'VT323',monospace;font-size:16px;">
             desarrollado con &lt;3 by GastrOS · contactate
@@ -6165,11 +6162,12 @@
       const p = normPhoneL(telefono);
       if (!p) return;
       const prev = (window.cuenta && normPhoneL(window.cuenta.telefono) === p) ? window.cuenta : null;
+      const provisional = !prev && window.cuenta && !normPhoneL(window.cuenta.telefono) ? window.cuenta : null;
       window.cuenta = {
         nombre, telefono, coins: prev ? (prev.coins || 0) : 0,
-        direcciones: prev ? (prev.direcciones || []) : [],
-        defaultDirId: prev ? prev.defaultDirId : null,
-        preferredDeliveryMode: prev ? (prev.preferredDeliveryMode || 'delivery') : 'delivery'
+        direcciones: (prev || provisional) ? ((prev || provisional).direcciones || []) : [],
+        defaultDirId: (prev || provisional) ? (prev || provisional).defaultDirId : null,
+        preferredDeliveryMode: (prev || provisional) ? ((prev || provisional).preferredDeliveryMode || 'delivery') : 'delivery'
       };
       ensureDirecciones();
       // Agregar/ubicar la dirección usada en este pedido (guarda coordenadas + zona)
@@ -6521,7 +6519,7 @@
 
     function renderCustomerDeliveryBar() {
       const bar = document.getElementById('customerDeliveryBar');
-      if (!bar || !window.cuenta || !window.cuenta.telefono) {
+      if (!bar || !window.cuenta) {
         if (bar) { bar.classList.remove('show'); bar.innerHTML = ''; }
         return;
       }
@@ -6752,10 +6750,6 @@
       overlay.classList.toggle('required', required === true);
       overlay.classList.add('open');
       document.body.style.overflow = 'hidden';
-      const name = document.getElementById('setupName');
-      const phone = document.getElementById('setupPhone');
-      if (name) name.value = (window.cuenta && window.cuenta.nombre) || '';
-      if (phone) phone.value = (window.cuenta && window.cuenta.telefono) || '';
       customerSetupMode = (window.cuenta && window.cuenta.preferredDeliveryMode) || window.deliveryMode || 'delivery';
       const active = selectedLocation || locationFromSavedAddress(getDefaultDir());
       setupLocation = active ? { ...active } : null;
@@ -6775,12 +6769,8 @@
     };
 
     window.saveCustomerSetup = async function() {
-      const name = (document.getElementById('setupName').value || '').trim();
-      const phone = normPhoneL(document.getElementById('setupPhone').value);
       const wasKnownCustomer = !!(window.cuenta && window.cuenta.telefono);
       const button = document.getElementById('customerSetupSubmit');
-      if (!name) { alert('⚠ Ingresá tu nombre'); return; }
-      if (phone.length < 8) { alert('⚠ Ingresá un teléfono válido'); return; }
       if (customerSetupMode === 'delivery' && !setupLocation) { alert('⚠ Elegí tu dirección del listado'); return; }
       button.disabled = true;
       button.textContent = customerSetupMode === 'delivery' ? 'VERIFICANDO COBERTURA…' : 'GUARDANDO…';
@@ -6793,7 +6783,7 @@
             return;
           }
         }
-        await window.upsertCuenta(name, phone, setupLocation ? setupLocation.address : '', customerSetupMode === 'delivery' ? setupLocation : null);
+        if (!window.cuenta) window.cuenta = { nombre: '', telefono: '', coins: 0, direcciones: [], defaultDirId: null };
         window.cuenta.preferredDeliveryMode = customerSetupMode;
         window.deliveryMode = customerSetupMode;
         if (customerSetupMode === 'delivery') {
@@ -6804,17 +6794,16 @@
           selectedLocation = null;
         }
         saveCuentaLocal();
-        try {
-          await setDoc(doc(db, 'loyalty', phone), {
-            nombre: name,
-            telefono: phone,
-            direccion: window.cuenta.direccion || '',
-            direcciones: window.cuenta.direcciones || [],
-            defaultDirId: window.cuenta.defaultDirId || null,
-            preferredDeliveryMode: customerSetupMode,
-            updatedAt: serverTimestamp()
-          }, { merge: true });
-        } catch (error) { console.warn('No se pudo sincronizar el perfil previo', error); }
+        if (wasKnownCustomer) {
+          try {
+            await setDoc(doc(db, 'loyalty', normPhoneL(window.cuenta.telefono)), {
+              direcciones: window.cuenta.direcciones || [],
+              defaultDirId: window.cuenta.defaultDirId || null,
+              preferredDeliveryMode: customerSetupMode,
+              updatedAt: serverTimestamp()
+            }, { merge: true });
+          } catch (error) { console.warn('No se pudo sincronizar la cobertura elegida', error); }
+        }
         document.getElementById('customerSetupOverlay').classList.remove('required', 'open');
         document.body.style.overflow = '';
         renderCuentaBar();
@@ -6859,7 +6848,7 @@
       setTimeout(showWelcomeToast, 600);
       fetchCoins(window.cuenta.telefono).then(c => { window.cuenta.coins = c; saveCuentaLocal(); renderCuentaBar(); });
     }
-    if (!__trackId && (!window.cuenta || !window.cuenta.nombre || !window.cuenta.telefono ||
+    if (!__trackId && (!window.cuenta ||
         ((window.cuenta.preferredDeliveryMode || 'delivery') === 'delivery' && !initialAddress))) {
       setTimeout(() => window.openCustomerSetup(true), 700);
     }
@@ -7364,19 +7353,6 @@
     }
 
     updateBadge();
-
-    // Bloquea zoom por pellizco en iOS Safari (ignora user-scalable=no)
-    document.addEventListener('gesturestart', e => e.preventDefault());
-    document.addEventListener('gesturechange', e => e.preventDefault());
-    document.addEventListener('gestureend', e => e.preventDefault());
-
-    // Bloquea doble-tap zoom en iOS
-    let lastTouchEnd = 0;
-    document.addEventListener('touchend', e => {
-      const now = Date.now();
-      if (now - lastTouchEnd <= 300) e.preventDefault();
-      lastTouchEnd = now;
-    }, { passive: false });
 
     // Observer: resalta la categoría visible al scrollear manualmente con el dedo
     const _mainEl = document.getElementById('main');

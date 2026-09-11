@@ -13,6 +13,28 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 Bitácora con fecha y hora de qué se tocó en cada flujo de trabajo, para tener trazabilidad y
 poder reutilizar la lógica en otros proyectos.
 
+### 2026-09-11 18:44 (-03)
+
+**P0 móvil: cobertura primero, checkout más liviano y accesibilidad**
+
+- La primera visita sigue bloqueando el menú hasta validar cobertura o elegir retiro, pero ya no pide
+  nombre y teléfono en ese mismo paso. Esos datos se completan en el carrito al finalizar; el perfil
+  provisional conserva modalidad, dirección y cotización hasta que se crea la cuenta definitiva.
+- Los clientes identificados siguen entrando directo cuando ya tienen una modalidad y dirección
+  válidas. Cambiar cobertura actualiza también su perfil remoto; el checkout vuelve a cotizar antes
+  de crear el pedido, igual que antes.
+- Se habilitó el zoom nativo quitando las restricciones del viewport y los bloqueos de gestos de iOS,
+  manteniendo `viewport-fit=cover`.
+- En móvil, categorías, cierres de modales, cambio de dirección, salida de cuenta y controles de
+  dirección/modo tienen un área táctil mínima aproximada de 44 px. El FAB del carrito respeta el
+  safe-area inferior y conserva 48 px de alto cuando contiene productos.
+- El footer incorpora un acceso visible y táctil a `@pixelpancheria` en Instagram.
+
+Verificación: módulo JavaScript parseado, pruebas de cobertura (3 escenarios) y navegador a 390×844.
+Primera visita obligatoria sin nombre/teléfono, retiro habilitado, barra de modalidad visible y sin
+errores de consola. El horario real dejó la tienda cerrada durante la prueba; la visibilidad del FAB
+con ítems se validó por su lógica existente (`is-empty`) y sus reglas responsive/safe-area.
+
 ### 2026-09-07 18:26 (-03)
 
 **Portada móvil más liviana y orientada a comprar**
