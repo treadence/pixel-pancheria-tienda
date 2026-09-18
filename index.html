@@ -482,6 +482,28 @@
       cursor: pointer;
     }
 
+    #highDemandBanner {
+      background: var(--neon-yellow);
+      color: #181818;
+      padding: 10px 12px;
+      margin: 10px auto 4px;
+      max-width: 500px;
+      border: 3px solid #181818;
+      box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
+      text-align: center;
+    }
+    #highDemandBanner strong {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      line-height: 1.6;
+    }
+    #highDemandBanner p {
+      font-family: 'VT323', monospace;
+      font-size: 18px;
+      line-height: 1.2;
+      margin: 5px 0 0;
+    }
+
     /* BANNER TIENDA CERRADA */
     #storeStatusBanner {
       background: var(--neon-red);
@@ -2877,6 +2899,10 @@
     <h1 class="title">PIXEL PANCHERÍA</h1>
     <div class="subtitle">&gt; INSERT COIN TO EAT _</div>
     <div id="storeStatusBanner" style="display:none;"></div>
+    <div id="highDemandBanner" role="status" style="display:none;">
+      <strong>⏱ ALTA DEMANDA</strong>
+      <p>Estamos con mucha demora.<br>Tiempo de entrega aproximado: <b>45 minutos a 1 hora</b>.</p>
+    </div>
     <div class="coin-row">
       <div class="coin-stat">⚡ DELIVERY 20–00</div>
       <div class="coin-stat">🏆 LEVEL: HAMBRE</div>
@@ -3264,6 +3290,11 @@
       const banner = document.getElementById('storeStatusBanner');
       if (!banner) return;
       const status = isStoreOpen();
+      const highDemandBanner = document.getElementById('highDemandBanner');
+      if (highDemandBanner) {
+        highDemandBanner.style.display = status.open && (window.storeSettings || {}).highDemand === true
+          ? 'block' : 'none';
+      }
       if (!status.open) {
         banner.style.display = 'block';
         banner.innerHTML = `🔒 TIENDA CERRADA<div class="banner-msg">${status.reason}</div>`;
