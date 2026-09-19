@@ -3439,23 +3439,48 @@
     function applyProductOverrides() {
       if (!window.MENU || !window.ORIGINAL_MENU) return;
 
-      // Reconstruir MENU desde el original + aplicar overrides
+      // Reconstruir MENU desde el original, sumar altas del admin y aplicar
+      // categoría/posición sin perder las capacidades propias de cada producto.
       Object.keys(window.ORIGINAL_MENU).forEach(catKey => {
-        window.MENU[catKey].items.forEach((item, idx) => {
-          const original = window.ORIGINAL_MENU[catKey].items[idx];
+        window.MENU[catKey].items = JSON.parse(JSON.stringify(window.ORIGINAL_MENU[catKey].items));
+      });
+
+      Object.entries(productsOverlay).forEach(([id, overlay]) => {
+        if (overlay.custom !== true) return;
+        const category = window.MENU[overlay.category] ? overlay.category : 'panchos';
+        window.MENU[category].items.push({
+          id, name: overlay.name || 'Producto', desc: overlay.desc || '', price: Number(overlay.price) || 0,
+          sprite: overlay.sprite || '📦', imageUrl: overlay.imageUrl,
+          extras: overlay.extras === true, sausage: overlay.sausage === true,
+          specialSauces: overlay.specialSauces === true, toppings: overlay.toppings === true
+        });
+      });
+
+      const moves = [];
+      Object.keys(window.MENU).forEach(catKey => {
+        window.MENU[catKey].items = window.MENU[catKey].items.filter(item => {
+          const target = productsOverlay[item.id]?.category;
+          if (target && target !== catKey && window.MENU[target]) { moves.push([target, item]); return false; }
+          return true;
+        });
+      });
+      moves.forEach(([target, item]) => window.MENU[target].items.push(item));
+
+      Object.keys(window.MENU).forEach(catKey => {
+        window.MENU[catKey].items.forEach(item => {
           const overlay = productsOverlay[item.id] || {};
-          // Resetear a valores originales
-          item.name = original.name;
-          item.desc = original.desc;
-          item.price = original.price;
-          item.sprite = original.sprite;
-          item.imageUrl = original.imageUrl; // si el original no tenía, queda undefined
-          // Aplicar overrides
           if (overlay.name !== undefined) item.name = overlay.name;
           if (overlay.desc !== undefined) item.desc = overlay.desc;
           if (overlay.price !== undefined) item.price = overlay.price;
           if (overlay.sprite !== undefined) item.sprite = overlay.sprite;
           if (overlay.imageUrl !== undefined) item.imageUrl = overlay.imageUrl;
+          item.retired = overlay.retired === true;
+        });
+        const defaultOrder = new Map(window.MENU[catKey].items.map((item, index) => [item.id, index * 100]));
+        window.MENU[catKey].items.sort((a, b) => {
+          const ao = Number(productsOverlay[a.id]?.sortOrder);
+          const bo = Number(productsOverlay[b.id]?.sortOrder);
+          return (Number.isFinite(ao) ? ao : defaultOrder.get(a.id)) - (Number.isFinite(bo) ? bo : defaultOrder.get(b.id));
         });
       });
 
@@ -4408,9 +4433,13 @@
 
       Object.keys(MENU).forEach(key => {
         const cat = MENU[key];
+        const visibleItems = cat.items.filter(item => item.retired !== true);
+        const navButton = catsNav.querySelector(`[data-target="sec-${key}"]`);
+        if (navButton) navButton.style.display = visibleItems.length ? '' : 'none';
+        if (!visibleItems.length) return;
         const section = document.createElement('section');
         section.id = 'sec-' + key;
-        section.innerHTML = `<h2 class="cat-title">${cat.title}</h2><div class="grid">${cat.items.map(item => `
+        section.innerHTML = `<h2 class="cat-title">${cat.title}</h2><div class="grid">${visibleItems.map(item => `
           <div class="card${item.id === 'p2' ? ' glitch-takeover' : ''}" data-product-id="${item.id}" onclick="openProduct('${item.id}')" role="button" tabindex="0">
             ${getProductDiscount(item.id) > 0 ? `<div class="discount-badge">-${getProductDiscount(item.id)}%</div>` : ''}
             ${(window.storeSettings?.webBestSeller30d?.productId === item.id || window.storeSettings?.recommendedTodayProductId === item.id) ? `
@@ -4477,7 +4506,8 @@
     }
 
     function productAvailable(id) {
-      return !window.stockMap || window.stockMap[id] !== false;
+      const item = findItem(id);
+      return !!item && item.retired !== true && (!window.stockMap || window.stockMap[id] !== false);
     }
 
     function removeUnavailableComboSelections() {
@@ -4544,8 +4574,8 @@
       if (window.isStoreOpen && !window.isStoreOpen().open) return;
 
       // Validar stock
-      if (window.stockMap && window.stockMap[id] === false) {
-        alert('😔 Este producto está agotado momentáneamente');
+      if (!productAvailable(id)) {
+        alert(item.retired === true ? 'Este producto ya no está a la venta' : '😔 Este producto está agotado momentáneamente');
         return;
       }
 
@@ -5255,7 +5285,7 @@
 
     // ¿El producto está disponible (no agotado)?
     function upsellAvailable(id) {
-      return !(window.stockMap && window.stockMap[id] === false);
+      return productAvailable(id);
     }
 
     // Motor de sugerencias: mira qué categorías hay en el carrito y devuelve
@@ -7331,6 +7361,17 @@
 
       const entries = Object.entries(cart);
       if (!entries.length) { sendGa4CheckoutError('empty_cart'); alert('⚠ El carrito está vacío'); return; }
+
+      const unavailableEntry = entries.find(([, entry]) => {
+        if (!productAvailable(entry.item.id)) return true;
+        const comboProducts = [...(entry.comboPanchos || []), ...(entry.comboBebidas || [])];
+        return comboProducts.some(product => !productAvailable(product.id));
+      });
+      if (unavailableEntry) {
+        sendGa4CheckoutError('product_unavailable');
+        alert('⚠ Uno de los productos del carrito ya no está disponible. Quitalo o elegí otra opción para continuar.');
+        return;
+      }
 
       if (window.isStoreOpen) {
         const status = window.isStoreOpen();

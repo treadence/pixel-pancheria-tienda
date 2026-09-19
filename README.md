@@ -428,3 +428,9 @@ contacto directo al WhatsApp del local.
 - El cartel común de agotado se reemplaza por **PRÓXIMAMENTE** en la misma ubicación central y diagonal, con estado de inyección y compra bloqueada mediante `LOCKED`; no se modificó aún el catálogo comercial ni la lógica del carrito.
 - La intrusión adapta su composición al formato horizontal de las tarjetas móviles y respeta `prefers-reduced-motion` mostrando una versión estática.
 - Verificado visualmente a 390×844 y con `npm test` (`cotizar-envio`: 3 escenarios correctos).
+# 2026-09-19 17:16 (-03) — Catálogo dinámico y productos retirados
+
+- La tienda incorpora en tiempo real los productos creados desde el admin, incluyendo su categoría, posición y opciones de personalización.
+- Los productos marcados como retirados desaparecen por completo del menú público, a diferencia de un agotado temporal.
+- La disponibilidad se vuelve a validar al abrir una ficha, elegir componentes de combos y confirmar el pedido; un carrito viejo no puede comprar un producto agotado o retirado.
+- Si una categoría queda sin productos publicados, también se ocultan su sección y su acceso de navegación.
