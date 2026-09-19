@@ -421,10 +421,10 @@ contacto directo al WhatsApp del local.
 
 ### 2026-09-19 16:11 (-03)
 
-**BACKDOOR: reemplazo glitch de Mario agotado**
+**Backdoor: reemplazo glitch de Mario agotado**
 
 - La tarjeta agotada de Mario conserva el producto original debajo, pero ahora sufre cortes RGB, barridos y apariciones parciales de una nueva ficha que intenta tomar el control.
-- El pancho provisional se llama **BACKDOOR** y muestra el nuevo sprite pixel-art de cebolla caramelizada y muzarella, junto con la descripción “Cebolla caramelizada, muzarella, pan casero”.
-- El cartel común de agotado se reemplaza por **SISTEMA COMPROMETIDO**, con estado de inyección y compra bloqueada mediante `LOCKED`; no se modificó aún el catálogo comercial ni la lógica del carrito.
+- El pancho provisional se llama **Backdoor** y muestra el nuevo sprite pixel-art de cebolla caramelizada y muzarella, junto con la descripción “Cebolla caramelizada, muzarella, pan casero”.
+- El cartel común de agotado se reemplaza por **PRÓXIMAMENTE** en la misma ubicación central y diagonal, con estado de inyección y compra bloqueada mediante `LOCKED`; no se modificó aún el catálogo comercial ni la lógica del carrito.
 - La intrusión adapta su composición al formato horizontal de las tarjetas móviles y respeta `prefers-reduced-motion` mostrando una versión estática.
 - Verificado visualmente a 390×844 y con `npm test` (`cotizar-envio`: 3 escenarios correctos).

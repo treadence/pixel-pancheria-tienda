@@ -634,16 +634,16 @@
     }
 
     .card.glitch-takeover.sold-out::after {
-      content: "SISTEMA COMPROMETIDO";
-      top: 12px;
+      content: "PRÓXIMAMENTE";
+      top: 50%;
       left: 50%;
-      transform: translateX(-50%) rotate(-1deg);
-      padding: 7px 9px;
-      font-size: 8px;
+      transform: translate(-50%, -50%) rotate(-8deg);
+      padding: 10px 14px;
+      font-size: 11px;
       color: #07131a;
       background: var(--neon-cyan);
-      border: 2px solid #fff;
-      box-shadow: 3px 3px 0 var(--neon-pink);
+      border: 3px solid #fff;
+      box-shadow: 4px 4px 0 var(--neon-pink);
       letter-spacing: 1px;
       animation: hackWarning 1.6s steps(2, end) infinite;
     }
@@ -775,7 +775,7 @@
     @keyframes hackWarning {
       0%, 74%, 100% { opacity: 1; }
       75%, 84% { opacity: .15; }
-      85%, 91% { opacity: 1; transform: translateX(calc(-50% - 5px)) rotate(-1deg); }
+      85%, 91% { opacity: 1; transform: translate(calc(-50% - 5px), -50%) rotate(-8deg); }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -4435,7 +4435,7 @@
                 <div class="hack-sprite">
                   <img src="assets/productos/pancho-cebolla-caramelizada-muzza-v1.png" alt="">
                 </div>
-                <h3>BACKDOOR</h3>
+                <h3>Backdoor</h3>
                 <p class="desc">Cebolla caramelizada, muzarella, pan casero</p>
                 <div class="price-row">
                   <span class="price">$${item.price.toLocaleString('es-AR')}</span>
