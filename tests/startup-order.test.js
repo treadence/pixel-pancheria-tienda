@@ -16,3 +16,14 @@ assert(
 );
 
 console.log('startup-order: updateStockInUI es seguro durante el render inicial');
+
+assert(
+  source.includes('Chrome Android + GPU Mali'),
+  'Debe conservarse el fallback móvil para evitar fallos del compositor con la tarjeta Backdoor'
+);
+assert(
+  source.includes('.hack-card::after {\n        display: none;\n        mix-blend-mode: normal;'),
+  'El fallback móvil debe desactivar las capas mezcladas animadas'
+);
+
+console.log('startup-order: fallback gráfico móvil presente');

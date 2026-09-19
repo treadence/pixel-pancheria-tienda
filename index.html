@@ -794,6 +794,42 @@
     }
 
     @media (max-width: 600px) {
+      /* Chrome Android + GPU Mali puede perder el frame completo al reanudar
+         una pestaña que combina clip-path, filtros y mix-blend-mode animados. */
+      .glitch-takeover > .sprite,
+      .glitch-takeover > .card-content,
+      .hack-card,
+      .hack-card::before,
+      .hack-card::after,
+      .hack-sprite img,
+      .card.glitch-takeover.sold-out::after {
+        animation: none;
+      }
+
+      .hack-card {
+        opacity: 1;
+        clip-path: none;
+        transform: none;
+      }
+
+      .glitch-takeover > .sprite,
+      .glitch-takeover > .card-content {
+        opacity: .08;
+        filter: none;
+        transform: none;
+      }
+
+      .hack-card::before,
+      .hack-card::after {
+        display: none;
+        mix-blend-mode: normal;
+      }
+
+      .hack-sprite img {
+        filter: none;
+        transform: none;
+      }
+
       .hack-card {
         display: grid;
         grid-template-columns: 90px 1fr;
