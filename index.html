@@ -3510,8 +3510,8 @@
         card.classList.toggle('sold-out', !available);
       });
       // Un cambio de stock también debe reflejarse dentro del selector del combo.
-      if (currentProduct && currentProduct.combo && document.getElementById('productOverlay')?.classList.contains('open')) {
-        renderProductModal();
+      if (window.currentProduct && window.currentProduct.combo && document.getElementById('productOverlay')?.classList.contains('open')) {
+        window.renderProductModal();
       }
     }
 
