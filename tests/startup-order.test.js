@@ -25,5 +25,13 @@ assert(
   source.includes('.hack-card::after {\n        display: none;\n        mix-blend-mode: normal;'),
   'El fallback móvil debe desactivar las capas mezcladas animadas'
 );
+assert(
+  source.includes('animation: backdoorTakeoverMobile 4.8s steps(1, end) infinite;'),
+  'La transición Backdoor debe conservarar su animación compatible en móviles'
+);
+assert(
+  source.includes('@keyframes backdoorTakeoverMobile'),
+  'Debe existir la animación móvil sin clip-path animado'
+);
 
-console.log('startup-order: fallback gráfico móvil presente');
+console.log('startup-order: animación gráfica móvil compatible presente');

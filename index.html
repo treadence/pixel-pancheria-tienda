@@ -797,26 +797,34 @@
       /* Chrome Android + GPU Mali puede perder el frame completo al reanudar
          una pestaña que combina clip-path, filtros y mix-blend-mode animados. */
       .glitch-takeover > .sprite,
-      .glitch-takeover > .card-content,
-      .hack-card,
-      .hack-card::before,
-      .hack-card::after,
-      .hack-sprite img,
-      .card.glitch-takeover.sold-out::after {
-        animation: none;
+      .glitch-takeover > .card-content {
+        animation: marioSignalMobile 4.8s steps(1, end) infinite;
       }
 
       .hack-card {
-        opacity: 1;
+        animation: backdoorTakeoverMobile 4.8s steps(1, end) infinite;
+      }
+
+      .hack-card::before,
+      .hack-card::after {
+        animation: none;
+      }
+
+      .hack-sprite img {
+        animation: productHackMobile .85s steps(2, end) infinite;
+      }
+
+      .card.glitch-takeover.sold-out::after {
+        animation: hackWarning 1.6s steps(2, end) infinite;
+      }
+
+      .hack-card {
         clip-path: none;
-        transform: none;
       }
 
       .glitch-takeover > .sprite,
       .glitch-takeover > .card-content {
-        opacity: .08;
         filter: none;
-        transform: none;
       }
 
       .hack-card::before,
@@ -827,7 +835,28 @@
 
       .hack-sprite img {
         filter: none;
-        transform: none;
+      }
+
+      @keyframes backdoorTakeoverMobile {
+        0%, 12%, 24%, 34%, 100% { opacity: 0; transform: translateX(0); }
+        13% { opacity: .9; transform: translateX(-6px); }
+        25% { opacity: .95; transform: translateX(7px); }
+        35%, 76% { opacity: 1; transform: translateX(0); }
+        77% { opacity: .85; transform: translateX(-8px); }
+        78%, 88% { opacity: 1; transform: translateX(0); }
+        89% { opacity: .8; transform: translateX(9px); }
+      }
+
+      @keyframes marioSignalMobile {
+        0%, 12%, 24%, 34%, 77%, 89%, 100% { opacity: .42; transform: translateX(0); }
+        13%, 25%, 78%, 90% { opacity: .8; transform: translateX(5px); }
+        35%, 76%, 79%, 88%, 91%, 99% { opacity: .05; transform: translateX(-3px); }
+      }
+
+      @keyframes productHackMobile {
+        0%, 82%, 100% { transform: translateX(0); }
+        83%, 90% { transform: translateX(-5px) skewX(-2deg); }
+        91%, 96% { transform: translateX(4px); }
       }
 
       .hack-card {
