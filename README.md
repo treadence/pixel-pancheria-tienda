@@ -392,6 +392,12 @@ contacto directo al WhatsApp del local.
 - Los pedidos de Mercado Pago disparan el aviso recién cuando el webhook confirma el pago y el pedido pasa a recibido.
 - El envío es idempotente (`adminPushSentAt`): cada pedido puede generar un solo aviso y un fallo del push nunca impide guardar o cobrar el pedido.
 
+# 2026-09-18 — Stock sincronizado dentro de los combos
+
+- Los panchos y bebidas agotados ahora aparecen como `AGOTADO` dentro del selector de combos y su botón `+` queda deshabilitado.
+- Si un producto seleccionado se agota mientras el combo está abierto, se quita de la selección y el modal se actualiza en tiempo real.
+- También se valida nuevamente el stock al sumar una opción y al agregar el combo al carrito, evitando pedidos con productos agotados aunque el estado cambie durante la compra.
+
 # 2026-09-19 — Panchos destacados
 
 - La card del pancho líder de ventas web de los últimos 30 días muestra el badge “MÁS VENDIDO”.
@@ -412,3 +418,13 @@ contacto directo al WhatsApp del local.
 
 - Los carteles vuelven a mantener todo el texto en una línea para conservar su aspecto de letrero.
 - El tamaño de la tipografía responde al ancho de cada tarjeta: permanece grande cuando hay espacio y se reduce gradualmente en pantallas angostas sin salir del borde.
+
+### 2026-09-19 16:11 (-03)
+
+**BACKDOOR: reemplazo glitch de Mario agotado**
+
+- La tarjeta agotada de Mario conserva el producto original debajo, pero ahora sufre cortes RGB, barridos y apariciones parciales de una nueva ficha que intenta tomar el control.
+- El pancho provisional se llama **BACKDOOR** y muestra el nuevo sprite pixel-art de cebolla caramelizada y muzarella, junto con la descripción “Cebolla caramelizada, muzarella, pan casero”.
+- El cartel común de agotado se reemplaza por **SISTEMA COMPROMETIDO**, con estado de inyección y compra bloqueada mediante `LOCKED`; no se modificó aún el catálogo comercial ni la lógica del carrito.
+- La intrusión adapta su composición al formato horizontal de las tarjetas móviles y respeta `prefers-reduced-motion` mostrando una versión estática.
+- Verificado visualmente a 390×844 y con `npm test` (`cotizar-envio`: 3 escenarios correctos).

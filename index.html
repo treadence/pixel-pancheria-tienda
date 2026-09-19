@@ -619,6 +619,236 @@
       pointer-events: none;
     }
 
+    /* BACKDOOR: el nuevo pancho intenta tomar la ficha agotada de Mario */
+    .card.glitch-takeover {
+      isolation: isolate;
+      overflow: hidden;
+    }
+
+    .card.glitch-takeover.sold-out {
+      opacity: 1;
+      filter: none;
+      cursor: not-allowed;
+      border-color: var(--neon-pink);
+      box-shadow: 6px 6px 0 var(--neon-cyan), 0 0 18px rgba(255, 46, 147, 0.35);
+    }
+
+    .card.glitch-takeover.sold-out::after {
+      content: "SISTEMA COMPROMETIDO";
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%) rotate(-1deg);
+      padding: 7px 9px;
+      font-size: 8px;
+      color: #07131a;
+      background: var(--neon-cyan);
+      border: 2px solid #fff;
+      box-shadow: 3px 3px 0 var(--neon-pink);
+      letter-spacing: 1px;
+      animation: hackWarning 1.6s steps(2, end) infinite;
+    }
+
+    .glitch-takeover > .sprite,
+    .glitch-takeover > .card-content {
+      animation: marioSignal 4.8s steps(1, end) infinite;
+    }
+
+    .hack-card {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      background:
+        repeating-linear-gradient(0deg, transparent 0 4px, rgba(0, 240, 255, 0.08) 4px 6px),
+        var(--bg-2);
+      opacity: 0;
+      pointer-events: none;
+      animation: backdoorTakeover 4.8s steps(1, end) infinite;
+    }
+
+    .hack-card::before,
+    .hack-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .hack-card::before {
+      background: linear-gradient(90deg, rgba(255, 46, 147, 0.28), transparent 38%, rgba(0, 240, 255, 0.25));
+      mix-blend-mode: screen;
+      animation: rgbHack 1.15s steps(2, end) infinite;
+    }
+
+    .hack-card::after {
+      background: repeating-linear-gradient(0deg, transparent 0 18px, rgba(255,255,255,.2) 18px 20px, transparent 20px 39px);
+      animation: scanHack .7s steps(3, end) infinite;
+    }
+
+    .hack-status {
+      position: relative;
+      z-index: 1;
+      align-self: flex-start;
+      margin-bottom: 8px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      line-height: 1.5;
+      color: var(--neon-green);
+      text-shadow: 0 0 7px var(--neon-green);
+    }
+
+    .hack-sprite {
+      position: relative;
+      z-index: 1;
+      height: 140px;
+      margin-bottom: 14px;
+      border: 2px dashed var(--neon-green);
+      background: radial-gradient(circle, rgba(0, 255, 102, .18), rgba(0, 240, 255, .04) 58%, transparent 72%);
+      overflow: hidden;
+    }
+
+    .hack-sprite img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      image-rendering: pixelated;
+      filter: drop-shadow(-3px 0 0 rgba(255,46,147,.72)) drop-shadow(3px 0 0 rgba(0,240,255,.72));
+      animation: productHack .85s steps(2, end) infinite;
+    }
+
+    .hack-card h3 {
+      position: relative;
+      z-index: 1;
+      color: var(--neon-green);
+      text-shadow: -2px 0 var(--neon-pink), 2px 0 var(--neon-cyan), 0 0 9px var(--neon-green);
+    }
+
+    .hack-card .desc,
+    .hack-card .price-row {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hack-card .add-btn {
+      background: #172b26;
+      border-color: var(--neon-green);
+      color: var(--neon-green);
+    }
+
+    @keyframes backdoorTakeover {
+      0%, 12%, 24%, 34%, 100% { opacity: 0; clip-path: inset(0 0 100% 0); transform: translateX(0); }
+      13% { opacity: .9; clip-path: inset(7% 0 70% 0); transform: translateX(-6px); }
+      25% { opacity: .95; clip-path: inset(42% 0 25% 0); transform: translateX(7px); }
+      35%, 76% { opacity: 1; clip-path: inset(0); transform: translateX(0); }
+      77% { opacity: .85; clip-path: inset(16% 0 48% 0); transform: translateX(-8px); }
+      78%, 88% { opacity: 1; clip-path: inset(0); transform: translateX(0); }
+      89% { opacity: .8; clip-path: inset(58% 0 12% 0); transform: translateX(9px); }
+    }
+
+    @keyframes marioSignal {
+      0%, 12%, 24%, 34%, 77%, 89%, 100% { opacity: .42; filter: grayscale(.85); transform: translateX(0); }
+      13%, 25%, 78%, 90% { opacity: .8; filter: hue-rotate(90deg); transform: translateX(5px); }
+      35%, 76%, 79%, 88%, 91%, 99% { opacity: .05; filter: grayscale(1); transform: translateX(-3px); }
+    }
+
+    @keyframes rgbHack {
+      0%, 35%, 100% { opacity: .15; transform: translateX(-4px); }
+      36%, 68% { opacity: .8; transform: translateX(6px); }
+      69%, 84% { opacity: .25; transform: translateX(0); }
+      85% { opacity: .9; transform: translateX(-8px); }
+    }
+
+    @keyframes scanHack {
+      0%, 100% { opacity: .12; transform: translateY(-8px); }
+      50% { opacity: .42; transform: translateY(8px); }
+    }
+
+    @keyframes productHack {
+      0%, 82%, 100% { transform: translateX(0); }
+      83%, 90% { transform: translateX(-5px) skewX(-2deg); }
+      91%, 96% { transform: translateX(4px); }
+    }
+
+    @keyframes hackWarning {
+      0%, 74%, 100% { opacity: 1; }
+      75%, 84% { opacity: .15; }
+      85%, 91% { opacity: 1; transform: translateX(calc(-50% - 5px)) rotate(-1deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .glitch-takeover > .sprite,
+      .glitch-takeover > .card-content,
+      .hack-card,
+      .hack-card::before,
+      .hack-card::after,
+      .hack-sprite img,
+      .card.glitch-takeover.sold-out::after {
+        animation: none;
+      }
+      .hack-card { opacity: 1; clip-path: inset(0); }
+      .glitch-takeover > .sprite,
+      .glitch-takeover > .card-content { opacity: .08; }
+    }
+
+    @media (max-width: 600px) {
+      .hack-card {
+        display: grid;
+        grid-template-columns: 90px 1fr;
+        grid-template-rows: auto auto auto auto;
+        gap: 4px 14px;
+        padding: 14px;
+        align-items: center;
+      }
+
+      .hack-status {
+        grid-column: 1 / -1;
+        margin: 0 0 2px;
+        font-size: 6px;
+        white-space: nowrap;
+      }
+
+      .hack-sprite {
+        grid-column: 1;
+        grid-row: 2 / 5;
+        width: 90px;
+        height: 90px;
+        margin: 0;
+      }
+
+      .hack-card h3 {
+        grid-column: 2;
+        grid-row: 2;
+        margin: 0;
+      }
+
+      .hack-card .desc {
+        grid-column: 2;
+        grid-row: 3;
+        margin: 0;
+      }
+
+      .hack-card .price-row {
+        grid-column: 2;
+        grid-row: 4;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .hack-card {
+        grid-template-columns: 72px 1fr;
+        gap: 4px 10px;
+        padding: 12px;
+      }
+
+      .hack-sprite {
+        width: 72px;
+        height: 72px;
+      }
+    }
+
     @media (max-width: 600px) {
       .card.sold-out::after {
         font-size: 14px;
@@ -3254,6 +3484,10 @@
         const available = stockMap[id] !== false; // si no está en el mapa, asume disponible
         card.classList.toggle('sold-out', !available);
       });
+      // Un cambio de stock también debe reflejarse dentro del selector del combo.
+      if (currentProduct && currentProduct.combo && document.getElementById('productOverlay')?.classList.contains('open')) {
+        renderProductModal();
+      }
     }
 
     // Expone al scope global
@@ -4177,7 +4411,7 @@
         const section = document.createElement('section');
         section.id = 'sec-' + key;
         section.innerHTML = `<h2 class="cat-title">${cat.title}</h2><div class="grid">${cat.items.map(item => `
-          <div class="card" data-product-id="${item.id}" onclick="openProduct('${item.id}')" role="button" tabindex="0">
+          <div class="card${item.id === 'p2' ? ' glitch-takeover' : ''}" data-product-id="${item.id}" onclick="openProduct('${item.id}')" role="button" tabindex="0">
             ${getProductDiscount(item.id) > 0 ? `<div class="discount-badge">-${getProductDiscount(item.id)}%</div>` : ''}
             ${(window.storeSettings?.webBestSeller30d?.productId === item.id || window.storeSettings?.recommendedTodayProductId === item.id) ? `
               <div class="product-badges">
@@ -4195,6 +4429,19 @@
                 <button class="add-btn" onclick="event.stopPropagation(); openProduct('${item.id}')">+ ADD</button>
               </div>
             </div>
+            ${item.id === 'p2' ? `
+              <div class="hack-card" aria-hidden="true">
+                <div class="hack-status">&gt; INYECCIÓN 87% · ACCESO NO AUTORIZADO_</div>
+                <div class="hack-sprite">
+                  <img src="assets/productos/pancho-cebolla-caramelizada-muzza-v1.png" alt="">
+                </div>
+                <h3>BACKDOOR</h3>
+                <p class="desc">Cebolla caramelizada, muzarella, pan casero</p>
+                <div class="price-row">
+                  <span class="price">$${item.price.toLocaleString('es-AR')}</span>
+                  <button class="add-btn" type="button" tabindex="-1">LOCKED</button>
+                </div>
+              </div>` : ''}
           </div>
         `).join('')
           }</div>`;
@@ -4227,6 +4474,23 @@
         const it = MENU[k].items.find(i => i.id === id);
         if (it) return it;
       }
+    }
+
+    function productAvailable(id) {
+      return !window.stockMap || window.stockMap[id] !== false;
+    }
+
+    function removeUnavailableComboSelections() {
+      const removedPanchoIds = new Set();
+      currentComboPanchos = currentComboPanchos.filter(item => {
+        const available = productAvailable(item.id);
+        if (!available) removedPanchoIds.add(item.id);
+        return available;
+      });
+      currentComboBebidas = currentComboBebidas.filter(item => productAvailable(item.id));
+      Object.keys(currentComboSausages).forEach(key => {
+        if ([...removedPanchoIds].some(id => key.startsWith(id + '_'))) delete currentComboSausages[key];
+      });
     }
 
     // Devuelve el HTML para el sprite del item: imagen si tiene imageUrl, sino el emoji
@@ -4338,6 +4602,8 @@
       const hasExtras = item.extras === true;
       const isCombo = !!item.combo;
 
+      if (isCombo) removeUnavailableComboSelections();
+
       // Helper: filtrar addons que estén habilitados según Firebase
       const addonEnabled = (id) => !window.addonsMap || window.addonsMap[id] !== false;
 
@@ -4383,7 +4649,8 @@
           ${comboPanchos.map(p => {
         const sel = currentComboPanchos.find(x => x.id === p.id);
         const qty = sel ? sel.qty : 0;
-        const canAdd = panchoCount < maxPanchos;
+        const available = productAvailable(p.id);
+        const canAdd = available && panchoCount < maxPanchos;
 
         // Si este pancho requiere salchicha y hay unidades seleccionadas, mostrar selector por unidad
         let sausagePickers = '';
@@ -4406,12 +4673,12 @@
         }
 
         return `
-              <div class="pm-combo-item" style="flex-direction:column;align-items:stretch;">
+              <div class="pm-combo-item ${available ? '' : 'disabled'}" style="flex-direction:column;align-items:stretch;">
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
                   <div class="pm-combo-item-left">
                     <span class="pm-combo-sprite">${spriteFor(p)}</span>
                     <div class="pm-combo-info">
-                      <div class="pm-combo-name">${p.name}</div>
+                      <div class="pm-combo-name">${p.name}${available ? '' : ' · AGOTADO'}</div>
                       <div style="font-size:12px;color:#9b8bb8;margin-top:3px;line-height:1.35;">${p.desc}</div>
                     </div>
                   </div>
@@ -4435,14 +4702,15 @@
           ${comboBebidas.map(b => {
         const sel = currentComboBebidas.find(x => x.id === b.id);
         const qty = sel ? sel.qty : 0;
-        const canAdd = bebidaCount < maxBebidas;
+        const available = productAvailable(b.id);
+        const canAdd = available && bebidaCount < maxBebidas;
         const surcharge = b.comboSurcharge ? ` <span style="font-size:11px;color:var(--neon-orange);font-family:'Press Start 2P',monospace;">+$${b.comboSurcharge.toLocaleString('es-AR')}</span>` : '';
         return `
-              <div class="pm-combo-item">
+              <div class="pm-combo-item ${available ? '' : 'disabled'}">
                 <div class="pm-combo-item-left">
                   <span class="pm-combo-sprite">${spriteFor(b)}</span>
                   <div class="pm-combo-info">
-                    <div class="pm-combo-name">${b.name}${surcharge} <span style="font-size:13px;color:#9b8bb8;">${b.desc}</span></div>
+                    <div class="pm-combo-name">${b.name}${available ? '' : ' · AGOTADO'}${surcharge} <span style="font-size:13px;color:#9b8bb8;">${b.desc}</span></div>
                   </div>
                 </div>
                 <div class="pm-combo-qty-ctrl">
@@ -4674,6 +4942,10 @@
     }
 
     function changeComboItem(type, itemId, delta) {
+      if (delta > 0 && !productAvailable(itemId)) {
+        alert('😔 Este producto está agotado momentáneamente');
+        return;
+      }
       const list = type === 'pancho' ? currentComboPanchos : currentComboBebidas;
       const perCombo = type === 'pancho' ? currentProduct.combo.panchos : currentProduct.combo.bebidas;
       const max = perCombo * currentQty;
@@ -4830,8 +5102,14 @@
     function confirmAddToCart() {
       if (!currentProduct) return;
 
+      if (!productAvailable(currentProduct.id)) {
+        alert('😔 Este producto está agotado momentáneamente');
+        return;
+      }
+
       // Validar combos completos
       if (currentProduct.combo) {
+        removeUnavailableComboSelections();
         const panchoCount = currentComboPanchos.reduce((s, x) => s + x.qty, 0);
         const bebidaCount = currentComboBebidas.reduce((s, x) => s + x.qty, 0);
         const requiredPanchos = currentProduct.combo.panchos * currentQty;
