@@ -752,18 +752,17 @@
     .product-highlight-badge {
       color: #120622;
       font-family: 'Press Start 2P', monospace;
-      font-size: 9px;
+      font-size: clamp(6px, 2.4cqw, 9px);
       line-height: 1.35;
       width: max-content;
-      max-width: min(190px, 100%);
+      max-width: none;
       box-sizing: border-box;
       padding: 7px 11px;
       border: 2px solid #120622;
       box-shadow: 4px 4px 0 rgba(18,6,34,0.65);
       letter-spacing: 0.25px;
       text-align: center;
-      white-space: normal;
-      overflow-wrap: normal;
+      white-space: nowrap;
     }
     .product-highlight-badge.best-seller { background: var(--neon-yellow); }
     .product-highlight-badge.recommended { background: var(--neon-cyan); }
@@ -771,7 +770,7 @@
       right: auto;
       left: 8px;
     }
-    .card { position: relative; }
+    .card { position: relative; container-type: inline-size; }
 
     .add-btn {
       font-family: 'Press Start 2P', monospace;

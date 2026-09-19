@@ -407,3 +407,8 @@ contacto directo al WhatsApp del local.
 
 - Los carteles diagonales quedan contenidos dentro del borde derecho de la tarjeta, incluida su sombra.
 - El texto largo puede ocupar más de una línea y ajusta su ancho al espacio disponible, evitando cortes en pantallas angostas.
+
+# 2026-09-19 — Carteles destacados en una sola línea
+
+- Los carteles vuelven a mantener todo el texto en una línea para conservar su aspecto de letrero.
+- El tamaño de la tipografía responde al ancho de cada tarjeta: permanece grande cuando hay espacio y se reduce gradualmente en pantallas angostas sin salir del borde.
