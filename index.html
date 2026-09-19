@@ -735,6 +735,29 @@
       z-index: 3;
       letter-spacing: 0.5px;
     }
+    .product-badges {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 5px;
+      pointer-events: none;
+    }
+    .product-highlight-badge {
+      color: #120622;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      line-height: 1.35;
+      padding: 5px 7px;
+      border: 2px solid #fff;
+      box-shadow: 2px 2px 0 rgba(0,0,0,0.45);
+      letter-spacing: 0.25px;
+    }
+    .product-highlight-badge.best-seller { background: var(--neon-yellow); }
+    .product-highlight-badge.recommended { background: var(--neon-cyan); }
     .card { position: relative; }
 
     .add-btn {
@@ -4144,6 +4167,11 @@
         section.innerHTML = `<h2 class="cat-title">${cat.title}</h2><div class="grid">${cat.items.map(item => `
           <div class="card" data-product-id="${item.id}" onclick="openProduct('${item.id}')" role="button" tabindex="0">
             ${getProductDiscount(item.id) > 0 ? `<div class="discount-badge">-${getProductDiscount(item.id)}%</div>` : ''}
+            ${(window.storeSettings?.webBestSeller30d?.productId === item.id || window.storeSettings?.recommendedTodayProductId === item.id) ? `
+              <div class="product-badges">
+                ${window.storeSettings?.webBestSeller30d?.productId === item.id ? '<span class="product-highlight-badge best-seller">MÁS VENDIDO</span>' : ''}
+                ${window.storeSettings?.recommendedTodayProductId === item.id ? '<span class="product-highlight-badge recommended">RECOMENDADO DE HOY</span>' : ''}
+              </div>` : ''}
             <div class="sprite${item.imageUrl ? ' has-image' : ''}">${spriteFor(item)}</div>
             <div class="card-content">
               <h3>${item.name}</h3>

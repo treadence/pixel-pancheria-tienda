@@ -391,3 +391,9 @@ contacto directo al WhatsApp del local.
 - Los pedidos en efectivo o transferencia disparan una notificación push al celular registrado del admin inmediatamente después de guardarse.
 - Los pedidos de Mercado Pago disparan el aviso recién cuando el webhook confirma el pago y el pedido pasa a recibido.
 - El envío es idempotente (`adminPushSentAt`): cada pedido puede generar un solo aviso y un fallo del push nunca impide guardar o cobrar el pedido.
+
+# 2026-09-19 — Panchos destacados
+
+- La card del pancho líder de ventas web de los últimos 30 días muestra el badge “MÁS VENDIDO”.
+- El pancho elegido desde Admin muestra “RECOMENDADO DE HOY”; si coincide con el más vendido aparecen ambos distintivos.
+- Una Function programada recalcula el ganador todos los días en horario de Buenos Aires, contando también los panchos vendidos dentro de combos.
