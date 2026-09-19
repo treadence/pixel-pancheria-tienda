@@ -397,3 +397,8 @@ contacto directo al WhatsApp del local.
 - La card del pancho líder de ventas web de los últimos 30 días muestra el badge “MÁS VENDIDO”.
 - El pancho elegido desde Admin muestra “RECOMENDADO DE HOY”; si coincide con el más vendido aparecen ambos distintivos.
 - Una Function programada recalcula el ganador todos los días en horario de Buenos Aires, contando también los panchos vendidos dentro de combos.
+
+# 2026-09-19 — Carteles diagonales en productos destacados
+
+- Los distintivos “MÁS VENDIDO” y “RECOMENDADO DE HOY” ahora se presentan como carteles diagonales superpuestos en la esquina superior derecha de la tarjeta.
+- Cuando también existe un descuento, su badge se desplaza a la izquierda para que ninguna etiqueta se tape.
