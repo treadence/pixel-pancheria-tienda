@@ -402,3 +402,8 @@ contacto directo al WhatsApp del local.
 
 - Los distintivos “MÁS VENDIDO” y “RECOMENDADO DE HOY” ahora se presentan como carteles diagonales superpuestos en la esquina superior derecha de la tarjeta.
 - Cuando también existe un descuento, su badge se desplaza a la izquierda para que ninguna etiqueta se tape.
+
+# 2026-09-19 — Límites de los carteles destacados
+
+- Los carteles diagonales quedan contenidos dentro del borde derecho de la tarjeta, incluida su sombra.
+- El texto largo puede ocupar más de una línea y ajusta su ancho al espacio disponible, evitando cortes en pantallas angostas.
