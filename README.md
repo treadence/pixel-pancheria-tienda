@@ -10,6 +10,13 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 
 ## Registro de cambios
 
+### 2026-09-20 — Datos del negocio en vivo
+
+- Nombre comercial, WhatsApp, Instagram, transferencia y contacto del desarrollador ahora provienen de `settings/store.businessConfig` con los valores anteriores como respaldo.
+- El seguimiento usa el alias, titular e instrucciones configurados y todos los enlaces de consulta apuntan al WhatsApp vigente.
+- Encabezado, título del navegador, footer, mapas y compartir seguimiento reflejan el nombre configurado.
+- Checkout Pro lee en servidor el título y descriptor de Mercado Pago; el cliente no puede enviarlos ni alterarlos.
+
 ### 2026-09-20 20:11 (-03) — Delivery y cobertura en vivo
 
 - La tienda consume `settings/store.deliveryConfig` para dirección/coordenadas del local, modalidades habilitadas, radio gratuito, tarifa, cobertura, vigencia de cotización y estimación del repartidor.

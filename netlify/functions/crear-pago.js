@@ -11,6 +11,21 @@ const { MercadoPagoConfig, Preference } = require('mercadopago');
 
 const PROJECT_ID = 'pixelpancheria';
 const API_KEY = 'AIzaSyBQGQlfNxRVMk7UfvGI6VRqURwAw7JIMuI';
+const DEFAULT_PAYMENT_CONFIG = Object.freeze({
+  paymentTitle: 'Pedido Pixel Panchería',
+  paymentDescriptor: 'PIXEL PANCHERIA'
+});
+
+function paymentConfig(store) {
+  const source = store && store.businessConfig && typeof store.businessConfig === 'object' ? store.businessConfig : {};
+  const title = String(source.paymentTitle || DEFAULT_PAYMENT_CONFIG.paymentTitle).trim().slice(0, 120);
+  const descriptor = String(source.paymentDescriptor || DEFAULT_PAYMENT_CONFIG.paymentDescriptor)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9 ]/g, '').replace(/\s+/g, ' ').trim().slice(0, 22);
+  return {
+    paymentTitle: title || DEFAULT_PAYMENT_CONFIG.paymentTitle,
+    paymentDescriptor: descriptor || DEFAULT_PAYMENT_CONFIG.paymentDescriptor
+  };
+}
 
 // --- Decodificador REST de Firestore → objeto JS plano ---
 function fsDecode(v) {
@@ -62,7 +77,7 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'orderId inválido' }) };
   }
 
-  const order = await fsGetDoc('orders/' + orderId);
+  const [order, store] = await Promise.all([fsGetDoc('orders/' + orderId), fsGetDoc('settings/store')]);
   if (!order) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Pedido no encontrado' }) };
   if (order.status !== 'pending_payment') {
     return { statusCode: 409, headers, body: JSON.stringify({ error: 'El pedido no está pendiente de pago' }) };
@@ -78,6 +93,7 @@ exports.handler = async (event) => {
   const backUrl = `${baseUrl}/?pedido=${orderId}`;
 
   const nItems = Array.isArray(order.items) ? order.items.length : 0;
+  const business = paymentConfig(store);
   const client = new MercadoPagoConfig({ accessToken: token });
 
   try {
@@ -87,14 +103,14 @@ exports.handler = async (event) => {
         // combos/descuentos/envío (la suma de ítems podría no dar exacto el total).
         items: [{
           id: orderId,
-          title: 'Pedido Pixel Panchería',
+          title: business.paymentTitle,
           description: `${nItems} producto(s) · ${order.customer || ''}`.trim(),
           quantity: 1,
           unit_price: total,
           currency_id: 'ARS'
         }],
         external_reference: orderId,
-        statement_descriptor: 'PIXEL PANCHERIA',
+        statement_descriptor: business.paymentDescriptor,
         back_urls: { success: backUrl, pending: backUrl, failure: backUrl },
         auto_return: 'approved',
         notification_url: `${baseUrl}/.netlify/functions/webhook-mp`,
@@ -107,3 +123,5 @@ exports.handler = async (event) => {
     return { statusCode: 502, headers, body: JSON.stringify({ error: 'No se pudo crear el pago: ' + (err.message || 'error') }) };
   }
 };
+
+exports._test = { paymentConfig, DEFAULT_PAYMENT_CONFIG };

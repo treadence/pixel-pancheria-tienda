@@ -3216,7 +3216,7 @@
   <div id="loadingScreen">
     <div class="ld-inner">
       <div class="ld-sprite">🌭</div>
-      <div class="ld-title">PIXEL PANCHERÍA</div>
+      <div class="ld-title" id="loaderBusinessName">PIXEL PANCHERÍA</div>
       <div class="ld-bar"><div class="ld-bar-fill"></div></div>
       <div class="ld-text">CARGANDO<span class="ld-dots"></span></div>
       <div class="ld-sub">INSERT COIN TO EAT</div>
@@ -3226,7 +3226,7 @@
   <div class="stars"></div>
 
   <header>
-    <h1 class="title">PIXEL PANCHERÍA</h1>
+    <h1 class="title" id="headerBusinessName">PIXEL PANCHERÍA</h1>
     <div class="subtitle">&gt; INSERT COIN TO EAT _</div>
     <div id="storeStatusBanner" style="display:none;"></div>
     <div id="highDemandBanner" role="status" style="display:none;">
@@ -3295,7 +3295,7 @@
       <div style="font-family:'VT323',monospace;font-size:20px;color:#c9b8e6;line-height:1.3;margin-bottom:16px;">
         No encontramos un pedido guardado en este navegador. Si pediste desde otro celular o se borraron los datos, pedinos el link y te lo reenviamos.
       </div>
-      <a class="track-wa" href="https://wa.me/5491178257432?text=Hola!%20Hice%20un%20pedido%20y%20necesito%20recuperar%20el%20link%20de%20seguimiento%20%F0%9F%8C%AD" target="_blank" rel="noopener">💬 PEDIR MI LINK POR WHATSAPP</a>
+      <a class="track-wa" id="recoverTrackingWhatsapp" href="https://wa.me/5491178257432?text=Hola!%20Hice%20un%20pedido%20y%20necesito%20recuperar%20el%20link%20de%20seguimiento%20%F0%9F%8C%AD" target="_blank" rel="noopener">💬 PEDIR MI LINK POR WHATSAPP</a>
       <button type="button" class="track-back" style="width:100%;" onclick="closeTrackingHelp()">VOLVER A LA TIENDA</button>
     </div>
   </div>
@@ -3990,7 +3990,7 @@
       const url = trackUrlFor(orderId);
       if (navigator.share) {
         try {
-          await navigator.share({ title: 'Seguimiento de mi pedido · Pixel Panchería', text: 'Seguimiento de mi pedido:', url });
+          await navigator.share({ title: 'Seguimiento de mi pedido · ' + window.getBusinessConfig().businessName, text: 'Seguimiento de mi pedido:', url });
           return;
         } catch (err) {
           if (err && err.name === 'AbortError') return;
@@ -4048,6 +4048,7 @@
     function renderTracking(order) {
       __trackOrder = order;
       const box = document.getElementById('trackingScreen');
+      const business = window.getBusinessConfig ? window.getBusinessConfig() : { businessName: 'Pixel Panchería', orderWhatsapp: '5491178257432', transferAlias: 'Pixel.Pancheria', transferPendingMessage: 'Para confirmar tu pedido, transferí', transferInstructions: 'Apenas verifiquemos el pago te avisamos y arranca la preparación 🌭' };
       if (!box) return;
 
       if (!order) {
@@ -4091,7 +4092,7 @@
                <a class="track-back" href="${location.pathname}">◀ VOLVER A LA TIENDA</a>
              </div>`
           : `<div class="track-card">
-               <div class="track-head-title">🌭 PIXEL PANCHERÍA</div>
+               <div class="track-head-title">🌭 ${trackEscape(String(business.businessName).toUpperCase())}</div>
                <div class="track-icon">⏳</div>
                <div class="track-title">CONFIRMANDO TU PAGO</div>
                <p class="track-sub">Estamos confirmando tu pago con Mercado Pago. Esto puede tardar unos segundos.<br>La pantalla se actualiza sola y podés guardar el link para volver.</p>
@@ -4116,15 +4117,16 @@
         ).join('');
         box.innerHTML = `
           <div class="track-card">
-            <div class="track-head-title">🌭 PIXEL PANCHERÍA</div>
+            <div class="track-head-title">🌭 ${trackEscape(String(business.businessName).toUpperCase())}</div>
             <div class="track-title">¡CASI LISTO!</div>
             <div class="track-customer">${trackEscape(order.customer || '')}</div>
             <div class="track-transfer">
-              <div class="tt-line">Para confirmar tu pedido, transferí</div>
+              <div class="tt-line">${trackEscape(business.transferPendingMessage)}</div>
               <div class="tt-amount">$${Number(order.total || 0).toLocaleString('es-AR')}</div>
               <div class="tt-line">al alias</div>
-              <div class="tt-alias">Pixel.Pancheria</div>
-              <div class="tt-note">Apenas verifiquemos el pago te avisamos y arranca la preparación 🌭</div>
+              <div class="tt-alias">${trackEscape(business.transferAlias)}</div>
+              ${business.transferAccountHolder ? `<div class="tt-line">Titular: ${trackEscape(business.transferAccountHolder)}</div>` : ''}
+              <div class="tt-note">${trackEscape(business.transferInstructions)}</div>
             </div>
             ${pushHtmlT}
             <div class="track-summary">${itemsHtmlT}
@@ -4254,7 +4256,7 @@
 
       box.innerHTML = `
         <div class="track-card">
-          <div class="track-head-title">🌭 PIXEL PANCHERÍA</div>
+          <div class="track-head-title">🌭 ${trackEscape(String(business.businessName).toUpperCase())}</div>
           <div class="track-title">${cancelled ? 'PEDIDO CANCELADO' : 'SEGUÍ TU PEDIDO'}</div>
           <div class="track-customer">${trackEscape(order.customer || '')}</div>
           ${pushHtml}
@@ -4269,7 +4271,7 @@
           </div>
           ${trackLiveLabel()}
           ${trackLinkToolsHtml(order.id)}
-          <a class="track-wa" href="https://wa.me/5491178257432?text=${encodeURIComponent('Hola! Tengo una consulta sobre mi pedido' + (order.id ? ' #' + String(order.id).slice(-5).toUpperCase() : '') + ' 🌭')}" target="_blank" rel="noopener">💬 ¿ALGÚN PROBLEMA? CONTACTANOS</a>
+          <a class="track-wa" href="https://wa.me/${encodeURIComponent(business.orderWhatsapp)}?text=${encodeURIComponent('Hola! Tengo una consulta sobre mi pedido' + (order.id ? ' #' + String(order.id).slice(-5).toUpperCase() : '') + ' 🌭')}" target="_blank" rel="noopener">💬 ¿ALGÚN PROBLEMA? CONTACTANOS</a>
           <a class="track-back" href="${location.pathname}">◀ VOLVER A LA TIENDA</a>
         </div>`;
     }
@@ -4457,8 +4459,24 @@
       quoteMaxAgeMinutes: 360, estimatedCourierSpeedKmh: 25,
       streetDistanceFactor: 1.3, version: 1
     });
-    window.storeSettings = { open: _openByDefault, schedule: null, deliveryConfig: { ...DEFAULT_DELIVERY_CONFIG } };
+    const DEFAULT_BUSINESS_CONFIG = Object.freeze({
+      businessName: 'Pixel Panchería',
+      orderWhatsapp: '5491178257432',
+      instagramUrl: 'https://www.instagram.com/pixelpancheria/',
+      instagramHandle: '@pixelpancheria',
+      transferAlias: 'Pixel.Pancheria',
+      transferAccountHolder: '',
+      transferInstructions: 'Apenas verifiquemos el pago te avisamos y arranca la preparación 🌭',
+      transferPendingMessage: 'Para confirmar tu pedido, transferí',
+      paymentTitle: 'Pedido Pixel Panchería',
+      paymentDescriptor: 'PIXEL PANCHERIA',
+      developerName: 'GastrOS',
+      developerUrl: 'https://wa.me/5491167920464',
+      developerWhatsapp: '5491167920464'
+    });
+    window.storeSettings = { open: _openByDefault, schedule: null, deliveryConfig: { ...DEFAULT_DELIVERY_CONFIG }, businessConfig: { ...DEFAULT_BUSINESS_CONFIG } };
     window.getDeliveryConfig = () => ({ ...DEFAULT_DELIVERY_CONFIG, ...((window.storeSettings || {}).deliveryConfig || {}) });
+    window.getBusinessConfig = () => ({ ...DEFAULT_BUSINESS_CONFIG, ...((window.storeSettings || {}).businessConfig || {}) });
     if (!_openByDefault) updateStoreStatus();
 
     setTimeout(() => document.getElementById('loadingScreen').classList.add('hidden'), 4000);
@@ -4473,6 +4491,7 @@
       if (typeof window.renderProductCards === 'function') window.renderProductCards();
       if (typeof window.updateCartTotals === 'function') window.updateCartTotals();
       if (typeof window.applyDeliveryConfig === 'function') window.applyDeliveryConfig();
+      if (typeof window.applyBusinessConfig === 'function') window.applyBusinessConfig();
       // Si el admin ajusta el tiempo de preparación, recalcular el ETA en el
       // seguimiento abierto sin esperar el refresco periódico de 30 segundos.
       if (__trackOrder && document.body.classList.contains('tracking-mode')) {
@@ -4487,7 +4506,25 @@
     // ====== CONFIGURACIÓN ======
     // ⚠️ CAMBIÁ ESTE NÚMERO POR EL TUYO (formato internacional, sin +, sin espacios)
     // Ejemplo Argentina: 5491123456789
-    const WHATSAPP_NUMBER = '5491178257432';
+    let WHATSAPP_NUMBER = '5491178257432';
+    function businessEscape(value) {
+      return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function applyBusinessConfig() {
+      const cfg = window.getBusinessConfig();
+      WHATSAPP_NUMBER = String(cfg.orderWhatsapp || '').replace(/\D/g, '');
+      const upperName = String(cfg.businessName || 'Pixel Panchería').toUpperCase();
+      const loaderName = document.getElementById('loaderBusinessName');
+      const headerName = document.getElementById('headerBusinessName');
+      if (loaderName) loaderName.textContent = upperName;
+      if (headerName) headerName.textContent = upperName;
+      document.title = upperName + ' — Insert Coin to Eat';
+      const recover = document.getElementById('recoverTrackingWhatsapp');
+      if (recover) recover.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hola! Hice un pedido y necesito recuperar el link de seguimiento 🌭')}`;
+    }
+    window.applyBusinessConfig = applyBusinessConfig;
+    applyBusinessConfig();
 
     const EXTRAS = [
       { id: 'ex1', name: 'Papas pay', price: 0 }
@@ -4631,6 +4668,7 @@
     window.MENU = MENU;
 
     function renderProductCards() {
+      const business = window.getBusinessConfig();
       // Limpiar main antes de re-renderear (evita duplicados al actualizar)
       main.innerHTML = '';
 
@@ -4682,13 +4720,13 @@
 
       // Footer dentro del scroll
       const footer = document.createElement('footer');
-      footer.innerHTML = `<div class="hs">HIGH SCORE: TU PRÓXIMO PANCHO</div>© PIXEL PANCHERÍA — PRESS START TO ORDER
+      footer.innerHTML = `<div class="hs">HIGH SCORE: TU PRÓXIMO PANCHO</div>© ${businessEscape(String(business.businessName).toUpperCase())} — PRESS START TO ORDER
         <div style="margin-top:14px;">
-          <a href="https://www.instagram.com/pixelpancheria/" target="_blank" rel="noopener" aria-label="Pixel Panchería en Instagram" style="display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 12px;color:var(--neon-pink);text-decoration:none;font-family:'Press Start 2P',monospace;font-size:9px;border:2px solid var(--neon-pink);">◎ @PIXELPANCHERIA</a>
+          <a href="${businessEscape(business.instagramUrl)}" target="_blank" rel="noopener" aria-label="${businessEscape(business.businessName)} en Instagram" style="display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 12px;color:var(--neon-pink);text-decoration:none;font-family:'Press Start 2P',monospace;font-size:9px;border:2px solid var(--neon-pink);">◎ ${businessEscape(String(business.instagramHandle).toUpperCase())}</a>
         </div>
         <div style="margin-top:12px;">
-          <a href="https://wa.me/5491167920464" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-decoration:none;font-family:'VT323',monospace;font-size:16px;">
-            desarrollado con &lt;3 by GastrOS · contactate
+          <a href="${businessEscape(business.developerUrl || ('https://wa.me/' + business.developerWhatsapp))}" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-decoration:none;font-family:'VT323',monospace;font-size:16px;">
+            desarrollado con &lt;3 by ${businessEscape(business.developerName)} · contactate
           </a>
         </div>`;
       main.appendChild(footer);
@@ -6418,10 +6456,10 @@
           }).addTo(addressMap);
 
           storeMarker = L.marker([STORE_LOCATION.lat, STORE_LOCATION.lng], {
-            title: 'Pixel Panchería',
+            title: window.getBusinessConfig().businessName,
             opacity: 0.85
           }).addTo(addressMap)
-            .bindPopup('🌭 Pixel Panchería');
+            .bindPopup('🌭 ' + businessEscape(window.getBusinessConfig().businessName));
 
           addressMarker = L.marker([selectedLocation.lat, selectedLocation.lng], {
             draggable: true,
@@ -7251,8 +7289,8 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19, attribution: '© OpenStreetMap'
         }).addTo(setupAddressMap);
-        L.marker([STORE_LOCATION.lat, STORE_LOCATION.lng], { title: 'Pixel Panchería', opacity: .8 })
-          .addTo(setupAddressMap).bindPopup('🌭 Pixel Panchería');
+        L.marker([STORE_LOCATION.lat, STORE_LOCATION.lng], { title: window.getBusinessConfig().businessName, opacity: .8 })
+          .addTo(setupAddressMap).bindPopup('🌭 ' + businessEscape(window.getBusinessConfig().businessName));
         setupAddressMarker = L.marker([setupLocation.lat, setupLocation.lng], { draggable: true, title: 'Tu dirección' })
           .addTo(setupAddressMap).bindPopup('Ajustá el pin si hace falta').openPopup();
         setupAddressMarker.on('dragend', event => {
