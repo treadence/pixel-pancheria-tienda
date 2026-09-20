@@ -2,13 +2,26 @@
 // elegida por el cliente. El origen siempre es el local: la función no puede
 // utilizarse como un servicio de rutas arbitrarias.
 
-const STORE_LOCATION = { lat: -34.830395, lng: -58.188225 };
-const FREE_RADIUS_KM = 1;
-const STANDARD_SHIPPING_COST = 3000;
-const MAX_ROUND_TRIP_SECONDS = 45 * 60;
-const MAX_DIRECT_DISTANCE_KM = 35;
+const PROJECT_ID = 'pixelpancheria';
+const API_KEY = 'AIzaSyBQGQlfNxRVMk7UfvGI6VRqURwAw7JIMuI';
+const DEFAULT_CONFIG = Object.freeze({
+  deliveryEnabled: true,
+  pickupEnabled: true,
+  storeAddress: 'Calle 410 747, Juan María Gutiérrez',
+  storeLat: -34.830395,
+  storeLng: -58.188225,
+  freeRadiusKm: 1,
+  standardShippingCost: 3000,
+  maxRoundTripMinutes: 45,
+  maxDirectDistanceKm: 35,
+  quoteMaxAgeMinutes: 360,
+  estimatedCourierSpeedKmh: 25,
+  streetDistanceFactor: 1.3,
+  version: 1
+});
 const CACHE_TTL_MS = 15 * 60 * 1000;
 const quoteCache = new Map();
+let configCache = null;
 
 function response(statusCode, body) {
   return {
@@ -27,6 +40,67 @@ function validPoint(point) {
   const lng = Number(point && point.lng);
   return Number.isFinite(lat) && Number.isFinite(lng) &&
     lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+}
+
+function fsDecode(v) {
+  if (!v || typeof v !== 'object') return null;
+  if ('stringValue' in v) return v.stringValue;
+  if ('integerValue' in v) return Number(v.integerValue);
+  if ('doubleValue' in v) return Number(v.doubleValue);
+  if ('booleanValue' in v) return v.booleanValue;
+  if ('nullValue' in v) return null;
+  if ('mapValue' in v) return fsDecodeFields((v.mapValue && v.mapValue.fields) || {});
+  if ('arrayValue' in v) return ((v.arrayValue && v.arrayValue.values) || []).map(fsDecode);
+  return null;
+}
+
+function fsDecodeFields(fields) {
+  const out = {};
+  Object.keys(fields || {}).forEach(key => { out[key] = fsDecode(fields[key]); });
+  return out;
+}
+
+function numberInRange(value, fallback, min, max) {
+  const n = Number(value);
+  return Number.isFinite(n) && n >= min && n <= max ? n : fallback;
+}
+
+function sanitizeConfig(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  return {
+    deliveryEnabled: source.deliveryEnabled !== false,
+    pickupEnabled: source.pickupEnabled !== false,
+    storeAddress: String(source.storeAddress || DEFAULT_CONFIG.storeAddress).slice(0, 200),
+    storeLat: numberInRange(source.storeLat, DEFAULT_CONFIG.storeLat, -90, 90),
+    storeLng: numberInRange(source.storeLng, DEFAULT_CONFIG.storeLng, -180, 180),
+    freeRadiusKm: numberInRange(source.freeRadiusKm, DEFAULT_CONFIG.freeRadiusKm, 0, 50),
+    standardShippingCost: numberInRange(source.standardShippingCost, DEFAULT_CONFIG.standardShippingCost, 0, 1000000),
+    maxRoundTripMinutes: numberInRange(source.maxRoundTripMinutes, DEFAULT_CONFIG.maxRoundTripMinutes, 1, 600),
+    maxDirectDistanceKm: numberInRange(source.maxDirectDistanceKm, DEFAULT_CONFIG.maxDirectDistanceKm, 1, 200),
+    quoteMaxAgeMinutes: numberInRange(source.quoteMaxAgeMinutes, DEFAULT_CONFIG.quoteMaxAgeMinutes, 1, 1440),
+    estimatedCourierSpeedKmh: numberInRange(source.estimatedCourierSpeedKmh, DEFAULT_CONFIG.estimatedCourierSpeedKmh, 1, 120),
+    streetDistanceFactor: numberInRange(source.streetDistanceFactor, DEFAULT_CONFIG.streetDistanceFactor, 1, 3),
+    version: numberInRange(source.version, DEFAULT_CONFIG.version, 1, Number.MAX_SAFE_INTEGER)
+  };
+}
+
+async function loadDeliveryConfig(expectedVersion) {
+  if (configCache && Date.now() - configCache.at < 30000
+      && (!expectedVersion || Number(configCache.value.version) === Number(expectedVersion))) return configCache.value;
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/settings/store?key=${API_KEY}`;
+    const result = await fetch(url);
+    if (!result.ok) throw new Error('settings no disponible');
+    const data = await result.json();
+    const store = fsDecodeFields(data.fields || {});
+    const value = sanitizeConfig(store.deliveryConfig);
+    configCache = { at: Date.now(), value };
+    return value;
+  } catch (error) {
+    if (expectedVersion && Number(expectedVersion) !== Number(DEFAULT_CONFIG.version)) throw error;
+    console.warn('[delivery-config] usando valores seguros de respaldo:', error.message);
+    return sanitizeConfig(DEFAULT_CONFIG);
+  }
 }
 
 function haversineKm(a, b) {
@@ -77,16 +151,20 @@ async function route(from, to, apiKey) {
   };
 }
 
-function quoteResult({ directKm, outbound, inbound }) {
+function quoteResult({ directKm, outbound, inbound, config }) {
   const outboundSeconds = outbound ? outbound.durationSeconds : 0;
   const returnSeconds = inbound ? inbound.durationSeconds : 0;
   const roundTripSeconds = outboundSeconds + returnSeconds;
-  const free = directKm <= FREE_RADIUS_KM;
-  const eligible = free || roundTripSeconds <= MAX_ROUND_TRIP_SECONDS;
+  const free = directKm <= config.freeRadiusKm;
+  const eligible = config.deliveryEnabled && (free || roundTripSeconds <= config.maxRoundTripMinutes * 60);
   return {
     eligible,
-    shippingTier: free ? 'free' : (eligible ? 'standard_3000' : 'out_of_coverage'),
-    shippingCost: free ? 0 : (eligible ? STANDARD_SHIPPING_COST : 0),
+    deliveryEnabled: config.deliveryEnabled,
+    pickupEnabled: config.pickupEnabled,
+    configVersion: config.version,
+    quoteMaxAgeMinutes: config.quoteMaxAgeMinutes,
+    shippingTier: eligible && free ? 'free' : (eligible ? 'standard' : 'out_of_coverage'),
+    shippingCost: eligible && free ? 0 : (eligible ? config.standardShippingCost : 0),
     directKm: Number(directKm.toFixed(3)),
     outboundSeconds,
     returnSeconds,
@@ -108,25 +186,37 @@ exports.handler = async event => {
   const destination = { lat: Number(body.lat), lng: Number(body.lng) };
   if (!validPoint(destination)) return response(400, { error: 'Ubicación inválida' });
 
-  const directKm = haversineKm(STORE_LOCATION, destination);
-  if (directKm <= FREE_RADIUS_KM) {
-    return response(200, quoteResult({ directKm, outbound: null, inbound: null }));
+  let config;
+  try { config = await loadDeliveryConfig(body.configVersion); }
+  catch (error) { return response(503, { error: 'No pudimos validar la tarifa vigente. Probá nuevamente.' }); }
+  if (body.configVersion && Number(body.configVersion) !== Number(config.version)) {
+    return response(409, { error: 'La configuración de delivery cambió. Actualizá la página y volvé a cotizar.' });
+  }
+  if (!config.deliveryEnabled) {
+    return response(200, quoteResult({ directKm: 0, outbound: null, inbound: null, config }));
+  }
+  const storeLocation = { lat: config.storeLat, lng: config.storeLng };
+
+  const directKm = haversineKm(storeLocation, destination);
+  if (directKm <= config.freeRadiusKm) {
+    return response(200, quoteResult({ directKm, outbound: null, inbound: null, config }));
   }
 
   // Una dirección a esta distancia en línea recta no puede completar un viaje
   // urbano de ida y vuelta en 45 minutos. Evita consultas costosas o abusivas.
-  if (directKm > MAX_DIRECT_DISTANCE_KM) {
+  if (directKm > config.maxDirectDistanceKm) {
     return response(200, {
       ...quoteResult({
         directKm,
-        outbound: { durationSeconds: MAX_ROUND_TRIP_SECONDS + 1, distanceMeters: 0 },
-        inbound: { durationSeconds: 0, distanceMeters: 0 }
+        outbound: { durationSeconds: config.maxRoundTripMinutes * 60 + 1, distanceMeters: 0 },
+        inbound: { durationSeconds: 0, distanceMeters: 0 },
+        config
       }),
       routeKm: null
     });
   }
 
-  const key = `${destination.lat.toFixed(4)},${destination.lng.toFixed(4)}`;
+  const key = `${config.version}:${destination.lat.toFixed(4)},${destination.lng.toFixed(4)}`;
   const cached = quoteCache.get(key);
   if (cached && Date.now() - cached.cachedAt < CACHE_TTL_MS) {
     return response(200, cached.value);
@@ -137,10 +227,10 @@ exports.handler = async event => {
 
   try {
     const [outbound, inbound] = await Promise.all([
-      route(STORE_LOCATION, destination, apiKey),
-      route(destination, STORE_LOCATION, apiKey)
+      route(storeLocation, destination, apiKey),
+      route(destination, storeLocation, apiKey)
     ]);
-    const value = quoteResult({ directKm, outbound, inbound });
+    const value = quoteResult({ directKm, outbound, inbound, config });
     quoteCache.set(key, { cachedAt: Date.now(), value });
     return response(200, value);
   } catch (error) {
@@ -149,10 +239,10 @@ exports.handler = async event => {
 };
 
 exports._test = {
-  STORE_LOCATION,
-  FREE_RADIUS_KM,
-  MAX_ROUND_TRIP_SECONDS,
+  DEFAULT_CONFIG,
+  sanitizeConfig,
   haversineKm,
   seconds,
-  quoteResult
+  quoteResult,
+  resetCaches() { configCache = null; quoteCache.clear(); }
 };

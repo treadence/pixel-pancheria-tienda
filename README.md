@@ -10,6 +10,15 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 
 ## Registro de cambios
 
+### 2026-09-20 20:11 (-03) — Delivery y cobertura en vivo
+
+- La tienda consume `settings/store.deliveryConfig` para dirección/coordenadas del local, modalidades habilitadas, radio gratuito, tarifa, cobertura, vigencia de cotización y estimación del repartidor.
+- Las cotizaciones guardan una versión; cualquier cambio desde el admin invalida direcciones cotizadas anteriormente y fuerza una nueva validación antes de confirmar el pedido.
+- `cotizar-envio` lee y valida la configuración desde Firestore, conserva valores seguros de respaldo y rechaza una tarifa antigua cuando el cliente ya recibió una versión nueva.
+- Se pueden pausar delivery o retiro por separado; si ambos están pausados, el checkout queda bloqueado sin crear pedidos.
+- La tarifa deja de depender del texto `$3.000` y se conserva en cada pedido junto con la versión utilizada.
+- Verificación: cuatro escenarios automáticos de cotización, parseo de los módulos principales y chequeo de whitespace de Git.
+
 ### 2026-09-19 — Embudo anónimo de compra
 
 - Cada navegador abre una sesión anónima de hasta 4 horas en `funnelSessions`.

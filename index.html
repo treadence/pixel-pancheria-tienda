@@ -3871,7 +3871,10 @@
       const planned = Number(order.etaPlan && order.etaPlan.travelMin);
       if (planned >= 0) return planned;
       const km = Number(order.distanceKm) || 0;
-      return Math.min(40, Math.max(3, Math.round((km * STREET_FACTOR / VEL_MOTO_KMH) * 60)));
+      const cfg = window.getDeliveryConfig ? window.getDeliveryConfig() : {};
+      const factor = Number(cfg.streetDistanceFactor) || STREET_FACTOR;
+      const speed = Number(cfg.estimatedCourierSpeedKmh) || VEL_MOTO_KMH;
+      return Math.min(40, Math.max(3, Math.round((km * factor / speed) * 60)));
     }
 
     function trackLiveAge(live) {
@@ -4165,7 +4168,10 @@
       const gpsRecent = live && liveAge < 10 * 60000;
       if (!cancelled && status === 'ontheway' && !esRetiro && gpsFresh) {
         const km = Number(live.distKm) || 0;
-        const mins = Math.max(1, Number(live.etaMin) || Math.round((km * STREET_FACTOR / VEL_MOTO_KMH) * 60));
+        const cfg = window.getDeliveryConfig ? window.getDeliveryConfig() : {};
+        const factor = Number(cfg.streetDistanceFactor) || STREET_FACTOR;
+        const speed = Number(cfg.estimatedCourierSpeedKmh) || VEL_MOTO_KMH;
+        const mins = Math.max(1, Number(live.etaMin) || Math.round((km * factor / speed) * 60));
         const colaHtml = (Number(live.totalStops) > 1 && Number(live.stop) > 1)
           ? `<div class="te-cola">🛑 Hay ${live.stop - 1} entrega${live.stop > 2 ? 's' : ''} antes que la tuya</div>`
           : '';
@@ -4442,7 +4448,17 @@
     // ====== HORARIOS DE ATENCIÓN ======
     const _cachedStoreOpen = localStorage.getItem('pancheria_store_open');
     const _openByDefault = _cachedStoreOpen === null ? true : _cachedStoreOpen === 'true';
-    window.storeSettings = { open: _openByDefault, schedule: null };
+    const DEFAULT_DELIVERY_CONFIG = Object.freeze({
+      deliveryEnabled: true, pickupEnabled: true,
+      storeAddress: 'Calle 410 747, Juan María Gutiérrez',
+      storeLat: -34.830395, storeLng: -58.188225,
+      freeRadiusKm: 1, standardShippingCost: 3000,
+      maxRoundTripMinutes: 45, maxDirectDistanceKm: 35,
+      quoteMaxAgeMinutes: 360, estimatedCourierSpeedKmh: 25,
+      streetDistanceFactor: 1.3, version: 1
+    });
+    window.storeSettings = { open: _openByDefault, schedule: null, deliveryConfig: { ...DEFAULT_DELIVERY_CONFIG } };
+    window.getDeliveryConfig = () => ({ ...DEFAULT_DELIVERY_CONFIG, ...((window.storeSettings || {}).deliveryConfig || {}) });
     if (!_openByDefault) updateStoreStatus();
 
     setTimeout(() => document.getElementById('loadingScreen').classList.add('hidden'), 4000);
@@ -4456,6 +4472,7 @@
       // La promo de "Menú completo" vive en settings; re-renderizar las cards para que muestren el badge/precio
       if (typeof window.renderProductCards === 'function') window.renderProductCards();
       if (typeof window.updateCartTotals === 'function') window.updateCartTotals();
+      if (typeof window.applyDeliveryConfig === 'function') window.applyDeliveryConfig();
       // Si el admin ajusta el tiempo de preparación, recalcular el ETA en el
       // seguimiento abierto sin esperar el refresco periódico de 30 segundos.
       if (__trackOrder && document.body.classList.contains('tracking-mode')) {
@@ -5914,6 +5931,7 @@
 
       // Renderizar desglose inicial (re-aplica el modo de entrega elegido, ya que
       // el form se reconstruye entero en cada render y el toggle vuelve al default)
+      if (typeof window.applyDeliveryModeAvailability === 'function') window.applyDeliveryModeAvailability();
       if (typeof window.setDeliveryMode === 'function') window.setDeliveryMode(window.deliveryMode);
       else updateCartTotals();
       if (typeof window.loyaltyOnCartRender === 'function') window.loyaltyOnCartRender();
@@ -6114,15 +6132,45 @@
       lng: -58.188225,
       address: 'Calle 410 747, Juan María Gutiérrez'
     };
-    const FREE_RADIUS_KM = 1;
-    const STANDARD_SHIPPING_COST = 3000;
-    const SHIPPING_QUOTE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+    let FREE_RADIUS_KM = 1;
+    let STANDARD_SHIPPING_COST = 3000;
+    let SHIPPING_QUOTE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+
+    function applyDeliveryConfig() {
+      const cfg = window.getDeliveryConfig();
+      STORE_LOCATION.lat = Number(cfg.storeLat);
+      STORE_LOCATION.lng = Number(cfg.storeLng);
+      STORE_LOCATION.address = String(cfg.storeAddress || '');
+      FREE_RADIUS_KM = Number(cfg.freeRadiusKm);
+      STANDARD_SHIPPING_COST = Number(cfg.standardShippingCost);
+      SHIPPING_QUOTE_MAX_AGE_MS = Number(cfg.quoteMaxAgeMinutes) * 60000;
+      document.querySelectorAll('.pickup-addr').forEach(el => { el.textContent = '📍 ' + STORE_LOCATION.address; });
+      const version = Number(cfg.version) || 1;
+      [selectedLocation].forEach(loc => {
+        if (loc && Number(loc.configVersion || 0) !== version) {
+          loc.shippingTier = null;
+          loc.deliveryEligible = null;
+          loc.quoteAt = null;
+        }
+      });
+      if (typeof window.applyDeliveryModeAvailability === 'function') window.applyDeliveryModeAvailability();
+      const setupOverlay = document.getElementById('customerSetupOverlay');
+      if (!cfg.deliveryEnabled && !cfg.pickupEnabled && setupOverlay) {
+        setupOverlay.classList.remove('open', 'required');
+        document.body.style.overflow = '';
+      } else if (setupOverlay && setupOverlay.classList.contains('open') && typeof window.setCustomerSetupMode === 'function') {
+        window.setCustomerSetupMode(window.deliveryMode);
+      }
+      if (typeof window.updateCartTotals === 'function') window.updateCartTotals();
+    }
+    window.applyDeliveryConfig = applyDeliveryConfig;
 
     let selectedLocation = null;
     let addressMap = null;
     let addressMarker = null;
     let storeMarker = null;
     let placesAutocomplete = null;
+    applyDeliveryConfig();
 
     // Distancia entre dos puntos (Haversine)
     function haversineKm(lat1, lng1, lat2, lng2) {
@@ -6151,12 +6199,14 @@
         returnSeconds: Number(address.returnSeconds) || 0,
         roundTripSeconds: Number(address.roundTripSeconds) || 0,
         routeKm: Number(address.routeKm) || null,
-        quoteAt: address.quoteAt || null
+        quoteAt: address.quoteAt || null,
+        configVersion: Number(address.configVersion) || 0
       };
     }
 
     function quoteIsFresh(loc) {
       if (!loc || !loc.shippingTier || !loc.quoteAt) return false;
+      if (Number(loc.configVersion || 0) !== Number(window.getDeliveryConfig().version || 1)) return false;
       const age = Date.now() - new Date(loc.quoteAt).getTime();
       return Number.isFinite(age) && age >= 0 && age < SHIPPING_QUOTE_MAX_AGE_MS;
     }
@@ -6167,7 +6217,7 @@
       const response = await fetch('/.netlify/functions/cotizar-envio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lat: loc.lat, lng: loc.lng })
+        body: JSON.stringify({ lat: loc.lat, lng: loc.lng, configVersion: Number(window.getDeliveryConfig().version) || 1 })
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'No pudimos verificar la cobertura');
@@ -6180,7 +6230,8 @@
         returnSeconds: Number(data.returnSeconds) || 0,
         roundTripSeconds: Number(data.roundTripSeconds) || 0,
         routeKm: Number(data.routeKm) || null,
-        quoteAt: data.quotedAt || new Date().toISOString()
+        quoteAt: data.quotedAt || new Date().toISOString(),
+        configVersion: Number(data.configVersion) || Number(window.getDeliveryConfig().version) || 1
       });
       return loc;
     }
@@ -6193,7 +6244,8 @@
         return { cost: 0, tier: 'out_of_coverage', label: 'FUERA DE COBERTURA', color: 'var(--neon-orange)', eligible: false };
       }
       if (loc.shippingTier === 'free') return { cost: 0, tier: 'free', label: 'GRATIS', color: 'var(--neon-green)', eligible: true };
-      return { cost: STANDARD_SHIPPING_COST, tier: 'standard_3000', label: '+$3.000', color: 'var(--neon-cyan)', eligible: true };
+      const cost = Number(loc.shippingCost);
+      return { cost, tier: 'standard', label: '+$' + cost.toLocaleString('es-AR'), color: 'var(--neon-cyan)', eligible: true };
     }
 
     // Inicializar autocompletado de Google Places (NEW API)
@@ -6479,7 +6531,23 @@
     // 'pickup'   = retiro en el local: envío $0, sin dirección y SIN sistema de
     //              coins (no suma ni permite canjear recompensas).
     window.deliveryMode = 'delivery';
+    window.applyDeliveryModeAvailability = function() {
+      const cfg = window.getDeliveryConfig();
+      const controls = [
+        ['dmDelivery', cfg.deliveryEnabled], ['setupDeliveryBtn', cfg.deliveryEnabled],
+        ['dmPickup', cfg.pickupEnabled], ['setupPickupBtn', cfg.pickupEnabled]
+      ];
+      controls.forEach(([id, enabled]) => {
+        const el = document.getElementById(id);
+        if (el) { el.disabled = !enabled; el.style.display = enabled ? '' : 'none'; }
+      });
+      if (window.deliveryMode === 'delivery' && !cfg.deliveryEnabled && cfg.pickupEnabled) window.deliveryMode = 'pickup';
+      if (window.deliveryMode === 'pickup' && !cfg.pickupEnabled && cfg.deliveryEnabled) window.deliveryMode = 'delivery';
+    };
     window.setDeliveryMode = function(mode) {
+      const cfg = window.getDeliveryConfig();
+      if (mode === 'delivery' && !cfg.deliveryEnabled) mode = cfg.pickupEnabled ? 'pickup' : 'delivery';
+      if (mode === 'pickup' && !cfg.pickupEnabled) mode = cfg.deliveryEnabled ? 'delivery' : 'pickup';
       const previousMode = window.deliveryMode;
       window.deliveryMode = (mode === 'pickup') ? 'pickup' : 'delivery';
       const isPickup = window.deliveryMode === 'pickup';
@@ -6604,6 +6672,11 @@
 
       if (sendBtn && !isPickup && !shipping.eligible) sendBtn.disabled = true;
       else if (sendBtn) sendBtn.disabled = false;
+      const deliveryCfg = window.getDeliveryConfig();
+      if (sendBtn && !deliveryCfg.deliveryEnabled && !deliveryCfg.pickupEnabled) {
+        sendBtn.disabled = true;
+        sendBtn.textContent = 'PEDIDOS TEMPORALMENTE PAUSADOS';
+      }
 
       // Coins que suma esta compra (según la tasa configurada en el admin)
       const coinsQueSuma = Math.floor(finalTotal / getLoyaltyConfig().coinsPerPeso);
@@ -6704,7 +6777,8 @@
         returnSeconds: Number(loc.returnSeconds) || 0,
         roundTripSeconds: Number(loc.roundTripSeconds) || 0,
         routeKm: Number(loc.routeKm) || null,
-        quoteAt: loc.quoteAt || null
+        quoteAt: loc.quoteAt || null,
+        configVersion: Number(loc.configVersion) || Number(window.getDeliveryConfig().version) || 1
       };
       if (existing) {
         Object.assign(existing, routeData);
@@ -7095,12 +7169,12 @@
         ? 'Retiro gratis en el local'
         : shipping.tier === 'free'
           ? 'Envío gratis'
-          : shipping.tier === 'standard_3000'
-            ? 'Envío $3.000'
+          : (shipping.tier === 'standard_3000' || shipping.tier === 'standard')
+            ? 'Envío $' + Number(shipping.cost || 0).toLocaleString('es-AR')
             : shipping.tier === 'out_of_coverage'
               ? 'Fuera de cobertura · elegí retiro gratis'
               : 'Cobertura pendiente de verificar';
-      const address = pickup ? 'Calle 410 N°747 · Juan María Gutiérrez' : ((current && current.address) || 'Elegí una dirección');
+      const address = pickup ? window.getDeliveryConfig().storeAddress : ((current && current.address) || 'Elegí una dirección');
       bar.innerHTML = `<div class="customer-delivery-inner">
         <span>${pickup ? '🏪' : '📍'}</span>
         <div class="customer-delivery-copy"><strong>${status}</strong><span>${escHtmlL(address)}</span></div>
@@ -7243,8 +7317,12 @@
     }
 
     window.setCustomerSetupMode = function(mode) {
+      const cfg = window.getDeliveryConfig();
+      if (mode === 'delivery' && !cfg.deliveryEnabled) mode = cfg.pickupEnabled ? 'pickup' : 'delivery';
+      if (mode === 'pickup' && !cfg.pickupEnabled) mode = cfg.deliveryEnabled ? 'delivery' : 'pickup';
       const previousMode = customerSetupMode;
       customerSetupMode = mode === 'pickup' ? 'pickup' : 'delivery';
+      window.applyDeliveryModeAvailability();
       document.getElementById('setupDeliveryBtn').classList.toggle('sel', customerSetupMode === 'delivery');
       document.getElementById('setupPickupBtn').classList.toggle('sel', customerSetupMode === 'pickup');
       document.getElementById('setupDeliveryFields').style.display = customerSetupMode === 'delivery' ? 'block' : 'none';
@@ -7312,10 +7390,17 @@
     window.openCustomerSetup = function(required) {
       const overlay = document.getElementById('customerSetupOverlay');
       if (!overlay) return;
+      const cfg = window.getDeliveryConfig();
+      if (!cfg.deliveryEnabled && !cfg.pickupEnabled) {
+        if (required !== true) alert('Los pedidos están temporalmente pausados. Volvé a intentar más tarde.');
+        return;
+      }
       overlay.classList.toggle('required', required === true);
       overlay.classList.add('open');
       document.body.style.overflow = 'hidden';
       customerSetupMode = (window.cuenta && window.cuenta.preferredDeliveryMode) || window.deliveryMode || 'delivery';
+      if (customerSetupMode === 'delivery' && !cfg.deliveryEnabled) customerSetupMode = 'pickup';
+      if (customerSetupMode === 'pickup' && !cfg.pickupEnabled) customerSetupMode = 'delivery';
       const active = selectedLocation || locationFromSavedAddress(getDefaultDir());
       setupLocation = active ? { ...active } : null;
       window.setCustomerSetupMode(customerSetupMode);
@@ -7522,6 +7607,15 @@
       const notes = document.getElementById('fNotes').value.trim();
 
       const isPickup = window.deliveryMode === 'pickup';
+      const deliveryCfg = window.getDeliveryConfig();
+
+      if ((!deliveryCfg.deliveryEnabled && !deliveryCfg.pickupEnabled)
+          || (!isPickup && !deliveryCfg.deliveryEnabled)
+          || (isPickup && !deliveryCfg.pickupEnabled)) {
+        sendGa4CheckoutError('delivery_mode_disabled');
+        alert('⚠ Esta modalidad de entrega no está disponible en este momento. Volvé al carrito y elegí una opción habilitada.');
+        return;
+      }
 
       if (!name) { sendGa4CheckoutError('missing_name'); alert('⚠ Ingresá tu nombre'); return; }
       if (!phone) { sendGa4CheckoutError('missing_phone'); alert('⚠ Ingresá tu teléfono'); return; }
@@ -7564,7 +7658,6 @@
         alert('⚠ Uno de los productos del carrito ya no está disponible. Quitalo o elegí otra opción para continuar.');
         return;
       }
-
       if (window.isStoreOpen) {
         const status = window.isStoreOpen();
         if (!status.open) {
@@ -7590,9 +7683,9 @@
         deliveryCode = 'delivery-gutierrez';
         deliveryLabel = 'Delivery dentro de Gutiérrez';
       } else {
-        shippingCost = STANDARD_SHIPPING_COST;
-        deliveryCode = 'delivery-ruta-3000';
-        deliveryLabel = 'Delivery $3.000';
+        shippingCost = Number(loc.shippingCost) || 0;
+        deliveryCode = 'delivery-ruta';
+        deliveryLabel = 'Delivery $' + shippingCost.toLocaleString('es-AR');
       }
 
       const subtotal = entries.reduce((s, [, c]) => s + cartItemSubtotal(c), 0);
@@ -7710,6 +7803,7 @@
         routeReturnSeconds: loc ? Number(loc.returnSeconds) || 0 : 0,
         routeRoundTripSeconds: loc ? Number(loc.roundTripSeconds) || 0 : 0,
         routeQuotedAt: loc ? (loc.quoteAt || null) : null,
+        deliveryConfigVersion: loc ? (Number(loc.configVersion) || Number(deliveryCfg.version) || 1) : Number(deliveryCfg.version) || 1,
         shippingTier: isPickup ? 'pickup' : loc.shippingTier,
         deliveryEligible: true,
         needsShippingConfirmation: false,
