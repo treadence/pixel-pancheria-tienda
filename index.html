@@ -3357,6 +3357,121 @@
     const firebaseApp = initializeApp(firebaseConfig);
     const db = getFirestore(firebaseApp);
 
+    // ====== EMBUDO ANÓNIMO DE COMPRA ======
+    // Una sesión dura hasta 4 horas y no guarda nombre, teléfono ni dirección
+    // exacta. Sirve para saber en qué paso se corta una compra y, si finalmente
+    // hay pedido, enlazar solamente el id del pedido para contar la conversión.
+    const FUNNEL_STORAGE_KEY = 'pixel_funnel_session_v1';
+    const FUNNEL_TTL_MS = 4 * 60 * 60 * 1000;
+    const FUNNEL_STAGE = {
+      visit: 0, address: 1, setup: 2, product: 3, cart: 4,
+      checkout: 5, details: 6, payment: 7, submitted: 8, purchased: 9
+    };
+    let funnelSession = null;
+    let funnelWrite = Promise.resolve();
+
+    function funnelSource() {
+      const params = new URLSearchParams(location.search);
+      const tagged = String(params.get('utm_source') || '').toLowerCase();
+      const ref = String(document.referrer || '').toLowerCase();
+      if (tagged) return tagged.slice(0, 40);
+      if (ref.includes('instagram')) return 'instagram';
+      if (ref.includes('whatsapp')) return 'whatsapp';
+      if (ref.includes('facebook')) return 'facebook';
+      if (ref.includes('tiktok')) return 'tiktok';
+      if (ref.includes('google')) return 'google';
+      return ref ? 'otro' : 'direct';
+    }
+
+    function loadFunnelSession() {
+      const now = Date.now();
+      try {
+        const saved = JSON.parse(localStorage.getItem(FUNNEL_STORAGE_KEY) || 'null');
+        if (saved && saved.id && now - Number(saved.startedMs || 0) < FUNNEL_TTL_MS) {
+          funnelSession = saved;
+          return;
+        }
+      } catch (e) {}
+      const random = (globalThis.crypto && crypto.randomUUID)
+        ? crypto.randomUUID().replace(/-/g, '')
+        : Math.random().toString(36).slice(2) + Date.now().toString(36);
+      funnelSession = { id: 'fs_' + random.slice(0, 28), startedMs: now, stageRank: 0 };
+      try { localStorage.setItem(FUNNEL_STORAGE_KEY, JSON.stringify(funnelSession)); } catch (e) {}
+    }
+
+    function funnelCartSummary(params) {
+      const items = Array.isArray(params && params.items) ? params.items : [];
+      return {
+        cartValue: Math.max(0, Number(params && params.value) || 0),
+        itemCount: items.reduce((sum, item) => sum + Math.max(1, Number(item.quantity) || 1), 0)
+      };
+    }
+
+    function trackFunnel(eventName, params = {}, extra = {}) {
+      if (!funnelSession) loadFunnelSession();
+      const stageByEvent = {
+        delivery_address_selected: 'address', customer_setup_completed: 'setup',
+        view_item: 'product', add_to_cart: 'cart', view_cart: 'cart',
+        begin_checkout: 'checkout', add_shipping_info: 'details', add_payment_info: 'details',
+        payment_redirect: 'payment', order_submitted: 'submitted', purchase: 'purchased'
+      };
+      const stage = stageByEvent[eventName] || null;
+      const requestedRank = stage == null ? funnelSession.stageRank : FUNNEL_STAGE[stage];
+      const nextRank = Math.max(Number(funnelSession.stageRank) || 0, requestedRank);
+      const nextStage = stage && requestedRank >= (Number(funnelSession.stageRank) || 0)
+        ? stage : (funnelSession.stage || 'visit');
+      funnelSession.stageRank = nextRank;
+      funnelSession.stage = nextStage;
+      try { localStorage.setItem(FUNNEL_STORAGE_KEY, JSON.stringify(funnelSession)); } catch (e) {}
+
+      const cart = funnelCartSummary(params);
+      const payload = {
+        sessionId: funnelSession.id,
+        lastActivityAt: serverTimestamp(),
+        lastEvent: String(eventName).slice(0, 50),
+        stage: nextStage,
+        stageRank: nextRank,
+        ...extra
+      };
+      if (params.delivery_type) payload.deliveryType = String(params.delivery_type).slice(0, 20);
+      if (params.shipping_tier) payload.shippingTier = String(params.shipping_tier).slice(0, 30);
+      if (Number.isFinite(Number(params.shipping_cost))) payload.shippingCost = Math.max(0, Number(params.shipping_cost));
+      if (params.payment_type) payload.paymentType = String(params.payment_type).slice(0, 30);
+      if (params.error_type) payload.errorType = String(params.error_type).slice(0, 40);
+      if (cart.cartValue > 0) payload.cartValue = cart.cartValue;
+      if (cart.itemCount > 0) payload.itemCount = cart.itemCount;
+      if (eventName === 'delivery_unavailable') payload.unavailable = true;
+      if (eventName === 'customer_setup_completed') payload.setupCompleted = true;
+      if (eventName === 'add_to_cart') payload.cartAdded = true;
+      if (eventName === 'begin_checkout') payload.checkoutStarted = true;
+      if (eventName === 'payment_redirect') payload.paymentStarted = true;
+      if (eventName === 'order_submitted') payload.orderSubmitted = true;
+      if (eventName === 'purchase') payload.converted = true;
+
+      funnelWrite = funnelWrite.then(async () => {
+        const ref = doc(db, 'funnelSessions', funnelSession.id);
+        if (!funnelSession.created) {
+          const now = new Date();
+          await setDoc(ref, {
+            sessionId: funnelSession.id,
+            startedAt: serverTimestamp(), at: serverTimestamp(),
+            dateLocal: now.toISOString(), hourLocal: now.getHours(),
+            referrer: funnelSource(),
+            device: matchMedia('(max-width: 700px)').matches ? 'mobile' : 'desktop',
+            stage: 'visit', stageRank: 0,
+            lastActivityAt: serverTimestamp(), lastEvent: 'visit'
+          });
+          funnelSession.created = true;
+          try { localStorage.setItem(FUNNEL_STORAGE_KEY, JSON.stringify(funnelSession)); } catch (e) {}
+        }
+        await setDoc(ref, payload, { merge: true });
+      }).catch(error => console.warn('funnel tracking', error));
+      return funnelWrite;
+    }
+
+    loadFunnelSession();
+    trackFunnel('visit');
+
     // ====== GOOGLE ANALYTICS 4 · EMBUDO Y PEDIDOS ======
     // Los ids de Firestore son también transaction_id: un mismo pedido conserva
     // siempre el mismo identificador en GA4 y puede deduplicarse correctamente.
@@ -3374,6 +3489,7 @@
     }
 
     function sendGa4Event(eventName, params = {}) {
+      trackFunnel(eventName, params);
       if (typeof window.gtag !== 'function') return;
       const eventParams = { ...params };
       if (ga4DebugEnabled()) eventParams.debug_mode = true;
@@ -3414,6 +3530,11 @@
     // transaction_id es el id único de Firestore. El storage evita dobles
     // emisiones si el pedido se actualiza o la pantalla se refresca.
     function sendGa4OrderEvent(eventName, orderId, order) {
+      trackFunnel(eventName, {
+        value: Number(order && order.total) || 0,
+        payment_type: String(order && (order.paymentCode || order.paidVia || order.payment) || ''),
+        items: ga4OrderItems(order)
+      }, { orderId: String(orderId || '').slice(0, 80) });
       if (!orderId || !order || typeof window.gtag !== 'function') return Promise.resolve(false);
       const storageKey = `pixel_ga4_${eventName}_${orderId}`;
       try {
@@ -7357,6 +7478,12 @@
         });
         const data = await r.json();
         if (!r.ok || !data.init_point) throw new Error(data.error || 'no se pudo crear el pago');
+
+        await trackFunnel('payment_redirect', {
+          value: Number(order.total) || 0,
+          payment_type: 'mercadopago',
+          items: ga4OrderItems(order)
+        }, { orderId: String(orderId).slice(0, 80) });
 
         // NO limpiar el carrito acá: si el cliente toca "atrás" sin pagar, el
         // navegador restaura esta página (bfcache) y tiene que encontrar su

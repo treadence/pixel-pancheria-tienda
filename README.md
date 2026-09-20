@@ -10,6 +10,13 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 
 ## Registro de cambios
 
+### 2026-09-19 — Embudo anónimo de compra
+
+- Cada navegador abre una sesión anónima de hasta 4 horas en `funnelSessions`.
+- Registra cobertura, producto, carrito, checkout, pago y pedido, además de fuente, dispositivo, modalidad y costo de envío.
+- No guarda nombre, teléfono ni dirección exacta. Si hay pedido, conserva solo su id para contar la conversión.
+- Mercado Pago registra el inicio de la redirección para distinguir abandono de pago del abandono dentro del checkout.
+
 Bitácora con fecha y hora de qué se tocó en cada flujo de trabajo, para tener trazabilidad y
 poder reutilizar la lógica en otros proyectos.
 
