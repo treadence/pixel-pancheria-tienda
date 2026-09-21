@@ -3948,6 +3948,8 @@
     function refreshMyOrderAccess(saved) {
       const btn = document.getElementById('myOrderAccess');
       if (!btn) return;
+      btn.style.display = window.getFeatureConfig().trackingShortcut ? '' : 'none';
+      if (!window.getFeatureConfig().trackingShortcut) return;
       const copy = btn.querySelector('.mo-copy');
       if (saved && saved.id) {
         btn.classList.add('has-order');
@@ -4315,6 +4317,7 @@
     // ====== FEEDBACK DEL ÚLTIMO PEDIDO ("¿Cómo fue tu último pedido?") ======
     window.__fbId = null; window.__fbRating = 0; window.__fbOrder = null;
     function showFeedbackPrompt(orderId, order) {
+      if (!window.getFeatureConfig().feedback) return;
       window.__fbId = orderId; window.__fbRating = 0; window.__fbOrder = order;
       renderFeedbackBody();
       const ov = document.getElementById('feedbackOverlay');
@@ -4401,7 +4404,7 @@
             const dismissed = localStorage.getItem('pixel_fb_done_' + saved.id) === '1';
             refreshMyOrderAccess(null);
             if (order.feedback || dismissed) { forgetTrackedOrder(); return; }
-            showFeedbackPrompt(saved.id, order);
+            if (window.getFeatureConfig().feedback) showFeedbackPrompt(saved.id, order);
             return;
           }
           rememberTrackedOrder(saved.id, st);
@@ -4498,7 +4501,11 @@
       legal: { enabled: false, legalName: '', taxId: '', text: '' },
       version: 1
     });
-    window.storeSettings = { open: _openByDefault, schedule: null, deliveryConfig: { ...DEFAULT_DELIVERY_CONFIG }, businessConfig: { ...DEFAULT_BUSINESS_CONFIG }, checkoutConfig: { ...DEFAULT_CHECKOUT_CONFIG, payments: { delivery: { ...DEFAULT_CHECKOUT_CONFIG.payments.delivery }, pickup: { ...DEFAULT_CHECKOUT_CONFIG.payments.pickup } } }, legalConfig: { ...DEFAULT_LEGAL_CONFIG } };
+    const DEFAULT_FEATURE_CONFIG = Object.freeze({
+      loyalty: true, coupons: true, upsell: true, customerAccount: true,
+      feedback: true, highlights: true, trackingShortcut: true, version: 1
+    });
+    window.storeSettings = { open: _openByDefault, schedule: null, deliveryConfig: { ...DEFAULT_DELIVERY_CONFIG }, businessConfig: { ...DEFAULT_BUSINESS_CONFIG }, checkoutConfig: { ...DEFAULT_CHECKOUT_CONFIG, payments: { delivery: { ...DEFAULT_CHECKOUT_CONFIG.payments.delivery }, pickup: { ...DEFAULT_CHECKOUT_CONFIG.payments.pickup } } }, legalConfig: { ...DEFAULT_LEGAL_CONFIG }, featureConfig: { ...DEFAULT_FEATURE_CONFIG } };
     window.getDeliveryConfig = () => ({ ...DEFAULT_DELIVERY_CONFIG, ...((window.storeSettings || {}).deliveryConfig || {}) });
     window.getBusinessConfig = () => ({ ...DEFAULT_BUSINESS_CONFIG, ...((window.storeSettings || {}).businessConfig || {}) });
     window.getCheckoutConfig = () => {
@@ -4524,6 +4531,7 @@
         legal: { ...DEFAULT_LEGAL_CONFIG.legal, ...(saved.legal || {}) }
       };
     };
+    window.getFeatureConfig = () => ({ ...DEFAULT_FEATURE_CONFIG, ...((window.storeSettings || {}).featureConfig || {}) });
     if (!_openByDefault) updateStoreStatus();
 
     setTimeout(() => document.getElementById('loadingScreen').classList.add('hidden'), 4000);
@@ -4540,6 +4548,7 @@
       if (typeof window.updateCartTotals === 'function') window.updateCartTotals();
       if (typeof window.applyDeliveryConfig === 'function') window.applyDeliveryConfig();
       if (typeof window.applyBusinessConfig === 'function') window.applyBusinessConfig();
+      if (typeof window.applyFeatureConfig === 'function') window.applyFeatureConfig();
       // Si el admin ajusta el tiempo de preparación, recalcular el ETA en el
       // seguimiento abierto sin esperar el refresco periódico de 30 segundos.
       if (__trackOrder && document.body.classList.contains('tracking-mode')) {
@@ -4718,6 +4727,7 @@
     function renderProductCards() {
       const business = window.getBusinessConfig();
       const legal = window.getLegalConfig();
+      const features = window.getFeatureConfig();
       const hasPolicies = ['cancellation', 'delivery', 'allergens', 'returns', 'privacy', 'legal'].some(key => legal[key] && legal[key].enabled);
       // Limpiar main antes de re-renderear (evita duplicados al actualizar)
       main.innerHTML = '';
@@ -4733,7 +4743,7 @@
         section.innerHTML = `<h2 class="cat-title">${cat.title}</h2><div class="grid">${visibleItems.map(item => `
           <div class="card${item.id === 'p2' ? ' glitch-takeover' : ''}" data-product-id="${item.id}" onclick="openProduct('${item.id}')" role="button" tabindex="0">
             ${getProductDiscount(item.id) > 0 ? `<div class="discount-badge">-${getProductDiscount(item.id)}%</div>` : ''}
-            ${(window.storeSettings?.webBestSeller30d?.productId === item.id || window.storeSettings?.recommendedTodayProductId === item.id) ? `
+            ${features.highlights && (window.storeSettings?.webBestSeller30d?.productId === item.id || window.storeSettings?.recommendedTodayProductId === item.id) ? `
               <div class="product-badges">
                 ${window.storeSettings?.webBestSeller30d?.productId === item.id ? '<span class="product-highlight-badge best-seller">MÁS VENDIDO</span>' : ''}
                 ${window.storeSettings?.recommendedTodayProductId === item.id ? '<span class="product-highlight-badge recommended">RECOMENDADO DE HOY</span>' : ''}
@@ -5639,7 +5649,7 @@
     // Handler del botón de pago: intercepta una vez para ofrecer el upsell
     function onCheckoutClick() {
       sendGa4CartEvent('begin_checkout');
-      if (!upsellShown) {
+      if (window.getFeatureConfig().upsell && !upsellShown) {
         const sugg = upsellSuggestions();
         if (sugg.length) { openUpsell(sugg); return; }
       }
@@ -5858,6 +5868,7 @@
       }
 
       const total = entries.reduce((s, [, c]) => s + cartItemSubtotal(c), 0);
+      const featureCfg = window.getFeatureConfig();
 
       body.innerHTML = entries.map(([id, c]) => {
         const extrasNames = (c.extras || []).map(exId => {
@@ -6018,7 +6029,7 @@
         <textarea id="fNotes" placeholder="Ej: traer cubiertos, dejar en portería..."></textarea>
       </div>
 
-      <div class="form-field">
+      ${featureCfg.coupons ? `<div class="form-field">
         <label>🎟️ CUPÓN DE DESCUENTO</label>
         <div style="display:flex;gap:8px;">
           <input type="text" id="fCoupon" placeholder="Ingresá código" style="flex:1;text-transform:uppercase;" ${activeCoupon ? 'disabled value="' + activeCoupon.code + '"' : ''}>
@@ -6028,20 +6039,20 @@
         }
         </div>
         <div id="couponMsg" style="font-size:15px;margin-top:6px;min-height:18px;"></div>
-      </div>
+      </div>` : ''}
 
       <div id="vidaExtraBox" style="display:none;background:var(--bg);border:2px solid var(--neon-yellow);padding:12px 14px;margin:12px 0;font-family:'VT323',monospace;font-size:18px;color:var(--neon-yellow);"></div>
 
       <div id="totalBreakdown" style="background: var(--bg); border: 2px solid var(--neon-green); padding: 14px; margin: 16px 0; font-family: 'VT323', monospace;"></div>
 
-      <div class="cart-tracking-note">
+      ${featureCfg.trackingShortcut ? `<div class="cart-tracking-note">
         <span class="ctn-icon">📍</span>
         <span><strong>TU SEGUIMIENTO QUEDA GUARDADO</strong>Después de confirmar te mostramos el estado en vivo. Si cerrás la página, volvé desde este celular y tocá <b>SEGUIMIENTO DE PEDIDO</b> arriba del menú.</span>
-      </div>
+      </div>` : ''}
 
-      <div class="cart-privacy-note">
+      ${featureCfg.customerAccount ? `<div class="cart-privacy-note">
         Al hacer tu pedido guardamos tu nombre, teléfono y dirección para que tu próxima compra sea más rápida
-      </div>
+      </div>` : ''}
 
       <div class="cart-cta-bar">
         <div class="cart-cta-total"><span>TOTAL</span><span class="cta-amount" id="ctaTotal">$${total.toLocaleString('es-AR')}</span></div>
@@ -6862,7 +6873,7 @@
     // 🪙 Lanzamiento de coins: agosto 2026. Poner en true para activar toda la
     // UI de coins (barra, chip, canje, "sumás X coins"). La cuenta y las
     // direcciones guardadas siguen funcionando con esto en false.
-    window.COINS_ENABLED = true;
+    window.COINS_ENABLED = window.getFeatureConfig().loyalty;
     const LOYALTY_KEY = 'pixel_cuenta_v1';
 
     // Catálogo de recompensas por defecto (editable desde el panel admin →
@@ -6899,7 +6910,10 @@
       try { window.cuenta = JSON.parse(localStorage.getItem(LOYALTY_KEY) || 'null'); } catch (e) { window.cuenta = null; }
       ensureDirecciones();
     }
-    function saveCuentaLocal() { try { localStorage.setItem(LOYALTY_KEY, JSON.stringify(window.cuenta)); } catch (e) {} }
+    function saveCuentaLocal() {
+      if (!window.getFeatureConfig().customerAccount) return;
+      try { localStorage.setItem(LOYALTY_KEY, JSON.stringify(window.cuenta)); } catch (e) {}
+    }
 
     // ---- Direcciones múltiples ----
     let selectedDirId = null; // dirección elegida en el checkout actual
@@ -6976,6 +6990,7 @@
       const defDir = getDirById(window.cuenta.defaultDirId) || window.cuenta.direcciones[0] || null;
       window.cuenta.direccion = defDir ? defDir.address : (direccion || '');
       saveCuentaLocal();
+      if (!window.getFeatureConfig().customerAccount) return;
       const fbData = {
         nombre, telefono: p, direccion: window.cuenta.direccion,
         direcciones: window.cuenta.direcciones, defaultDirId: window.cuenta.defaultDirId || null,
@@ -7064,7 +7079,7 @@
     function renderCuentaBar() {
       const bar = document.getElementById('cuentaBar');
       if (!bar) return;
-      if (!window.COINS_ENABLED) { bar.style.display = 'none'; renderCoinChip(); return; }
+      if (!window.getFeatureConfig().customerAccount || !window.COINS_ENABLED) { bar.style.display = 'none'; renderCoinChip(); return; }
       if (window.cuenta && window.cuenta.telefono) {
         const coins = window.cuenta.coins || 0;
         const cfg = getLoyaltyConfig();
@@ -7163,6 +7178,7 @@
 
     // Cartel de bienvenida (3s) si el cliente ya está registrado
     function showWelcomeToast() {
+      if (!window.getFeatureConfig().customerAccount) return;
       if (!window.cuenta || !window.cuenta.telefono) return;
       let t = document.getElementById('welcomeToast');
       if (!t) { t = document.createElement('div'); t.id = 'welcomeToast'; document.body.appendChild(t); }
@@ -7223,6 +7239,7 @@
     function renderSavedAddresses() {
       const box = document.getElementById('savedAddresses');
       if (!box) return;
+      if (!window.getFeatureConfig().customerAccount) { box.innerHTML = ''; box.style.display = 'none'; return; }
       const ds = getDirecciones();
       if (!window.cuenta || !ds.length) { box.innerHTML = ''; box.style.display = 'none'; return; }
       box.style.display = 'block';
@@ -7289,6 +7306,11 @@
 
     // Al abrir/renderizar el carrito: autocompletar, refrescar coins y mostrar canje
     window.loyaltyOnCartRender = async function() {
+      if (!window.getFeatureConfig().customerAccount) {
+        renderVidaExtraBox();
+        renderSavedAddresses();
+        return;
+      }
       if (window.cuenta) {
         const f = (id, v) => { const el = document.getElementById(id); if (el && !el.value && v) el.value = v; };
         f('fName', window.cuenta.nombre);
@@ -7316,7 +7338,7 @@
 
     function renderCustomerDeliveryBar() {
       const bar = document.getElementById('customerDeliveryBar');
-      if (!bar || !window.cuenta) {
+      if (!bar || !window.cuenta || !window.getFeatureConfig().customerAccount) {
         if (bar) { bar.classList.remove('show'); bar.innerHTML = ''; }
         return;
       }
@@ -7341,6 +7363,30 @@
       bar.classList.add('show');
     }
     window.renderCustomerDeliveryBar = renderCustomerDeliveryBar;
+
+    window.applyFeatureConfig = function() {
+      const cfg = window.getFeatureConfig();
+      window.COINS_ENABLED = cfg.loyalty !== false && cfg.customerAccount !== false;
+      if (!cfg.loyalty) {
+        window.selectedReward = null;
+        window.selectedRewardOptionIdx = 0;
+        window.selectedRewardProductId = null;
+      }
+      if (!cfg.coupons) activeCoupon = null;
+      const trackingButton = document.getElementById('myOrderAccess');
+      if (trackingButton) trackingButton.style.display = cfg.trackingShortcut ? '' : 'none';
+      if (!cfg.feedback) {
+        const feedback = document.getElementById('feedbackOverlay');
+        if (feedback) feedback.classList.remove('open');
+      }
+      renderCuentaBar();
+      renderCustomerDeliveryBar();
+      renderCoinChip();
+      renderProductCards();
+      const cartOverlay = document.getElementById('cartOverlay');
+      if (cartOverlay && cartOverlay.classList.contains('open')) refreshCartKeepingForm();
+    };
+    window.applyFeatureConfig();
 
     function renderSetupSavedAddresses() {
       const box = document.getElementById('setupSavedAddresses');
@@ -7663,6 +7709,7 @@
 
     // Aplicar cupón
     function applyCoupon() {
+      if (!window.getFeatureConfig().coupons) return;
       const input = document.getElementById('fCoupon');
       const msg = document.getElementById('couponMsg');
       const code = (input.value || '').trim();

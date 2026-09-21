@@ -10,6 +10,12 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 
 ## Registro de cambios
 
+### 2026-09-21 — Funciones activables sin deploy
+
+- La tienda consume `settings/store.featureConfig` para mostrar o pausar coins, cupones, upsell, cuenta/direcciones, feedback, destacados y el atajo de seguimiento.
+- Las funciones están activadas por defecto para compatibilidad con la configuración anterior.
+- Desactivarlas no borra datos existentes; la cuenta deja de persistir nuevos datos y el resto de la experiencia se oculta o se omite.
+
 ### 2026-09-21 — Políticas e información al cliente
 
 - La tienda consume `settings/store.legalConfig` y muestra “Políticas e información” en el pie únicamente cuando existe al menos un aviso activo.
