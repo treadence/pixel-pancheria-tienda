@@ -10,6 +10,12 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 
 ## Registro de cambios
 
+### 2026-09-21 — Políticas e información al cliente
+
+- La tienda consume `settings/store.legalConfig` y muestra “Políticas e información” en el pie únicamente cuando existe al menos un aviso activo.
+- El contenido se abre dentro de la tienda, admite saltos de línea y escapa el texto antes de mostrarlo.
+- Los avisos comienzan desactivados para evitar publicar condiciones legales no revisadas por el comercio.
+
 ### 2026-09-21 — Checkout configurable en tiempo real
 
 - El checkout consume `settings/store.checkoutConfig`: pedido mínimo y medios de pago habilitados según delivery o retiro.

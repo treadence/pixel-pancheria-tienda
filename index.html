@@ -3300,6 +3300,13 @@
     </div>
   </div>
 
+  <div class="product-overlay mini" id="policiesOverlay" onclick="closePolicies(event)">
+    <div class="product-modal" onclick="event.stopPropagation()">
+      <button class="close-btn" onclick="closePolicies()">X</button>
+      <div id="policiesBody"></div>
+    </div>
+  </div>
+
   <div class="customer-setup-overlay" id="customerSetupOverlay">
     <div class="customer-setup-card">
       <button type="button" class="customer-setup-close" onclick="closeCustomerSetup()" aria-label="Cerrar">X</button>
@@ -4482,7 +4489,13 @@
       },
       version: 1
     });
-    window.storeSettings = { open: _openByDefault, schedule: null, deliveryConfig: { ...DEFAULT_DELIVERY_CONFIG }, businessConfig: { ...DEFAULT_BUSINESS_CONFIG }, checkoutConfig: { ...DEFAULT_CHECKOUT_CONFIG, payments: { delivery: { ...DEFAULT_CHECKOUT_CONFIG.payments.delivery }, pickup: { ...DEFAULT_CHECKOUT_CONFIG.payments.pickup } } } };
+    const DEFAULT_LEGAL_CONFIG = Object.freeze({
+      cancellation: { enabled: false, text: '' }, delivery: { enabled: false, text: '' },
+      allergens: { enabled: false, text: '' }, returns: { enabled: false, text: '' },
+      privacy: { enabled: false, text: '' }, legal: { enabled: false, legalName: '', taxId: '', text: '' },
+      version: 1
+    });
+    window.storeSettings = { open: _openByDefault, schedule: null, deliveryConfig: { ...DEFAULT_DELIVERY_CONFIG }, businessConfig: { ...DEFAULT_BUSINESS_CONFIG }, checkoutConfig: { ...DEFAULT_CHECKOUT_CONFIG, payments: { delivery: { ...DEFAULT_CHECKOUT_CONFIG.payments.delivery }, pickup: { ...DEFAULT_CHECKOUT_CONFIG.payments.pickup } } }, legalConfig: { ...DEFAULT_LEGAL_CONFIG } };
     window.getDeliveryConfig = () => ({ ...DEFAULT_DELIVERY_CONFIG, ...((window.storeSettings || {}).deliveryConfig || {}) });
     window.getBusinessConfig = () => ({ ...DEFAULT_BUSINESS_CONFIG, ...((window.storeSettings || {}).businessConfig || {}) });
     window.getCheckoutConfig = () => {
@@ -4494,6 +4507,18 @@
           delivery: { ...DEFAULT_CHECKOUT_CONFIG.payments.delivery, ...(payments.delivery || {}) },
           pickup: { ...DEFAULT_CHECKOUT_CONFIG.payments.pickup, ...(payments.pickup || {}) }
         }
+      };
+    };
+    window.getLegalConfig = () => {
+      const saved = (window.storeSettings || {}).legalConfig || {};
+      return {
+        ...DEFAULT_LEGAL_CONFIG, ...saved,
+        cancellation: { ...DEFAULT_LEGAL_CONFIG.cancellation, ...(saved.cancellation || {}) },
+        delivery: { ...DEFAULT_LEGAL_CONFIG.delivery, ...(saved.delivery || {}) },
+        allergens: { ...DEFAULT_LEGAL_CONFIG.allergens, ...(saved.allergens || {}) },
+        returns: { ...DEFAULT_LEGAL_CONFIG.returns, ...(saved.returns || {}) },
+        privacy: { ...DEFAULT_LEGAL_CONFIG.privacy, ...(saved.privacy || {}) },
+        legal: { ...DEFAULT_LEGAL_CONFIG.legal, ...(saved.legal || {}) }
       };
     };
     if (!_openByDefault) updateStoreStatus();
@@ -4689,6 +4714,8 @@
 
     function renderProductCards() {
       const business = window.getBusinessConfig();
+      const legal = window.getLegalConfig();
+      const hasPolicies = ['cancellation', 'delivery', 'allergens', 'returns', 'privacy', 'legal'].some(key => legal[key] && legal[key].enabled);
       // Limpiar main antes de re-renderear (evita duplicados al actualizar)
       main.innerHTML = '';
 
@@ -4744,6 +4771,7 @@
         <div style="margin-top:14px;">
           <a href="${businessEscape(business.instagramUrl)}" target="_blank" rel="noopener" aria-label="${businessEscape(business.businessName)} en Instagram" style="display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 12px;color:var(--neon-pink);text-decoration:none;font-family:'Press Start 2P',monospace;font-size:9px;border:2px solid var(--neon-pink);">◎ ${businessEscape(String(business.instagramHandle).toUpperCase())}</a>
         </div>
+        ${hasPolicies ? `<div style="margin-top:12px;"><button type="button" onclick="openPolicies()" style="background:transparent;border:0;color:#c9b8e6;text-decoration:underline;font-family:'VT323',monospace;font-size:18px;cursor:pointer;min-height:44px;">Políticas e información</button></div>` : ''}
         <div style="margin-top:12px;">
           <a href="${businessEscape(business.developerUrl || ('https://wa.me/' + business.developerWhatsapp))}" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-decoration:none;font-family:'VT323',monospace;font-size:16px;">
             desarrollado con &lt;3 by ${businessEscape(business.developerName)} · contactate
@@ -4757,6 +4785,32 @@
 
     window.renderProductCards = renderProductCards;
     renderProductCards();
+
+    window.openPolicies = function() {
+      const cfg = window.getLegalConfig();
+      const definitions = [
+        ['cancellation', 'Cancelación de pedidos'], ['delivery', 'Delivery y retiro'],
+        ['allergens', 'Alérgenos y contaminación cruzada'], ['returns', 'Cambios y devoluciones'],
+        ['privacy', 'Privacidad']
+      ];
+      const sections = definitions.filter(([key]) => cfg[key].enabled).map(([key, title]) => `
+        <section style="border-top:1px solid rgba(255,255,255,.14);padding:16px 0;">
+          <h3 style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--neon-yellow);line-height:1.5;margin:0 0 8px;">${title}</h3>
+          <p style="font-family:'VT323',monospace;font-size:20px;color:#c9b8e6;line-height:1.35;white-space:pre-wrap;margin:0;">${businessEscape(cfg[key].text)}</p>
+        </section>`);
+      if (cfg.legal.enabled) sections.push(`
+        <section style="border-top:1px solid rgba(255,255,255,.14);padding:16px 0;">
+          <h3 style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--neon-yellow);line-height:1.5;margin:0 0 8px;">Información legal o fiscal</h3>
+          <p style="font-family:'VT323',monospace;font-size:20px;color:#c9b8e6;line-height:1.35;white-space:pre-wrap;margin:0;"><strong>${businessEscape(cfg.legal.legalName)}</strong><br>CUIT / ID fiscal: ${businessEscape(cfg.legal.taxId)}${cfg.legal.text ? '<br>' + businessEscape(cfg.legal.text) : ''}</p>
+        </section>`);
+      const body = document.getElementById('policiesBody');
+      if (body) body.innerHTML = `<div style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--neon-cyan);line-height:1.5;margin:8px 34px 14px 0;">POLÍTICAS E INFORMACIÓN</div>${sections.join('')}`;
+      document.getElementById('policiesOverlay').classList.add('open');
+    };
+    window.closePolicies = function(event) {
+      if (event && event.target && event.target.id !== 'policiesOverlay') return;
+      document.getElementById('policiesOverlay').classList.remove('open');
+    };
 
     // ====== CART LOGIC ======
     function findItem(id) {
