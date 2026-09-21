@@ -15,6 +15,7 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 - La tienda consume `settings/store.legalConfig` y muestra “Políticas e información” en el pie únicamente cuando existe al menos un aviso activo.
 - El contenido se abre dentro de la tienda, admite saltos de línea y escapa el texto antes de mostrarlo.
 - Los avisos comienzan desactivados para evitar publicar condiciones legales no revisadas por el comercio.
+- Se incluyen textos iniciales editables basados en operación gastronómica, protección de datos y advertencia de contacto cruzado; los datos fiscales requieren carga manual.
 
 ### 2026-09-21 — Checkout configurable en tiempo real
 

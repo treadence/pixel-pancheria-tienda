@@ -4490,9 +4490,12 @@
       version: 1
     });
     const DEFAULT_LEGAL_CONFIG = Object.freeze({
-      cancellation: { enabled: false, text: '' }, delivery: { enabled: false, text: '' },
-      allergens: { enabled: false, text: '' }, returns: { enabled: false, text: '' },
-      privacy: { enabled: false, text: '' }, legal: { enabled: false, legalName: '', taxId: '', text: '' },
+      cancellation: { enabled: false, text: 'Si necesitás cancelar o modificar tu pedido, comunicate cuanto antes con el WhatsApp del local. Si la preparación todavía no comenzó, intentaremos resolver la cancelación de inmediato. Si ya está en preparación, evaluaremos el caso según su estado. Esto no limita los derechos que te correspondan como consumidor.' },
+      delivery: { enabled: false, text: 'Los tiempos informados son estimados y pueden variar por demanda, clima, tránsito o disponibilidad. Verificá que la dirección y las referencias sean correctas antes de confirmar. Para retiro, esperá la notificación de pedido listo antes de acercarte al local.' },
+      allergens: { enabled: false, text: 'Elaboramos nuestros productos en una cocina donde se manipulan trigo, leche, huevo, soja y otros posibles alérgenos. Aunque aplicamos medidas de higiene, puede existir contacto cruzado. Si tenés una alergia o intolerancia alimentaria, consultanos antes de realizar el pedido para revisar ingredientes y preparación.' },
+      returns: { enabled: false, text: 'Si recibiste un producto equivocado, incompleto o en condiciones inadecuadas, comunicate con el local lo antes posible indicando el número de pedido y, si podés, adjuntando una foto. Revisaremos el caso para ofrecer la solución que corresponda. Esto no limita los derechos establecidos por la normativa de defensa del consumidor.' },
+      privacy: { enabled: false, text: 'Usamos tu nombre, teléfono, dirección y datos del pedido para gestionar la compra, realizar la entrega, brindar seguimiento y atención, y administrar beneficios de fidelidad cuando correspondan. No vendemos tus datos. Podés solicitar acceso, actualización, rectificación o supresión comunicándote con el WhatsApp del local, salvo cuando exista una obligación legal de conservarlos.' },
+      legal: { enabled: false, legalName: '', taxId: '', text: '' },
       version: 1
     });
     window.storeSettings = { open: _openByDefault, schedule: null, deliveryConfig: { ...DEFAULT_DELIVERY_CONFIG }, businessConfig: { ...DEFAULT_BUSINESS_CONFIG }, checkoutConfig: { ...DEFAULT_CHECKOUT_CONFIG, payments: { delivery: { ...DEFAULT_CHECKOUT_CONFIG.payments.delivery }, pickup: { ...DEFAULT_CHECKOUT_CONFIG.payments.pickup } } }, legalConfig: { ...DEFAULT_LEGAL_CONFIG } };
