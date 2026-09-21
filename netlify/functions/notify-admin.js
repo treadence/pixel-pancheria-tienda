@@ -15,7 +15,12 @@ function response(statusCode, body) {
   return { statusCode, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
 }
 
-async function notifyOrder(orderId) {
+function deviceAccepts(device, eventType) {
+  const preferences = (device && device.preferences) || {};
+  return Boolean(device && device.token && device.enabled !== false && preferences[eventType] !== false);
+}
+
+async function notifyOrder(orderId, requestedEventType) {
   const db = initAdmin();
   const ref = db.doc('orders/' + orderId);
   const claimed = await db.runTransaction(async tx => {
@@ -28,15 +33,21 @@ async function notifyOrder(orderId) {
   });
   if (!claimed) return { sent: false, reason: 'pedido inexistente, no recibido o ya avisado' };
 
+  const eventType = requestedEventType || (claimed.awaitingTransfer ? 'transferPending' : claimed.paidVia === 'mercadopago' ? 'paymentApproved' : 'newOrder');
   const tokensSnap = await db.collection('adminPushTokens').get();
-  const tokens = [...new Set(tokensSnap.docs.map(d => d.data().token).filter(Boolean))].slice(0, 500);
+  const tokens = [...new Set(tokensSnap.docs.map(d => d.data()).filter(device => deviceAccepts(device, eventType)).map(device => device.token))].slice(0, 500);
   if (!tokens.length) return { sent: false, reason: 'no hay celulares registrados' };
 
   const total = Number(claimed.total) || 0;
+  const titles = {
+    newOrder: '🌭 ¡Nuevo pedido!',
+    paymentApproved: '💳 ¡Pago aprobado!',
+    transferPending: '📲 Transferencia pendiente'
+  };
   const result = await fbadmin.messaging().sendEachForMulticast({
     tokens,
     data: {
-      title: '🌭 ¡Nuevo pedido!',
+      title: titles[eventType] || titles.newOrder,
       body: `${claimed.customer || 'Cliente'} · $${total.toLocaleString('es-AR')} · ${claimed.delivery || 'Pedido web'}`,
       icon: '/icon-192.png',
       url: '/index.html',
@@ -51,6 +62,7 @@ async function notifyOrder(orderId) {
 }
 
 exports.notifyOrder = notifyOrder;
+exports._test = { deviceAccepts };
 exports.handler = async event => {
   if (event.httpMethod !== 'POST') return response(405, { error: 'POST only' });
   let orderId = '';

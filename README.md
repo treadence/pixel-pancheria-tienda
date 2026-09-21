@@ -10,6 +10,12 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 
 ## Registro de cambios
 
+### 2026-09-21 — Push filtrado por dispositivo
+
+- `notify-admin` respeta la pausa general y las preferencias de cada token registrado.
+- Distingue pedidos nuevos, transferencias pendientes y pagos aprobados por Mercado Pago; los tokens anteriores mantienen todos los avisos activos por compatibilidad.
+- Se agregó una prueba automática para el filtrado y exclusión de dispositivos pausados.
+
 ### 2026-09-21 — Funciones activables sin deploy
 
 - La tienda consume `settings/store.featureConfig` para mostrar o pausar coins, cupones, upsell, cuenta/direcciones, feedback, destacados y el atajo de seguimiento.

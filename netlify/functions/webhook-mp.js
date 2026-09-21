@@ -193,7 +193,7 @@ exports.handler = async (event) => {
     }
     await fsPatch('orders/' + orderId, patch);
     if (order.status === 'pending_payment') {
-      try { await notifyAdminOrder(String(orderId)); }
+      try { await notifyAdminOrder(String(orderId), 'paymentApproved'); }
       catch (e) { console.error('No se pudo avisar el pedido MP al admin:', e.message); }
     }
     return ok(headers);
