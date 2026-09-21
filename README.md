@@ -10,6 +10,12 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 
 ## Registro de cambios
 
+### 2026-09-21 — Checkout configurable en tiempo real
+
+- El checkout consume `settings/store.checkoutConfig`: pausa general, pedido mínimo y medios de pago habilitados según delivery o retiro.
+- Si está habilitado, el pago en efectivo permite indicar con cuánto paga el cliente y calcula el cambio para el local.
+- La función `crear-pago` vuelve a validar que Mercado Pago, el checkout y el mínimo sigan habilitados antes de crear una preferencia.
+
 ### 2026-09-20 — Datos del negocio en vivo
 
 - Nombre comercial, WhatsApp, Instagram, transferencia y contacto del desarrollador ahora provienen de `settings/store.businessConfig` con los valores anteriores como respaldo.

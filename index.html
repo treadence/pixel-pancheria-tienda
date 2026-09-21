@@ -4474,9 +4474,29 @@
       developerUrl: 'https://wa.me/5491167920464',
       developerWhatsapp: '5491167920464'
     });
-    window.storeSettings = { open: _openByDefault, schedule: null, deliveryConfig: { ...DEFAULT_DELIVERY_CONFIG }, businessConfig: { ...DEFAULT_BUSINESS_CONFIG } };
+    const DEFAULT_CHECKOUT_CONFIG = Object.freeze({
+      enabled: true, minimumOrder: 0, cashChangeEnabled: true,
+      disabledMessage: 'Los pedidos online están pausados temporalmente. Volvé a intentar en unos minutos.',
+      payments: {
+        delivery: { efectivo: true, transferencia: true, mercadopago: true },
+        pickup: { efectivo: true, transferencia: true, mercadopago: true }
+      },
+      version: 1
+    });
+    window.storeSettings = { open: _openByDefault, schedule: null, deliveryConfig: { ...DEFAULT_DELIVERY_CONFIG }, businessConfig: { ...DEFAULT_BUSINESS_CONFIG }, checkoutConfig: { ...DEFAULT_CHECKOUT_CONFIG, payments: { delivery: { ...DEFAULT_CHECKOUT_CONFIG.payments.delivery }, pickup: { ...DEFAULT_CHECKOUT_CONFIG.payments.pickup } } } };
     window.getDeliveryConfig = () => ({ ...DEFAULT_DELIVERY_CONFIG, ...((window.storeSettings || {}).deliveryConfig || {}) });
     window.getBusinessConfig = () => ({ ...DEFAULT_BUSINESS_CONFIG, ...((window.storeSettings || {}).businessConfig || {}) });
+    window.getCheckoutConfig = () => {
+      const saved = (window.storeSettings || {}).checkoutConfig || {};
+      const payments = saved.payments || {};
+      return {
+        ...DEFAULT_CHECKOUT_CONFIG, ...saved,
+        payments: {
+          delivery: { ...DEFAULT_CHECKOUT_CONFIG.payments.delivery, ...(payments.delivery || {}) },
+          pickup: { ...DEFAULT_CHECKOUT_CONFIG.payments.pickup, ...(payments.pickup || {}) }
+        }
+      };
+    };
     if (!_openByDefault) updateStoreStatus();
 
     setTimeout(() => document.getElementById('loadingScreen').classList.add('hidden'), 4000);
@@ -4489,6 +4509,7 @@
       if (typeof window.updateStoreStatus === 'function') window.updateStoreStatus();
       // La promo de "Menú completo" vive en settings; re-renderizar las cards para que muestren el badge/precio
       if (typeof window.renderProductCards === 'function') window.renderProductCards();
+      if (typeof window.updateCartPaymentOptions === 'function') window.updateCartPaymentOptions();
       if (typeof window.updateCartTotals === 'function') window.updateCartTotals();
       if (typeof window.applyDeliveryConfig === 'function') window.applyDeliveryConfig();
       if (typeof window.applyBusinessConfig === 'function') window.applyBusinessConfig();
@@ -5693,7 +5714,7 @@
     function refreshCartKeepingForm() {
       const ov = document.getElementById('cartOverlay');
       if (!ov || !ov.classList.contains('open')) return;
-      const ids = ['fName', 'fPhone', 'fAddress', 'fAddressUnit', 'fAddressRef', 'fNotes', 'fPay', 'fCoupon'];
+      const ids = ['fName', 'fPhone', 'fAddress', 'fAddressUnit', 'fAddressRef', 'fNotes', 'fPay', 'fCashAmount', 'fCoupon'];
       const snap = {};
       ids.forEach(id => { const el = document.getElementById(id); if (el) snap[id] = el.value; });
       renderCart();
@@ -5930,6 +5951,11 @@
           <option value="efectivo" data-surcharge="0">Efectivo (al recibir)</option>
           <option value="transferencia" data-surcharge="0">Transferencia</option>
         </select>
+      </div>
+      <div class="form-field" id="cashChangeField" style="display:none;">
+        <label>¿CON CUÁNTO PAGÁS? (opcional)</label>
+        <input type="number" id="fCashAmount" min="0" step="100" placeholder="Ej: 20000">
+        <small style="color:var(--text-soft);">Lo usamos para llevarte el cambio correcto.</small>
       </div>
       <div class="form-field">
         <label>NOTAS DEL PEDIDO</label>
@@ -6569,6 +6595,26 @@
     // 'pickup'   = retiro en el local: envío $0, sin dirección y SIN sistema de
     //              coins (no suma ni permite canjear recompensas).
     window.deliveryMode = 'delivery';
+    const CHECKOUT_PAYMENT_META = {
+      mercadopago: { label: '💳 Mercado Pago (pago online)', surcharge: 0 },
+      efectivo: { label: 'Efectivo (al recibir)', surcharge: 0 },
+      transferencia: { label: 'Transferencia', surcharge: 0 }
+    };
+    window.updateCartPaymentOptions = function() {
+      const select = document.getElementById('fPay');
+      if (!select) return;
+      const previous = select.value;
+      const cfg = window.getCheckoutConfig();
+      const mode = window.deliveryMode === 'pickup' ? 'pickup' : 'delivery';
+      const allowed = cfg.payments[mode] || {};
+      const methods = ['mercadopago', 'efectivo', 'transferencia'].filter(code => allowed[code] !== false);
+      select.innerHTML = methods.map(code => {
+        const meta = CHECKOUT_PAYMENT_META[code];
+        return `<option value="${code}" data-surcharge="${meta.surcharge}">${meta.label}</option>`;
+      }).join('');
+      if (methods.includes(previous)) select.value = previous;
+      select.disabled = methods.length === 0;
+    };
     window.applyDeliveryModeAvailability = function() {
       const cfg = window.getDeliveryConfig();
       const controls = [
@@ -6603,6 +6649,7 @@
       if (delFields) delFields.style.display = isPickup ? 'none' : '';
       if (pickInfo) pickInfo.style.display = isPickup ? 'block' : 'none';
 
+      window.updateCartPaymentOptions();
       updateCartTotals();
       if (window.cuenta) {
         window.cuenta.preferredDeliveryMode = window.deliveryMode;
@@ -6621,6 +6668,10 @@
       const paySelect = document.getElementById('fPay');
       const breakdown = document.getElementById('totalBreakdown');
       if (!paySelect || !breakdown) return;
+      const checkoutCfg = window.getCheckoutConfig();
+      const selectedPayment = paySelect.value;
+      const cashChangeField = document.getElementById('cashChangeField');
+      if (cashChangeField) cashChangeField.style.display = selectedPayment === 'efectivo' && checkoutCfg.cashChangeEnabled ? '' : 'none';
 
       // Texto del botón según método: MP paga online; efectivo/transferencia
       // confirman el pedido y van al seguimiento
@@ -6638,7 +6689,7 @@
       const shippingLabel = shipping.label;
       const shippingColor = shipping.color;
 
-      const surchargePct = parseInt(paySelect.selectedOptions[0].dataset.surcharge || '0');
+      const surchargePct = parseInt((paySelect.selectedOptions[0] && paySelect.selectedOptions[0].dataset.surcharge) || '0');
 
       // Ahorro total por promos (sobre cada item del carrito)
       const promoSavings = Object.values(cart).reduce((s, c) => s + promoDiscountForItem(c), 0);
@@ -6650,6 +6701,7 @@
       const beforeSurcharge = subtotalAfterDiscount + shippingCost;
       const surchargeAmount = Math.round(beforeSurcharge * surchargePct / 100);
       const finalTotal = beforeSurcharge + surchargeAmount;
+      const merchandiseTotal = subtotalAfterDiscount;
 
       // Si no hay nada que cobrar (total $0 por recompensa/promo), aunque el
       // método sea Mercado Pago el pedido se confirma directo: el botón lo refleja.
@@ -6708,12 +6760,27 @@
         html += `<div style="font-size:14px;color:var(--neon-cyan);text-align:center;padding:8px 4px 0;">⌛ Verificando cobertura…</div>`;
       }
 
+      if (!checkoutCfg.enabled) {
+        html += `<div style="font-size:15px;color:var(--neon-orange);text-align:center;padding:10px 4px 0;line-height:1.4;">⚠ ${businessEscape(checkoutCfg.disabledMessage)}</div>`;
+      } else if (Number(checkoutCfg.minimumOrder) > merchandiseTotal) {
+        const missing = Number(checkoutCfg.minimumOrder) - merchandiseTotal;
+        html += `<div style="font-size:15px;color:var(--neon-orange);text-align:center;padding:10px 4px 0;line-height:1.4;">Pedido mínimo: $${Number(checkoutCfg.minimumOrder).toLocaleString('es-AR')} · faltan $${missing.toLocaleString('es-AR')}</div>`;
+      } else if (!paySelect.value) {
+        html += `<div style="font-size:15px;color:var(--neon-orange);text-align:center;padding:10px 4px 0;">No hay medios de pago disponibles para esta modalidad.</div>`;
+      }
+
       if (sendBtn && !isPickup && !shipping.eligible) sendBtn.disabled = true;
       else if (sendBtn) sendBtn.disabled = false;
       const deliveryCfg = window.getDeliveryConfig();
       if (sendBtn && !deliveryCfg.deliveryEnabled && !deliveryCfg.pickupEnabled) {
         sendBtn.disabled = true;
         sendBtn.textContent = 'PEDIDOS TEMPORALMENTE PAUSADOS';
+      }
+      if (sendBtn && (!checkoutCfg.enabled || Number(checkoutCfg.minimumOrder) > merchandiseTotal || !paySelect.value)) {
+        sendBtn.disabled = true;
+        if (!checkoutCfg.enabled) sendBtn.textContent = 'CHECKOUT TEMPORALMENTE PAUSADO';
+        else if (!paySelect.value) sendBtn.textContent = 'SIN MEDIOS DE PAGO DISPONIBLES';
+        else sendBtn.textContent = `PEDIDO MÍNIMO $${Number(checkoutCfg.minimumOrder).toLocaleString('es-AR')}`;
       }
 
       // Coins que suma esta compra (según la tasa configurada en el admin)
@@ -7636,9 +7703,12 @@
       const name = document.getElementById('fName').value.trim();
       const phone = normPhoneL(document.getElementById('fPhone').value); // digitos: match con loyalty/{phone} y esTelefono en las reglas
       const paySelect = document.getElementById('fPay');
+      const checkoutCfg = window.getCheckoutConfig();
       const payCode = paySelect.value;
-      const payLabel = paySelect.selectedOptions[0].textContent.replace(/\s*\(.*?\)/, '').trim();
-      const surchargePct = parseInt(paySelect.selectedOptions[0].dataset.surcharge || '0');
+      const selectedPayOption = paySelect.selectedOptions[0];
+      const payLabel = selectedPayOption ? selectedPayOption.textContent.replace(/\s*\(.*?\)/, '').trim() : '';
+      const surchargePct = parseInt((selectedPayOption && selectedPayOption.dataset.surcharge) || '0');
+      const cashTendered = Number((document.getElementById('fCashAmount') || {}).value) || 0;
       const address = document.getElementById('fAddress').value.trim();
       const addressUnit = document.getElementById('fAddressUnit').value.trim();
       const addressRef = document.getElementById('fAddressRef').value.trim();
@@ -7646,6 +7716,20 @@
 
       const isPickup = window.deliveryMode === 'pickup';
       const deliveryCfg = window.getDeliveryConfig();
+      const checkoutMode = isPickup ? 'pickup' : 'delivery';
+
+      if (!checkoutCfg.enabled) {
+        sendGa4CheckoutError('checkout_disabled');
+        alert('⚠ ' + checkoutCfg.disabledMessage);
+        return;
+      }
+      if (!payCode || !checkoutCfg.payments[checkoutMode] || checkoutCfg.payments[checkoutMode][payCode] === false) {
+        sendGa4CheckoutError('payment_method_disabled');
+        alert('⚠ Ese medio de pago ya no está disponible. Elegí otra opción para continuar.');
+        window.updateCartPaymentOptions();
+        updateCartTotals();
+        return;
+      }
 
       if ((!deliveryCfg.deliveryEnabled && !deliveryCfg.pickupEnabled)
           || (!isPickup && !deliveryCfg.deliveryEnabled)
@@ -7735,6 +7819,17 @@
       const beforeSurcharge = subtotalAfterDiscount + shippingCost;
       const surchargeAmount = Math.round(beforeSurcharge * surchargePct / 100);
       const finalTotal = beforeSurcharge + surchargeAmount;
+      const minimumOrder = Math.max(0, Number(checkoutCfg.minimumOrder) || 0);
+      if (subtotalAfterDiscount < minimumOrder) {
+        sendGa4CheckoutError('minimum_order');
+        alert(`⚠ El pedido mínimo es de $${minimumOrder.toLocaleString('es-AR')}. Te faltan $${(minimumOrder - subtotalAfterDiscount).toLocaleString('es-AR')} en productos.`);
+        return;
+      }
+      if (payCode === 'efectivo' && checkoutCfg.cashChangeEnabled && cashTendered > 0 && cashTendered < finalTotal) {
+        sendGa4CheckoutError('cash_tendered_too_low');
+        alert('⚠ El importe en efectivo no puede ser menor al total del pedido.');
+        return;
+      }
 
       // Construir items estructurados para Firebase (sin funciones ni campos innecesarios)
       const itemsForFirebase = entries.map(([, c]) => {
@@ -7856,9 +7951,14 @@
         notes: notes || '',
         items: itemsForFirebase,
         total: finalTotal,
+        checkoutConfigVersion: Number(checkoutCfg.version) || 1,
         status: 'pending',
         source: 'web'
       };
+      if (payCode === 'efectivo' && checkoutCfg.cashChangeEnabled && cashTendered > 0) {
+        firebaseOrder.cashTendered = cashTendered;
+        firebaseOrder.cashChangeDue = Math.max(0, cashTendered - finalTotal);
+      }
 
       sendGa4Event('add_shipping_info', {
         currency: 'ARS',

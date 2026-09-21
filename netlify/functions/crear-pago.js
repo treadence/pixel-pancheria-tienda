@@ -15,6 +15,14 @@ const DEFAULT_PAYMENT_CONFIG = Object.freeze({
   paymentTitle: 'Pedido Pixel Panchería',
   paymentDescriptor: 'PIXEL PANCHERIA'
 });
+const DEFAULT_CHECKOUT_CONFIG = Object.freeze({
+  enabled: true,
+  minimumOrder: 0,
+  payments: {
+    delivery: { mercadopago: true },
+    pickup: { mercadopago: true }
+  }
+});
 
 function paymentConfig(store) {
   const source = store && store.businessConfig && typeof store.businessConfig === 'object' ? store.businessConfig : {};
@@ -25,6 +33,27 @@ function paymentConfig(store) {
     paymentTitle: title || DEFAULT_PAYMENT_CONFIG.paymentTitle,
     paymentDescriptor: descriptor || DEFAULT_PAYMENT_CONFIG.paymentDescriptor
   };
+}
+
+function checkoutConfig(store) {
+  const source = store && store.checkoutConfig && typeof store.checkoutConfig === 'object' ? store.checkoutConfig : {};
+  const payments = source.payments && typeof source.payments === 'object' ? source.payments : {};
+  return {
+    enabled: source.enabled !== false,
+    minimumOrder: Math.max(0, Math.min(1000000, Math.round(Number(source.minimumOrder) || 0))),
+    payments: {
+      delivery: { ...DEFAULT_CHECKOUT_CONFIG.payments.delivery, ...(payments.delivery || {}) },
+      pickup: { ...DEFAULT_CHECKOUT_CONFIG.payments.pickup, ...(payments.pickup || {}) }
+    }
+  };
+}
+
+function orderMerchandiseTotal(order) {
+  const subtotal = Math.max(0, Number(order && order.subtotal) || 0);
+  const promo = Math.max(0, Number(order && order.promoSavings) || 0);
+  const coupon = Math.max(0, Number(order && order.coupon && order.coupon.discount) || 0);
+  const reward = Math.max(0, Number(order && order.redeemedReward && order.redeemedReward.discount) || 0);
+  return Math.max(0, subtotal - promo - coupon - reward);
 }
 
 // --- Decodificador REST de Firestore → objeto JS plano ---
@@ -83,6 +112,18 @@ exports.handler = async (event) => {
     return { statusCode: 409, headers, body: JSON.stringify({ error: 'El pedido no está pendiente de pago' }) };
   }
 
+  const checkout = checkoutConfig(store);
+  const mode = order.pickup === true ? 'pickup' : 'delivery';
+  if (!checkout.enabled) {
+    return { statusCode: 409, headers, body: JSON.stringify({ error: 'El checkout está pausado temporalmente' }) };
+  }
+  if (!checkout.payments[mode] || checkout.payments[mode].mercadopago === false) {
+    return { statusCode: 409, headers, body: JSON.stringify({ error: 'Mercado Pago no está disponible para esta modalidad' }) };
+  }
+  if (orderMerchandiseTotal(order) < checkout.minimumOrder) {
+    return { statusCode: 409, headers, body: JSON.stringify({ error: `El pedido mínimo es de $${checkout.minimumOrder}` }) };
+  }
+
   const total = Math.round(Number(order.total) || 0);
   if (!(total > 0)) return { statusCode: 400, headers, body: JSON.stringify({ error: 'Total inválido' }) };
 
@@ -124,4 +165,4 @@ exports.handler = async (event) => {
   }
 };
 
-exports._test = { paymentConfig, DEFAULT_PAYMENT_CONFIG };
+exports._test = { paymentConfig, checkoutConfig, orderMerchandiseTotal, DEFAULT_PAYMENT_CONFIG, DEFAULT_CHECKOUT_CONFIG };
