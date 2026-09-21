@@ -16,7 +16,6 @@ const DEFAULT_PAYMENT_CONFIG = Object.freeze({
   paymentDescriptor: 'PIXEL PANCHERIA'
 });
 const DEFAULT_CHECKOUT_CONFIG = Object.freeze({
-  enabled: true,
   minimumOrder: 0,
   payments: {
     delivery: { mercadopago: true },
@@ -39,7 +38,6 @@ function checkoutConfig(store) {
   const source = store && store.checkoutConfig && typeof store.checkoutConfig === 'object' ? store.checkoutConfig : {};
   const payments = source.payments && typeof source.payments === 'object' ? source.payments : {};
   return {
-    enabled: source.enabled !== false,
     minimumOrder: Math.max(0, Math.min(1000000, Math.round(Number(source.minimumOrder) || 0))),
     payments: {
       delivery: { ...DEFAULT_CHECKOUT_CONFIG.payments.delivery, ...(payments.delivery || {}) },
@@ -114,9 +112,6 @@ exports.handler = async (event) => {
 
   const checkout = checkoutConfig(store);
   const mode = order.pickup === true ? 'pickup' : 'delivery';
-  if (!checkout.enabled) {
-    return { statusCode: 409, headers, body: JSON.stringify({ error: 'El checkout está pausado temporalmente' }) };
-  }
   if (!checkout.payments[mode] || checkout.payments[mode].mercadopago === false) {
     return { statusCode: 409, headers, body: JSON.stringify({ error: 'Mercado Pago no está disponible para esta modalidad' }) };
   }

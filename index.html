@@ -4475,8 +4475,7 @@
       developerWhatsapp: '5491167920464'
     });
     const DEFAULT_CHECKOUT_CONFIG = Object.freeze({
-      enabled: true, minimumOrder: 0, cashChangeEnabled: true,
-      disabledMessage: 'Los pedidos online están pausados temporalmente. Volvé a intentar en unos minutos.',
+      minimumOrder: 0, cashChangeEnabled: true,
       payments: {
         delivery: { efectivo: true, transferencia: true, mercadopago: true },
         pickup: { efectivo: true, transferencia: true, mercadopago: true }
@@ -6760,9 +6759,7 @@
         html += `<div style="font-size:14px;color:var(--neon-cyan);text-align:center;padding:8px 4px 0;">⌛ Verificando cobertura…</div>`;
       }
 
-      if (!checkoutCfg.enabled) {
-        html += `<div style="font-size:15px;color:var(--neon-orange);text-align:center;padding:10px 4px 0;line-height:1.4;">⚠ ${businessEscape(checkoutCfg.disabledMessage)}</div>`;
-      } else if (Number(checkoutCfg.minimumOrder) > merchandiseTotal) {
+      if (Number(checkoutCfg.minimumOrder) > merchandiseTotal) {
         const missing = Number(checkoutCfg.minimumOrder) - merchandiseTotal;
         html += `<div style="font-size:15px;color:var(--neon-orange);text-align:center;padding:10px 4px 0;line-height:1.4;">Pedido mínimo: $${Number(checkoutCfg.minimumOrder).toLocaleString('es-AR')} · faltan $${missing.toLocaleString('es-AR')}</div>`;
       } else if (!paySelect.value) {
@@ -6776,10 +6773,9 @@
         sendBtn.disabled = true;
         sendBtn.textContent = 'PEDIDOS TEMPORALMENTE PAUSADOS';
       }
-      if (sendBtn && (!checkoutCfg.enabled || Number(checkoutCfg.minimumOrder) > merchandiseTotal || !paySelect.value)) {
+      if (sendBtn && (Number(checkoutCfg.minimumOrder) > merchandiseTotal || !paySelect.value)) {
         sendBtn.disabled = true;
-        if (!checkoutCfg.enabled) sendBtn.textContent = 'CHECKOUT TEMPORALMENTE PAUSADO';
-        else if (!paySelect.value) sendBtn.textContent = 'SIN MEDIOS DE PAGO DISPONIBLES';
+        if (!paySelect.value) sendBtn.textContent = 'SIN MEDIOS DE PAGO DISPONIBLES';
         else sendBtn.textContent = `PEDIDO MÍNIMO $${Number(checkoutCfg.minimumOrder).toLocaleString('es-AR')}`;
       }
 
@@ -7718,11 +7714,6 @@
       const deliveryCfg = window.getDeliveryConfig();
       const checkoutMode = isPickup ? 'pickup' : 'delivery';
 
-      if (!checkoutCfg.enabled) {
-        sendGa4CheckoutError('checkout_disabled');
-        alert('⚠ ' + checkoutCfg.disabledMessage);
-        return;
-      }
       if (!payCode || !checkoutCfg.payments[checkoutMode] || checkoutCfg.payments[checkoutMode][payCode] === false) {
         sendGa4CheckoutError('payment_method_disabled');
         alert('⚠ Ese medio de pago ya no está disponible. Elegí otra opción para continuar.');

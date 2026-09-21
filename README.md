@@ -12,7 +12,7 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 
 ### 2026-09-21 — Checkout configurable en tiempo real
 
-- El checkout consume `settings/store.checkoutConfig`: pausa general, pedido mínimo y medios de pago habilitados según delivery o retiro.
+- El checkout consume `settings/store.checkoutConfig`: pedido mínimo y medios de pago habilitados según delivery o retiro.
 - Si está habilitado, el pago en efectivo permite indicar con cuánto paga el cliente y calcula el cambio para el local.
 - La función `crear-pago` vuelve a validar que Mercado Pago, el checkout y el mínimo sigan habilitados antes de crear una preferencia.
 

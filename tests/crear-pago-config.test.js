@@ -13,15 +13,12 @@ assert.equal(custom.paymentDescriptor, 'PIXEL PANCHERIA 2026 D');
 assert.ok(custom.paymentDescriptor.length <= 22);
 
 const checkoutFallback = checkoutConfig(null);
-assert.equal(checkoutFallback.enabled, true);
 assert.equal(checkoutFallback.payments.delivery.mercadopago, true);
 
 const checkoutCustom = checkoutConfig({ checkoutConfig: {
-  enabled: false,
   minimumOrder: 12500,
   payments: { delivery: { mercadopago: false }, pickup: { mercadopago: true } }
 } });
-assert.equal(checkoutCustom.enabled, false);
 assert.equal(checkoutCustom.minimumOrder, 12500);
 assert.equal(checkoutCustom.payments.delivery.mercadopago, false);
 assert.equal(orderMerchandiseTotal({ subtotal: 20000, promoSavings: 2000, coupon: { discount: 1500 }, redeemedReward: { discount: 500 } }), 16000);
