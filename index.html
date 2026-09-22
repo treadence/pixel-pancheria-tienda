@@ -4474,6 +4474,8 @@
       const c = window.couponsMap[upper];
       if (!c) return { valid: false, reason: 'Cupón inválido' };
       if (c.active === false) return { valid: false, reason: 'Este cupón está desactivado' };
+      const customerPhone = (document.getElementById('fPhone')?.value || window.cuenta?.telefono || '').replace(/\D/g, '');
+      if (c.assignedCustomerHash && (!customerPhone || couponCustomerHash(customerPhone) !== c.assignedCustomerHash)) return { valid: false, reason: 'Este cupón pertenece a otro cliente' };
       const now = new Date();
       const starts = couponDate(c.startsAt);
       const ends = couponDate(c.endsAt || c.expiresAt);
@@ -4483,7 +4485,7 @@
       const channel = window.deliveryMode === 'pickup' ? 'pickup' : 'delivery';
       if (c.channels && c.channels[channel] === false) return { valid: false, reason: channel === 'pickup' ? 'Este cupón es solo para delivery' : 'Este cupón es solo para retiro' };
       if (c.maxUses && c.uses >= c.maxUses) return { valid: false, reason: 'Este cupón ya no está disponible' };
-      const phone = (document.getElementById('fPhone')?.value || window.cuenta?.telefono || '').replace(/\D/g, '');
+      const phone = customerPhone;
       if (c.maxUsesPerCustomer && phone) {
         const remoteUsed = Number((c.customerUses || {})[couponCustomerHash(phone)] || 0);
         const localUsed = Number(localStorage.getItem(couponCustomerKey(c.id, phone)) || 0);
@@ -7069,6 +7071,12 @@
       try { const snap = await getDoc(doc(db, 'loyalty', p)); return snap.exists() ? (Number(snap.data().coins) || 0) : 0; }
       catch (e) { console.warn('coins fetch', e); return 0; }
     }
+    async function fetchCustomerAccess(phone) {
+      const p = normPhoneL(phone);
+      if (!p) return { blocked: false };
+      try { const snap = await getDoc(doc(db, 'loyalty', p)); return snap.exists() ? snap.data() : { blocked: false }; }
+      catch (e) { console.warn('customer access fetch', e); return { blocked: false }; }
+    }
 
     window.upsertCuenta = async function(nombre, telefono, direccion, loc) {
       const p = normPhoneL(telefono);
@@ -7933,6 +7941,12 @@
 
       if (!name) { sendGa4CheckoutError('missing_name'); alert('⚠ Ingresá tu nombre'); return; }
       if (!phone) { sendGa4CheckoutError('missing_phone'); alert('⚠ Ingresá tu teléfono'); return; }
+      const customerAccess = await fetchCustomerAccess(phone);
+      if (customerAccess.blocked === true) {
+        sendGa4CheckoutError('customer_blocked');
+        alert('⚠ No podemos recibir este pedido automáticamente. Comunicate con el local para continuar.');
+        return;
+      }
 
       // En retiro en el local no hace falta dirección ni ubicación en el mapa.
       let loc = null;
