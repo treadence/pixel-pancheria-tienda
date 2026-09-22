@@ -10,6 +10,12 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 
 ## Registro de cambios
 
+### 2026-09-21 — Diagnóstico seguro para el panel
+
+- Se agregó una función autenticada que permite al panel comprobar Firestore, notificaciones, Mercado Pago, firma del webhook y Google Routes.
+- La respuesta expone únicamente estados disponibles/no disponibles; nunca devuelve credenciales ni sus valores.
+- Acepta el panel publicado y el servidor local del admin para poder validar antes de desplegar.
+
 ### 2026-09-21 — Push filtrado por dispositivo
 
 - `notify-admin` respeta la pausa general y las preferencias de cada token registrado.
