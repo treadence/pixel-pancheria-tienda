@@ -5901,7 +5901,9 @@
       const globalPct = (s.menuDiscountActive && s.menuDiscountPct > 0 && promotionWindowActive(s.menuDiscountStartsAt, s.menuDiscountEndsAt)) ? Number(s.menuDiscountPct) : 0;
       const overlay = (window.productsOverlay || {})[productId] || {};
       const prodPct = (overlay.discountActive && overlay.discountPct > 0 && promotionWindowActive(overlay.discountStartsAt, overlay.discountEndsAt)) ? Number(overlay.discountPct) : 0;
-      return Math.max(globalPct, prodPct); // gana el más alto, no se acumulan entre sí
+      const personal = window.customerBenefits?.personalDiscount || {};
+      const personalPct = (personal.active !== false && personal.pct > 0 && promotionWindowActive(personal.startsAt, personal.endsAt)) ? Number(personal.pct) : 0;
+      return Math.max(globalPct, prodPct, personalPct); // gana el más alto, no se acumulan entre sí
     }
     window.getProductDiscount = getProductDiscount;
 
@@ -7002,6 +7004,7 @@
       return { coinsPerPeso, rewards: rewards.filter(r => r.active !== false).sort((a, b) => a.coins - b.coins) };
     }
     window.cuenta = null;            // { nombre, telefono, direccion, coins }
+    window.customerBenefits = {};
     window.selectedReward = null;      // recompensa elegida (objeto completo) o null
     window.selectedRewardOptionIdx = 0; // para recompensas tipo 'choice'
     window.selectedRewardProductId = null; // producto elegido dentro de la opción (para 'category')
@@ -7071,6 +7074,21 @@
       try { const snap = await getDoc(doc(db, 'loyalty', p)); return snap.exists() ? (Number(snap.data().coins) || 0) : 0; }
       catch (e) { console.warn('coins fetch', e); return 0; }
     }
+    async function fetchCustomerProfile(phone) {
+      const p = normPhoneL(phone);
+      if (!p) return {};
+      try { const snap = await getDoc(doc(db, 'loyalty', p)); return snap.exists() ? snap.data() : {}; }
+      catch (e) { console.warn('customer profile fetch', e); return {}; }
+    }
+    async function refreshCustomerBenefits(phone) {
+      const profile = await fetchCustomerProfile(phone);
+      window.customerBenefits = { personalDiscount: profile.personalDiscount || null };
+      if (typeof renderProductCards === 'function') renderProductCards();
+      if (typeof renderCuentaBar === 'function') renderCuentaBar();
+      const cartOverlay = document.getElementById('cartOverlay');
+      if (cartOverlay?.classList.contains('open')) renderCart();
+      return profile;
+    }
     async function fetchCustomerAccess(phone) {
       const p = normPhoneL(phone);
       if (!p) return { blocked: false };
@@ -7108,6 +7126,7 @@
       };
       try { await setDoc(doc(db, 'loyalty', p), fbData, { merge: true }); }
       catch (e) { console.warn('cuenta save', e); }
+      await refreshCustomerBenefits(p);
     };
 
     // ---- Recompensas multi-nivel (canje de coins) ----
@@ -7194,6 +7213,9 @@
         const cfg = getLoyaltyConfig();
         const next = cfg.rewards.find(r => r.coins > coins);
         const alcanzadas = cfg.rewards.filter(r => coins >= r.coins).length;
+        const personal = window.customerBenefits?.personalDiscount || {};
+        const personalHtml = personal.active !== false && personal.pct > 0 && promotionWindowActive(personal.startsAt, personal.endsAt)
+          ? `<div style="margin-top:7px;color:#ffe14d;font-weight:800;">✨ Tenés ${Number(personal.pct)}% de descuento personal en todo el menú</div>` : '';
         let progresoHtml;
         if (next) {
           const prevThreshold = [...cfg.rewards].reverse().find(r => r.coins <= coins);
@@ -7215,6 +7237,7 @@
               <button type="button" class="account-summary-logout" onclick="cuentaLogout()">SALIR</button>
             </div>
             ${progresoHtml}
+            ${personalHtml}
           </div>`;
         bar.style.display = 'block';
       } else {
@@ -7303,6 +7326,7 @@
     window.cuentaLogout = function() {
       if (!confirm('¿Cerrar sesión de tu cuenta en este dispositivo?')) return;
       window.cuenta = null; window.selectedReward = null; window.selectedRewardOptionIdx = 0; window.selectedRewardProductId = null;
+      window.customerBenefits = {};
       selectedLocation = null; selectedDirId = null; window.deliveryMode = 'delivery';
       try { localStorage.removeItem(LOYALTY_KEY); } catch (e) {}
       renderCuentaBar();
@@ -7810,6 +7834,7 @@
       // Cartel de bienvenida con los coins cacheados (aparece al toque)
       setTimeout(showWelcomeToast, 600);
       fetchCoins(window.cuenta.telefono).then(c => { window.cuenta.coins = c; saveCuentaLocal(); renderCuentaBar(); });
+      refreshCustomerBenefits(window.cuenta.telefono);
     }
     if (!__trackId && (!window.cuenta ||
         ((window.cuenta.preferredDeliveryMode || 'delivery') === 'delivery' && !initialAddress))) {
@@ -8221,6 +8246,12 @@
       // Incluir ahorro total por promos si hubo
       if (promoSavings > 0) {
         firebaseOrder.promoSavings = promoSavings;
+        const personal = window.customerBenefits?.personalDiscount;
+        if (personal && personal.active !== false && promotionWindowActive(personal.startsAt, personal.endsAt)
+            && entries.some(([, item]) => getProductDiscount(item.item.id) === Number(personal.pct))) {
+          firebaseOrder.personalDiscountId = personal.id;
+          firebaseOrder.personalDiscountPct = Number(personal.pct) || 0;
+        }
       }
 
       // ── Mercado Pago: paga online, el pedido arranca al confirmarse el pago ──
