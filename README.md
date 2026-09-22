@@ -10,6 +10,12 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 
 ## Registro de cambios
 
+### 2026-09-22 — Disponibilidad por horario y pausas temporales
+
+- La tienda combina stock manual, agotamiento por receta, pausas con vencimiento y programación semanal antes de permitir una compra.
+- Productos y adicionales se actualizan en tiempo real y vuelven a evaluarse cada minuto al cambiar la franja horaria.
+- Una pausa vencida deja de bloquear inmediatamente aunque la reactivación del servidor tarde algunos minutos.
+
 ### 2026-09-21 — Diagnóstico seguro para el panel
 
 - Se agregó una función autenticada que permite al panel comprobar Firestore, notificaciones, Mercado Pago, firma del webhook y Google Routes.

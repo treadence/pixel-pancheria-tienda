@@ -3591,18 +3591,34 @@
     // Mapa de stock efectivo: combina el apagado manual del admin con el
     // agotamiento automático que provoca una receta sin materias primas.
     const stockMap = {};
+    const stockDetails = {};
 
     // Mapa de overrides de productos: { productId: { name?, desc?, price?, sprite? } }
     const productsOverlay = {};
 
     // Mapa de addons: { addonId: boolean (true = habilitado, false = deshabilitado) }
     const addonsMap = {};
+    const addonDetails = {};
+    function scheduledAvailability(data, now = new Date()) {
+      data=data||{}; const pauseMs=data.pauseUntil?new Date(data.pauseUntil).getTime():0;
+      const pauseActive=Number.isFinite(pauseMs)&&pauseMs>now.getTime(); const expiredPause=Number.isFinite(pauseMs)&&pauseMs>0&&pauseMs<=now.getTime();
+      const manualAvailable=data.available!==false||expiredPause; const schedule=data.availabilitySchedule||{}; let scheduleAllowed=true;
+      if(schedule.enabled){const days=Array.isArray(schedule.days)?schedule.days.map(Number):[];const minutes=now.getHours()*60+now.getMinutes();const toMin=value=>{const [h,m]=String(value||'').split(':').map(Number);return(h||0)*60+(m||0);};const start=toMin(schedule.start),end=toMin(schedule.end);scheduleAllowed=start<=end?(days.includes(now.getDay())&&minutes>=start&&minutes<end):((days.includes(now.getDay())&&minutes>=start)||(days.includes((now.getDay()+6)%7)&&minutes<end));}
+      return manualAvailable&&!pauseActive&&scheduleAllowed&&data.autoUnavailable!==true;
+    }
+    function refreshScheduledAvailability() {
+      Object.entries(stockDetails).forEach(([id,data])=>{stockMap[id]=scheduledAvailability(data);});
+      Object.entries(addonDetails).forEach(([id,data])=>{addonsMap[id]=scheduledAvailability({...data,available:data.enabled!==false});});
+      updateStockInUI();
+      if (window.currentProduct && typeof window.renderProductModal === 'function') window.renderProductModal();
+    }
 
     // Escucha cambios en tiempo real de la colección "stock"
     onSnapshot(collection(db, "stock"), (snapshot) => {
+      Object.keys(stockDetails).forEach(key=>delete stockDetails[key]); Object.keys(stockMap).forEach(key=>delete stockMap[key]);
       snapshot.forEach(doc => {
         const data = doc.data();
-        stockMap[doc.id] = data.available !== false && data.autoUnavailable !== true;
+        stockDetails[doc.id]=data; stockMap[doc.id] = scheduledAvailability(data);
       });
       updateStockInUI();
     });
@@ -3619,8 +3635,9 @@
 
     // Escucha cambios en tiempo real de la colección "addons"
     onSnapshot(collection(db, "addons"), (snapshot) => {
+      Object.keys(addonDetails).forEach(key=>delete addonDetails[key]); Object.keys(addonsMap).forEach(key=>delete addonsMap[key]);
       snapshot.forEach(doc => {
-        addonsMap[doc.id] = doc.data().enabled !== false;
+        const data=doc.data(); addonDetails[doc.id]=data; addonsMap[doc.id] = scheduledAvailability({...data,available:data.enabled!==false});
       });
       // Re-render del modal si está abierto
       if (window.currentProduct && typeof window.renderProductModal === 'function') {
@@ -4469,6 +4486,7 @@
       quoteMaxAgeMinutes: 360, estimatedCourierSpeedKmh: 25,
       streetDistanceFactor: 1.3, version: 1
     });
+    setInterval(refreshScheduledAvailability, 60000);
     const DEFAULT_BUSINESS_CONFIG = Object.freeze({
       businessName: 'Pixel Panchería',
       orderWhatsapp: '5491178257432',
