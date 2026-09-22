@@ -4442,6 +4442,31 @@
       });
     });
 
+    function couponDate(value) {
+      return value && value.toDate ? value.toDate() : (value ? new Date(value) : null);
+    }
+    function couponCustomerKey(couponId, phone) {
+      return `pixel_coupon_use_${couponId}_${String(phone || '').replace(/\D/g, '')}`;
+    }
+    function couponCustomerHash(phone) {
+      let hash = 2166136261;
+      const normalized = String(phone || '').replace(/\D/g, '');
+      for (let i = 0; i < normalized.length; i++) {
+        hash ^= normalized.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+      }
+      return 'p' + (hash >>> 0).toString(36);
+    }
+    function couponScheduleAvailable(c, now = new Date()) {
+      const schedule = c.schedule || {};
+      if (Array.isArray(schedule.days) && schedule.days.length && !schedule.days.includes(now.getDay())) return false;
+      if (!schedule.start || !schedule.end) return true;
+      const current = now.getHours() * 60 + now.getMinutes();
+      const toMinutes = value => { const [h, m] = value.split(':').map(Number); return h * 60 + m; };
+      const start = toMinutes(schedule.start), end = toMinutes(schedule.end);
+      return start <= end ? current >= start && current <= end : current >= start || current <= end;
+    }
+
     // Valida un cupón y devuelve {valid, reason, coupon}
     window.validateCoupon = function (code, subtotal) {
       if (!code) return { valid: false, reason: 'Ingresá un código' };
@@ -4449,11 +4474,22 @@
       const c = window.couponsMap[upper];
       if (!c) return { valid: false, reason: 'Cupón inválido' };
       if (c.active === false) return { valid: false, reason: 'Este cupón está desactivado' };
-      if (c.expiresAt) {
-        const exp = c.expiresAt.toDate ? c.expiresAt.toDate() : new Date(c.expiresAt);
-        if (new Date() > exp) return { valid: false, reason: 'Cupón vencido' };
-      }
+      const now = new Date();
+      const starts = couponDate(c.startsAt);
+      const ends = couponDate(c.endsAt || c.expiresAt);
+      if (starts && now < starts) return { valid: false, reason: `Disponible desde ${starts.toLocaleString('es-AR')}` };
+      if (ends && now > ends) return { valid: false, reason: 'Cupón vencido' };
+      if (!couponScheduleAvailable(c, now)) return { valid: false, reason: 'El cupón no está disponible en este día u horario' };
+      const channel = window.deliveryMode === 'pickup' ? 'pickup' : 'delivery';
+      if (c.channels && c.channels[channel] === false) return { valid: false, reason: channel === 'pickup' ? 'Este cupón es solo para delivery' : 'Este cupón es solo para retiro' };
       if (c.maxUses && c.uses >= c.maxUses) return { valid: false, reason: 'Este cupón ya no está disponible' };
+      const phone = (document.getElementById('fPhone')?.value || window.cuenta?.telefono || '').replace(/\D/g, '');
+      if (c.maxUsesPerCustomer && phone) {
+        const remoteUsed = Number((c.customerUses || {})[couponCustomerHash(phone)] || 0);
+        const localUsed = Number(localStorage.getItem(couponCustomerKey(c.id, phone)) || 0);
+        const used = Math.max(remoteUsed, localUsed);
+        if (used >= c.maxUsesPerCustomer) return { valid: false, reason: 'Ya alcanzaste el límite de usos de este cupón' };
+      }
       if (c.minOrder && subtotal < c.minOrder) {
         return { valid: false, reason: `Requiere un mínimo de $${c.minOrder.toLocaleString('es-AR')}` };
       }
@@ -4536,6 +4572,28 @@
           pickup: { ...DEFAULT_CHECKOUT_CONFIG.payments.pickup, ...(payments.pickup || {}) }
         }
       };
+    };
+
+    window.recordCouponUse = async (coupon) => {
+      if (!coupon?.id) return;
+      const phone = (document.getElementById('fPhone')?.value || window.cuenta?.telefono || '').replace(/\D/g, '');
+      try {
+        const ref = doc(db, 'coupons', coupon.id);
+        const snap = await getDoc(ref);
+        const current = snap.exists() ? snap.data() : {};
+        const update = { uses: Number(current.uses || 0) + 1 };
+        if (coupon.maxUsesPerCustomer && phone) {
+          const hash = couponCustomerHash(phone);
+          update.customerUses = { ...(current.customerUses || {}), [hash]: Number((current.customerUses || {})[hash] || 0) + 1 };
+        }
+        await setDoc(ref, update, { merge: true });
+      } catch (err) {
+        console.warn('No se pudo registrar el uso del cupón:', err);
+      }
+      if (coupon.maxUsesPerCustomer && phone) {
+        const key = couponCustomerKey(coupon.id, phone);
+        localStorage.setItem(key, String(Number(localStorage.getItem(key) || 0) + 1));
+      }
     };
     window.getLegalConfig = () => {
       const saved = (window.storeSettings || {}).legalConfig || {};
@@ -5829,12 +5887,18 @@
     });
 
     // ============== PROMOS (FASE 1) ==============
+    function promotionWindowActive(startsAt, endsAt, now = new Date()) {
+      const starts = startsAt ? new Date(startsAt) : null;
+      const ends = endsAt ? new Date(endsAt) : null;
+      return (!starts || Number.isNaN(starts.getTime()) || now >= starts)
+        && (!ends || Number.isNaN(ends.getTime()) || now <= ends);
+    }
     // Devuelve el % de descuento vigente para un producto (0 si no hay)
     function getProductDiscount(productId) {
       const s = window.storeSettings || {};
-      const globalPct = (s.menuDiscountActive && s.menuDiscountPct > 0) ? Number(s.menuDiscountPct) : 0;
+      const globalPct = (s.menuDiscountActive && s.menuDiscountPct > 0 && promotionWindowActive(s.menuDiscountStartsAt, s.menuDiscountEndsAt)) ? Number(s.menuDiscountPct) : 0;
       const overlay = (window.productsOverlay || {})[productId] || {};
-      const prodPct = (overlay.discountActive && overlay.discountPct > 0) ? Number(overlay.discountPct) : 0;
+      const prodPct = (overlay.discountActive && overlay.discountPct > 0 && promotionWindowActive(overlay.discountStartsAt, overlay.discountEndsAt)) ? Number(overlay.discountPct) : 0;
       return Math.max(globalPct, prodPct); // gana el más alto, no se acumulan entre sí
     }
     window.getProductDiscount = getProductDiscount;
@@ -6111,13 +6175,32 @@
 
     // Calcula totales con envío + recargo y actualiza el desglose del carrito
     // Calcula el descuento del cupón sobre el subtotal
+    function couponEligibleSubtotal(coupon, includeProductPromos) {
+      if (!coupon) return 0;
+      const targets = Array.isArray(coupon.targetProductIds) ? coupon.targetProductIds : [];
+      return Object.values(cart).reduce((sum, item) => {
+        if (targets.length && !targets.includes(item.item?.id)) return sum;
+        const raw = cartItemSubtotal(item);
+        return sum + (includeProductPromos ? raw - promoDiscountForItem(item) : raw);
+      }, 0);
+    }
     function calcDiscount(subtotal, coupon) {
       if (!coupon) return 0;
+      const eligible = couponEligibleSubtotal(coupon, coupon.stackable === true);
       if (coupon.type === 'percent') {
-        return Math.round(subtotal * (coupon.value / 100));
+        return Math.round(eligible * (coupon.value / 100));
       }
       if (coupon.type === 'fixed') {
-        return Math.min(coupon.value, subtotal); // no puede descontar más que el subtotal
+        return Math.min(coupon.value, eligible);
+      }
+      if (coupon.type === 'bogo') {
+        const targets = Array.isArray(coupon.targetProductIds) ? coupon.targetProductIds : [];
+        return Object.values(cart).reduce((sum, item) => {
+          if (!targets.includes(item.item?.id)) return sum;
+          const qty = Number(item.qty || item.quantity || 0);
+          const unit = Number(item.item?.price || 0);
+          return sum + Math.floor(qty / 2) * unit;
+        }, 0);
       }
       return 0;
     }
@@ -6777,7 +6860,7 @@
       const surchargePct = parseInt((paySelect.selectedOptions[0] && paySelect.selectedOptions[0].dataset.surcharge) || '0');
 
       // Ahorro total por promos (sobre cada item del carrito)
-      const promoSavings = Object.values(cart).reduce((s, c) => s + promoDiscountForItem(c), 0);
+      const promoSavings = activeCoupon && activeCoupon.stackable !== true ? 0 : Object.values(cart).reduce((s, c) => s + promoDiscountForItem(c), 0);
       const subtotalAfterPromo = subtotal - promoSavings;
       // Cupón se calcula sobre el subtotal YA rebajado por la promo
       const discount = calcDiscount(subtotalAfterPromo, activeCoupon);
@@ -7743,12 +7826,7 @@
         msg.style.color = 'var(--neon-red)';
         return;
       }
-      activeCoupon = {
-        code: code.toUpperCase(),
-        id: result.coupon.id,
-        type: result.coupon.type,
-        value: result.coupon.value
-      };
+      activeCoupon = { ...result.coupon, code: code.toUpperCase(), id: result.coupon.id };
       // Re-renderear carrito para que el input se deshabilite y cambie el botón
       renderCart();
     }
@@ -7776,6 +7854,7 @@
 
         const savedId = await window.saveOrderToFirebase(order, orderId);
         if (!savedId) throw new Error('no se pudo guardar el pedido');
+        if (activeCoupon) await window.recordCouponUse(activeCoupon);
 
         rememberTrackedOrder(orderId, 'pending_payment');
 
@@ -7924,7 +8003,17 @@
       }
 
       const subtotal = entries.reduce((s, [, c]) => s + cartItemSubtotal(c), 0);
-      const promoSavings = entries.reduce((s, [, c]) => s + promoDiscountForItem(c), 0);
+      if (activeCoupon) {
+        const latestCoupon = window.validateCoupon(activeCoupon.code, subtotal);
+        if (!latestCoupon.valid) {
+          alert('⚠ El cupón ya no se puede usar: ' + latestCoupon.reason);
+          activeCoupon = null;
+          renderCart();
+          return;
+        }
+        activeCoupon = { ...latestCoupon.coupon, code: activeCoupon.code, id: latestCoupon.coupon.id };
+      }
+      const promoSavings = activeCoupon && activeCoupon.stackable !== true ? 0 : entries.reduce((s, [, c]) => s + promoDiscountForItem(c), 0);
       const subtotalAfterPromo = subtotal - promoSavings;
       const discount = calcDiscount(subtotalAfterPromo, activeCoupon);
       const rewardDesc = (typeof window.rewardDiscount === 'function') ? window.rewardDiscount() : 0;
@@ -8165,6 +8254,7 @@
         }
 
         rememberTrackedOrder(orderId, 'received');
+        if (activeCoupon) await window.recordCouponUse(activeCoupon);
 
         // Pedido guardado: limpiar el carrito y llevar al seguimiento en vivo
         Object.keys(cart).forEach(k => delete cart[k]);
