@@ -3150,6 +3150,21 @@
   }
   .track-wa:hover { background: rgba(57,255,20,0.14); }
 
+  .track-support-box {
+    font-family: 'VT323', monospace; text-align: left;
+    color: #efe8ff; background: rgba(255,225,77,0.07);
+    border: 2px solid #ffe14d; border-radius: 8px;
+    padding: 14px; margin: 4px 0 14px;
+  }
+  .track-support-box strong { display:block; color:#ffe14d; font-size:21px; margin-bottom:5px; }
+  .track-support-box p { font-size:17px; line-height:1.3; margin:0 0 11px; }
+  .track-problem-btn {
+    width:100%; box-sizing:border-box; border:0; border-radius:8px; padding:13px 10px;
+    background:#ffe14d; color:#1a0033; cursor:pointer;
+    font-family:'Press Start 2P',monospace; font-size:9px; line-height:1.55;
+  }
+  .track-problem-btn:hover { filter:brightness(1.08); }
+
   .track-link-box {
     font-family: 'VT323', monospace; text-align: center;
     color: #c9b8e6; background: rgba(0,229,255,0.06);
@@ -3343,6 +3358,14 @@
     <div class="product-modal">
       <button class="close-btn" onclick="dismissFeedback()">X</button>
       <div id="feedbackBody"></div>
+    </div>
+  </div>
+
+  <!-- Reclamo iniciado por el cliente y asociado automáticamente a su pedido -->
+  <div class="product-overlay mini" id="customerCaseOverlay">
+    <div class="product-modal">
+      <button class="close-btn" onclick="closeCustomerCase()">X</button>
+      <div id="customerCaseBody"></div>
     </div>
   </div>
 
@@ -4297,7 +4320,11 @@
           </div>
           ${trackLiveLabel()}
           ${trackLinkToolsHtml(order.id)}
-          <a class="track-wa" href="https://wa.me/${encodeURIComponent(business.orderWhatsapp)}?text=${encodeURIComponent('Hola! Tengo una consulta sobre mi pedido' + (order.id ? ' #' + String(order.id).slice(-5).toUpperCase() : '') + ' 🌭')}" target="_blank" rel="noopener">💬 ¿ALGÚN PROBLEMA? CONTACTANOS</a>
+          <div class="track-support-box">
+            <strong>¿Algo no salió como esperabas?</strong>
+            <p>Podés contarnos el problema desde acá. Quedará asociado a este pedido para que podamos revisarlo y darte una respuesta.</p>
+            <button type="button" class="track-problem-btn" onclick="openCustomerCase('${trackEscape(order.id)}')">¿TUVISTE ALGÚN PROBLEMA? TE ESCUCHAMOS</button>
+          </div>
           <a class="track-back" href="${location.pathname}">◀ VOLVER A LA TIENDA</a>
         </div>`;
     }
@@ -4355,6 +4382,7 @@
         <div style="display:flex;justify-content:center;gap:8px;margin-bottom:14px;">${stars}</div>
         <textarea id="feedbackComment" placeholder="Contanos algo (opcional)…" style="width:100%;box-sizing:border-box;background:var(--bg);border:2px solid var(--neon-purple);color:#fff;font-family:'VT323',monospace;font-size:18px;padding:10px;border-radius:8px;min-height:60px;resize:vertical;"></textarea>
         <button onclick="submitFeedback()" style="width:100%;margin-top:12px;background:#ffe14d;color:#1a0033;border:none;font-family:'Press Start 2P',monospace;font-size:12px;padding:13px;border-radius:8px;cursor:pointer;">ENVIAR</button>
+        <button onclick="openCustomerCase(window.__fbId, true)" style="width:100%;margin-top:10px;background:transparent;color:#ffe14d;border:2px solid #ffe14d;font-family:'Press Start 2P',monospace;font-size:9px;line-height:1.5;padding:11px 8px;border-radius:8px;cursor:pointer;">¿TUVISTE ALGÚN PROBLEMA?<br>TE ESCUCHAMOS</button>
         <div onclick="dismissFeedback()" style="text-align:center;margin-top:12px;color:#9b8bb8;font-size:16px;cursor:pointer;text-decoration:underline;">ahora no</div>`;
     }
     window.setFeedbackRating = function(n) {
@@ -4391,6 +4419,68 @@
       const ov = document.getElementById('feedbackOverlay');
       if (ov) ov.addEventListener('click', e => { if (e.target.id === 'feedbackOverlay') window.dismissFeedback(); });
     })();
+
+    // ====== RECLAMOS INICIADOS POR EL CLIENTE ======
+    window.__caseOrderId = null;
+    window.__caseOrder = null;
+    function renderCustomerCaseForm() {
+      const body = document.getElementById('customerCaseBody');
+      if (!body) return;
+      const order = window.__caseOrder || {};
+      const items = (order.items || []).map((item, index) => `<option value="${escHtmlL(String(item.id || item.productId || index))}" data-name="${escHtmlL(item.name || 'Producto')}">${escHtmlL(item.name || 'Producto')}</option>`).join('');
+      body.innerHTML = `
+        <div style="font-family:'Press Start 2P',monospace;font-size:13px;color:#ffe14d;margin-bottom:9px;line-height:1.5;">TE ESCUCHAMOS</div>
+        <div style="font-size:18px;color:#c9b8e6;line-height:1.3;margin-bottom:14px;">Contanos qué pasó con tu pedido. No hace falta que vuelvas a ingresar tus datos.</div>
+        <label style="display:block;color:#fff;font-size:17px;margin-bottom:5px;">¿Qué ocurrió?</label>
+        <select id="customerCaseReason" style="width:100%;box-sizing:border-box;background:var(--bg);border:2px solid var(--neon-purple);color:#fff;font-family:'VT323',monospace;font-size:18px;padding:10px;border-radius:8px;margin-bottom:10px;">
+          <option value="missing">Faltó un producto</option><option value="wrong">Llegó un producto equivocado</option><option value="cold">Llegó frío</option><option value="delay">Hubo mucha demora</option><option value="charge">El cobro no es correcto</option><option value="quality">Problema de calidad</option><option value="other">Otro problema</option>
+        </select>
+        <label style="display:block;color:#fff;font-size:17px;margin-bottom:5px;">Producto afectado (opcional)</label>
+        <select id="customerCaseProduct" style="width:100%;box-sizing:border-box;background:var(--bg);border:2px solid var(--neon-purple);color:#fff;font-family:'VT323',monospace;font-size:18px;padding:10px;border-radius:8px;margin-bottom:10px;"><option value="">Pedido en general</option>${items}</select>
+        <label style="display:block;color:#fff;font-size:17px;margin-bottom:5px;">¿Qué pasó?</label>
+        <textarea id="customerCaseDescription" maxlength="1000" placeholder="Contanos el problema con el mayor detalle posible…" style="width:100%;box-sizing:border-box;background:var(--bg);border:2px solid var(--neon-purple);color:#fff;font-family:'VT323',monospace;font-size:18px;padding:10px;border-radius:8px;min-height:90px;resize:vertical;"></textarea>
+        <button id="customerCaseSubmit" onclick="submitCustomerCase()" style="width:100%;margin-top:12px;background:#ffe14d;color:#1a0033;border:none;font-family:'Press Start 2P',monospace;font-size:11px;padding:13px;border-radius:8px;cursor:pointer;">ENVIAR PROBLEMA</button>`;
+    }
+    window.openCustomerCase = async function(orderId, fromFeedback) {
+      if (!orderId) return;
+      window.__caseOrderId = String(orderId);
+      window.__caseOrder = (__trackOrder && String(__trackOrder.id) === String(orderId)) ? __trackOrder : ((window.__fbOrder && String(window.__fbId) === String(orderId)) ? window.__fbOrder : null);
+      if (!window.__caseOrder) {
+        try { const snap = await getDoc(doc(db, 'orders', String(orderId))); if (snap.exists()) window.__caseOrder = { id:snap.id, ...snap.data() }; }
+        catch (err) { console.error('customer case order', err); }
+      }
+      if (!window.__caseOrder) { alert('No pudimos recuperar el pedido. Probá nuevamente en un momento.'); return; }
+      if (fromFeedback) document.getElementById('feedbackOverlay')?.classList.remove('open');
+      renderCustomerCaseForm();
+      document.getElementById('customerCaseOverlay')?.classList.add('open');
+    };
+    window.closeCustomerCase = function() { document.getElementById('customerCaseOverlay')?.classList.remove('open'); };
+    window.submitCustomerCase = async function() {
+      const order = window.__caseOrder || {};
+      const description = (document.getElementById('customerCaseDescription')?.value || '').trim().slice(0,1000);
+      if (description.length < 3) { alert('Contanos brevemente qué pasó.'); return; }
+      const productSelect = document.getElementById('customerCaseProduct');
+      const selected = productSelect?.selectedOptions?.[0];
+      const button = document.getElementById('customerCaseSubmit');
+      if (button) { button.disabled = true; button.textContent = 'ENVIANDO…'; }
+      try {
+        await addDoc(collection(db, 'customerCases'), {
+          orderId:String(window.__caseOrderId), customer:String(order.customer || ''), phone:String(order.phone || ''),
+          reason:String(document.getElementById('customerCaseReason')?.value || 'other'), description,
+          productId:String(productSelect?.value || ''), productName:productSelect?.value ? String(selected?.dataset?.name || selected?.textContent || '') : '',
+          lossAmount:0, status:'new', solution:'none', resolutionNotes:'', source:'customer',
+          createdAt:serverTimestamp(), updatedAt:serverTimestamp()
+        });
+        try { localStorage.setItem('pixel_case_sent_' + window.__caseOrderId, '1'); } catch (e) {}
+        const body = document.getElementById('customerCaseBody');
+        if (body) body.innerHTML = `<div style="font-family:'Press Start 2P',monospace;font-size:14px;color:var(--neon-green);line-height:1.5;margin-bottom:12px;">RECIBIMOS TU MENSAJE</div><div style="font-size:19px;color:#c9b8e6;line-height:1.35;">Gracias por avisarnos. El problema quedó asociado a tu pedido y lo vamos a revisar.</div><button onclick="closeCustomerCase()" style="width:100%;margin-top:16px;background:#ffe14d;color:#1a0033;border:none;font-family:'Press Start 2P',monospace;font-size:11px;padding:13px;border-radius:8px;cursor:pointer;">CERRAR</button>`;
+      } catch (err) {
+        console.error('customer case', err);
+        alert('No pudimos enviar el problema. Probá nuevamente en un momento.');
+        if (button) { button.disabled = false; button.textContent = 'ENVIAR PROBLEMA'; }
+      }
+    };
+    document.getElementById('customerCaseOverlay')?.addEventListener('click', event => { if (event.target.id === 'customerCaseOverlay') window.closeCustomerCase(); });
 
     // Al volver a la tienda, el botón fijo del header lleva al último pedido.
     // Primero se activa con el dato local (sin esperar red) y luego Firebase
