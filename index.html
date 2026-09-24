@@ -7221,12 +7221,8 @@
       const p = normPhoneL(phone);
       if (!p) return { exists: false, blocked: false };
       try {
-        const response = await fetch('/.netlify/functions/customer-status', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: p })
-        });
-        if (!response.ok) throw new Error('status ' + response.status);
-        const data = await response.json();
-        return { exists: data.exists === true, blocked: data.blocked === true };
+        const snap = await getDoc(doc(db, 'loyalty', p));
+        return { exists: snap.exists(), blocked: snap.exists() && snap.data().blocked === true };
       } catch (e) {
         console.warn('customer access fetch', e);
         return { exists: null, blocked: false };
