@@ -2519,6 +2519,26 @@
     color: #9b8bb8; font-family: inherit; font-size: 14px; cursor: pointer;
   }
   .account-progress { margin-top: 5px; }
+  .identify-bar {
+    display: none; max-width: 900px; margin: 8px auto 4px; padding: 0 16px;
+  }
+  .identify-bar.show { display: block; }
+  .identify-bar-inner {
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    padding: 10px 13px; border: 1px dashed rgba(0,240,255,.55); border-radius: 8px;
+    color: #c9b8e6; background: rgba(0,240,255,.04); font-size: 18px; text-align: center;
+  }
+  .identify-open {
+    flex: none; border: 1px solid var(--neon-cyan); border-radius: 4px; padding: 8px 11px;
+    background: rgba(0,240,255,.1); color: var(--neon-cyan);
+    font-family: 'Press Start 2P', monospace; font-size: 8px; cursor: pointer;
+  }
+  .identify-result { display: none; margin-top: 14px; padding: 12px; border: 2px solid #6b5b95; border-radius: 7px; text-align: center; font-size: 19px; }
+  .identify-result.show { display: block; }
+  .identify-result.found { border-color: var(--neon-yellow); color: #fff; }
+  .identify-result.new { border-color: var(--neon-green); color: var(--neon-green); }
+  .identify-actions { display: grid; gap: 9px; margin-top: 12px; }
+  .identify-secondary { width: 100%; padding: 11px; border: 1px solid #6b5b95; background: transparent; color: #c9b8e6; font: inherit; cursor: pointer; }
   @media (max-width: 600px) {
     .customer-setup-card { padding: 22px 16px; }
     .customer-setup-grid { grid-template-columns: 1fr; }
@@ -2533,6 +2553,9 @@
     .account-summary-main { font-size: 17px; }
     .account-summary-logout { padding: 8px 9px; min-width: 44px; min-height: 44px; font-size: 12px; }
     .account-progress { display: none; }
+    .identify-bar { padding: 0 10px; }
+    .identify-bar-inner { justify-content: space-between; padding: 8px 9px; font-size: 16px; }
+    .identify-open { min-height: 42px; }
     .dir-chip-main, .dir-star, .dir-del, .dir-nueva, .dm-btn, .address-gps-btn { min-height: 44px; }
   }
 
@@ -3261,6 +3284,7 @@
   </header>
 
   <div id="cuentaBar" style="display:none;"></div>
+  <div id="identifyBar" class="identify-bar"></div>
   <div id="customerDeliveryBar" class="customer-delivery-bar"></div>
   <div id="coinChip" style="display:none;"></div>
 
@@ -3319,6 +3343,20 @@
     <div class="product-modal" onclick="event.stopPropagation()">
       <button class="close-btn" onclick="closePolicies()">X</button>
       <div id="policiesBody"></div>
+    </div>
+  </div>
+
+  <div class="product-overlay mini" id="identifyOverlay" onclick="closeIdentify(event)">
+    <div class="product-modal" onclick="event.stopPropagation()">
+      <button class="close-btn" onclick="closeIdentify()">X</button>
+      <div style="font-family:'Press Start 2P',monospace;font-size:15px;color:var(--neon-cyan);line-height:1.5;margin:8px 34px 10px;">IDENTIFICATE</div>
+      <div style="font-size:20px;color:#c9b8e6;line-height:1.3;margin-bottom:16px;">¿Ya compraste antes? Ingresá tu teléfono para buscar tu cuenta.</div>
+      <div class="form-field">
+        <label for="identifyPhone">TELÉFONO</label>
+        <input type="tel" id="identifyPhone" inputmode="tel" autocomplete="tel" placeholder="Ej: 11 1234 5678">
+      </div>
+      <button type="button" id="identifySubmit" class="customer-setup-submit" onclick="lookupCustomerAccount()">BUSCAR MI CUENTA</button>
+      <div id="identifyResult" class="identify-result" aria-live="polite"></div>
     </div>
   </div>
 
@@ -7181,10 +7219,81 @@
     }
     async function fetchCustomerAccess(phone) {
       const p = normPhoneL(phone);
-      if (!p) return { blocked: false };
-      try { const snap = await getDoc(doc(db, 'loyalty', p)); return snap.exists() ? snap.data() : { blocked: false }; }
-      catch (e) { console.warn('customer access fetch', e); return { blocked: false }; }
+      if (!p) return { exists: false, blocked: false };
+      try {
+        const response = await fetch('/.netlify/functions/customer-status', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: p })
+        });
+        if (!response.ok) throw new Error('status ' + response.status);
+        const data = await response.json();
+        return { exists: data.exists === true, blocked: data.blocked === true };
+      } catch (e) {
+        console.warn('customer access fetch', e);
+        return { exists: null, blocked: false };
+      }
     }
+
+    function renderIdentifyBar() {
+      const bar = document.getElementById('identifyBar');
+      if (!bar) return;
+      const show = window.getFeatureConfig().customerAccount && !(window.cuenta && window.cuenta.telefono);
+      bar.classList.toggle('show', show);
+      bar.innerHTML = show ? `<div class="identify-bar-inner"><span>¿Ya compraste antes?</span><button type="button" class="identify-open" onclick="openIdentify()">IDENTIFICATE</button></div>` : '';
+    }
+    window.renderIdentifyBar = renderIdentifyBar;
+
+    window.openIdentify = function() {
+      if (window.cuenta && window.cuenta.telefono) return;
+      const overlay = document.getElementById('identifyOverlay');
+      const result = document.getElementById('identifyResult');
+      if (!overlay) return;
+      if (result) { result.className = 'identify-result'; result.innerHTML = ''; }
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => document.getElementById('identifyPhone')?.focus(), 100);
+    };
+    window.closeIdentify = function(event) {
+      if (event && event.target && event.target.id !== 'identifyOverlay') return;
+      document.getElementById('identifyOverlay')?.classList.remove('open');
+      document.body.style.overflow = '';
+    };
+    window.continueAsNewCustomer = function() {
+      window.closeIdentify();
+    };
+    window.lookupCustomerAccount = async function() {
+      const phoneInput = document.getElementById('identifyPhone');
+      const button = document.getElementById('identifySubmit');
+      const result = document.getElementById('identifyResult');
+      const phone = normPhoneL(phoneInput?.value || '');
+      if (phone.length < 8) {
+        if (result) { result.className = 'identify-result show'; result.textContent = 'Ingresá un teléfono válido.'; }
+        return;
+      }
+      button.disabled = true;
+      button.textContent = 'BUSCANDO…';
+      try {
+        const account = await fetchCustomerAccess(phone);
+        if (account.exists === null) {
+          throw new Error('customer lookup unavailable');
+        } else if (account.exists) {
+          const cfg = window.getBusinessConfig();
+          const businessPhone = String(cfg.orderWhatsapp || '').replace(/\D/g, '');
+          const message = `Hola! Quiero recuperar mi cuenta de Pixel Panchería asociada al teléfono ${phone}.`;
+          const href = `https://wa.me/${businessPhone}?text=${encodeURIComponent(message)}`;
+          result.className = 'identify-result show found';
+          result.innerHTML = `<strong>ENCONTRAMOS TU CUENTA</strong><br><span style="color:#c9b8e6;">Por seguridad no mostramos tus datos ni beneficios hasta confirmar que es tuya.</span><div class="identify-actions"><a class="track-wa" href="${href}" target="_blank" rel="noopener">RECUPERAR POR WHATSAPP</a><button type="button" class="identify-secondary" onclick="continueAsNewCustomer()">SEGUIR SIN RECUPERAR</button></div>`;
+        } else {
+          result.className = 'identify-result show new';
+          result.innerHTML = `<strong>TODAVÍA NO TENÉS CUENTA</strong><br><span style="color:#c9b8e6;">Se va a crear automáticamente cuando hagas tu primera compra.</span><div class="identify-actions"><button type="button" class="identify-secondary" onclick="continueAsNewCustomer()">ENTRAR A LA TIENDA</button></div>`;
+        }
+      } catch (error) {
+        result.className = 'identify-result show';
+        result.textContent = 'No pudimos buscar tu cuenta. Probá nuevamente.';
+      } finally {
+        button.disabled = false;
+        button.textContent = 'BUSCAR MI CUENTA';
+      }
+    };
 
     window.upsertCuenta = async function(nombre, telefono, direccion, loc) {
       const p = normPhoneL(telefono);
@@ -7297,7 +7406,12 @@
     function renderCuentaBar() {
       const bar = document.getElementById('cuentaBar');
       if (!bar) return;
-      if (!window.getFeatureConfig().customerAccount || !window.COINS_ENABLED) { bar.style.display = 'none'; renderCoinChip(); return; }
+      if (!window.getFeatureConfig().customerAccount || !window.COINS_ENABLED) {
+        bar.style.display = 'none';
+        renderIdentifyBar();
+        renderCoinChip();
+        return;
+      }
       if (window.cuenta && window.cuenta.telefono) {
         const coins = window.cuenta.coins || 0;
         const cfg = getLoyaltyConfig();
@@ -7334,6 +7448,7 @@
         bar.innerHTML = `<div style="max-width:900px;margin:0 auto;padding:10px 16px;font-family:'VT323',monospace;color:#c9b8e6;font-size:18px;text-align:center;">🪙 Hacé tu primer pedido y empezá a juntar <strong style="color:#ffe14d;">coins</strong> → sumá recompensas 🎉</div>`;
         bar.style.display = 'block';
       }
+      renderIdentifyBar();
       renderCoinChip();
     }
     window.renderCuentaBar = renderCuentaBar;
@@ -7423,7 +7538,7 @@
       renderCustomerDeliveryBar();
       const ov = document.getElementById('cartOverlay');
       if (ov && ov.classList.contains('open')) renderCart();
-      setTimeout(() => window.openCustomerSetup(true), 100);
+      renderIdentifyBar();
     };
 
     function renderVidaExtraBox() {
@@ -7539,11 +7654,9 @@
         f('fName', window.cuenta.nombre);
         f('fPhone', window.cuenta.telefono);
       }
-      const phoneEl = document.getElementById('fPhone');
-      const phone = phoneEl ? phoneEl.value : (window.cuenta && window.cuenta.telefono);
+      const phone = window.cuenta && window.cuenta.telefono;
       if (phone) {
         const coins = await fetchCoins(phone);
-        if (!window.cuenta) window.cuenta = { nombre: '', telefono: phone, coins: 0 };
         window.cuenta.coins = coins;
         saveCuentaLocal();
         renderCuentaBar();
@@ -7552,7 +7665,7 @@
       renderSavedAddresses();
     };
 
-    // ---- Identificación previa al menú + dirección activa ----
+    // ---- Dirección activa (se solicita recién durante la compra) ----
     let customerSetupMode = 'delivery';
     let setupLocation = null;
     let setupAddressMap = null;
@@ -7926,10 +8039,8 @@
       fetchCoins(window.cuenta.telefono).then(c => { window.cuenta.coins = c; saveCuentaLocal(); renderCuentaBar(); });
       refreshCustomerBenefits(window.cuenta.telefono);
     }
-    if (!__trackId && (!window.cuenta ||
-        ((window.cuenta.preferredDeliveryMode || 'delivery') === 'delivery' && !initialAddress))) {
-      setTimeout(() => window.openCustomerSetup(true), 700);
-    }
+    // Un visitante sin cuenta entra directo al menú. La dirección se solicita
+    // recién al comprar y la recuperación queda disponible en "Identificate".
 
     // Aplicar cupón
     function applyCoupon() {
@@ -8056,6 +8167,7 @@
 
       if (!name) { sendGa4CheckoutError('missing_name'); alert('⚠ Ingresá tu nombre'); return; }
       if (!phone) { sendGa4CheckoutError('missing_phone'); alert('⚠ Ingresá tu teléfono'); return; }
+      const recognizedCustomer = !!(window.cuenta && normPhoneL(window.cuenta.telefono) === phone);
       const customerAccess = await fetchCustomerAccess(phone);
       if (customerAccess.blocked === true) {
         sendGa4CheckoutError('customer_blocked');
@@ -8317,8 +8429,10 @@
         };
       }
 
-      // Guardar/crear la cuenta del cliente (perfil, no coins) para reconocerlo la próxima vez
-      if (typeof window.upsertCuenta === 'function') {
+      // Una cuenta nueva se crea con la primera compra. Si el teléfono ya
+      // pertenecía a otra cuenta y este navegador no la tenía vinculada, no la
+      // adoptamos automáticamente: debe recuperarse mediante "Identificate".
+      if (typeof window.upsertCuenta === 'function' && (recognizedCustomer || customerAccess.exists === false)) {
         try { await window.upsertCuenta(name, phone, address, loc); } catch (e) {}
       }
       window.selectedReward = null; window.selectedRewardOptionIdx = 0; window.selectedRewardProductId = null;

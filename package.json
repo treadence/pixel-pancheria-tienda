@@ -3,7 +3,7 @@
   "private": true,
   "description": "Tienda Pixel Panchería (sitio estático + Netlify functions de pago)",
   "scripts": {
-    "test": "node tests/cotizar-envio.test.js && node tests/crear-pago-config.test.js && node tests/notify-admin.test.js && node tests/startup-order.test.js"
+    "test": "node tests/cotizar-envio.test.js && node tests/crear-pago-config.test.js && node tests/notify-admin.test.js && node tests/startup-order.test.js && node tests/customer-identification.test.js"
   },
   "dependencies": {
     "firebase-admin": "^12.7.0",
