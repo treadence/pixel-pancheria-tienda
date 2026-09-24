@@ -7108,6 +7108,7 @@
     // direcciones guardadas siguen funcionando con esto en false.
     window.COINS_ENABLED = window.getFeatureConfig().loyalty;
     const LOYALTY_KEY = 'pixel_cuenta_v1';
+    const RECOVERY_REQUEST_KEY = 'pixel_recovery_request_v1';
 
     // Catálogo de recompensas por defecto (editable desde el panel admin →
     // Promociones → Sistema de coins, se guarda en settings/store.loyaltyConfig).
@@ -7272,12 +7273,8 @@
         if (account.exists === null) {
           throw new Error('customer lookup unavailable');
         } else if (account.exists) {
-          const cfg = window.getBusinessConfig();
-          const businessPhone = String(cfg.orderWhatsapp || '').replace(/\D/g, '');
-          const message = `Hola! Quiero recuperar mi cuenta de Pixel Panchería asociada al teléfono ${phone}.`;
-          const href = `https://wa.me/${businessPhone}?text=${encodeURIComponent(message)}`;
           result.className = 'identify-result show found';
-          result.innerHTML = `<strong>ENCONTRAMOS TU CUENTA</strong><br><span style="color:#c9b8e6;">Por seguridad no mostramos tus datos ni beneficios hasta confirmar que es tuya.</span><div class="identify-actions"><a class="track-wa" href="${href}" target="_blank" rel="noopener">RECUPERAR POR WHATSAPP</a><button type="button" class="identify-secondary" onclick="continueAsNewCustomer()">SEGUIR SIN RECUPERAR</button></div>`;
+          result.innerHTML = `<strong>ENCONTRAMOS TU CUENTA</strong><br><span style="color:#c9b8e6;">Por seguridad no mostramos tus datos ni beneficios hasta confirmar que es tuya.</span><div class="identify-actions"><button type="button" class="track-wa" onclick="requestAccountRecovery('${phone}')">RECUPERAR POR WHATSAPP</button><button type="button" class="identify-secondary" onclick="continueAsNewCustomer()">SEGUIR SIN RECUPERAR</button></div>`;
         } else {
           result.className = 'identify-result show new';
           result.innerHTML = `<strong>TODAVÍA NO TENÉS CUENTA</strong><br><span style="color:#c9b8e6;">Se va a crear automáticamente cuando hagas tu primera compra.</span><div class="identify-actions"><button type="button" class="identify-secondary" onclick="continueAsNewCustomer()">ENTRAR A LA TIENDA</button></div>`;
@@ -7290,6 +7287,90 @@
         button.textContent = 'BUSCAR MI CUENTA';
       }
     };
+
+    let recoveryUnsubscribe = null;
+    function recoveryRequestId() {
+      const random = globalThis.crypto?.randomUUID
+        ? crypto.randomUUID().replace(/-/g, '')
+        : Math.random().toString(36).slice(2) + Date.now().toString(36) + Math.random().toString(36).slice(2);
+      return 'rr_' + random.slice(0, 32);
+    }
+    function savePendingRecovery(requestId, phone) {
+      try { localStorage.setItem(RECOVERY_REQUEST_KEY, JSON.stringify({ requestId, phone })); } catch (error) {}
+    }
+    function clearPendingRecovery() {
+      try { localStorage.removeItem(RECOVERY_REQUEST_KEY); } catch (error) {}
+      if (recoveryUnsubscribe) { recoveryUnsubscribe(); recoveryUnsubscribe = null; }
+    }
+    async function restoreApprovedAccount(phone) {
+      const profile = await fetchCustomerProfile(phone);
+      if (!profile || !profile.telefono) throw new Error('Cuenta no disponible');
+      window.cuenta = {
+        nombre: profile.nombre || '', telefono: normPhoneL(profile.telefono || phone),
+        coins: Number(profile.coins) || 0,
+        direccion: profile.direccion || '',
+        direcciones: Array.isArray(profile.direcciones) ? profile.direcciones : [],
+        defaultDirId: profile.defaultDirId || null,
+        preferredDeliveryMode: profile.preferredDeliveryMode || 'delivery'
+      };
+      ensureDirecciones();
+      saveCuentaLocal();
+      clearPendingRecovery();
+      await refreshCustomerBenefits(phone);
+      renderCuentaBar();
+      renderCustomerDeliveryBar();
+      window.closeIdentify();
+      showWelcomeToast();
+      alert('✅ Cuenta recuperada. Ya tenés nuevamente tus datos, coins y beneficios.');
+    }
+    function watchRecoveryRequest(requestId, phone) {
+      if (!/^rr_[a-zA-Z0-9]{20,32}$/.test(requestId) || !normPhoneL(phone)) return;
+      if (recoveryUnsubscribe) recoveryUnsubscribe();
+      recoveryUnsubscribe = onSnapshot(doc(db, 'accountRecoveryRequests', requestId), async snap => {
+        if (!snap.exists()) return;
+        const data = snap.data();
+        if (normPhoneL(data.phone) !== normPhoneL(phone)) { clearPendingRecovery(); return; }
+        if (data.status === 'approved') {
+          try { await restoreApprovedAccount(phone); }
+          catch (error) { console.warn('account recovery', error); }
+        } else if (data.status === 'rejected') {
+          clearPendingRecovery();
+          const result = document.getElementById('identifyResult');
+          if (result) { result.className = 'identify-result show'; result.textContent = 'La recuperación no fue autorizada. Comunicate con el local si necesitás ayuda.'; }
+        }
+      }, error => console.warn('recovery watch', error));
+    }
+    window.requestAccountRecovery = async function(phone) {
+      const normalized = normPhoneL(phone);
+      const result = document.getElementById('identifyResult');
+      if (!normalized || !result) return;
+      const requestId = recoveryRequestId();
+      const code = requestId.slice(-6).toUpperCase();
+      try {
+        await setDoc(doc(db, 'accountRecoveryRequests', requestId), {
+          phone: normalized, status: 'pending', createdAt: serverTimestamp(),
+          expiresAt: new Date(Date.now() + 30 * 60 * 1000)
+        });
+        savePendingRecovery(requestId, normalized);
+        watchRecoveryRequest(requestId, normalized);
+        const businessPhone = String(window.getBusinessConfig().orderWhatsapp || '').replace(/\D/g, '');
+        const message = `Hola! Quiero recuperar mi cuenta de Pixel Panchería. Mi teléfono es ${normalized} y mi código de solicitud es ${code}.`;
+        result.className = 'identify-result show found';
+        result.innerHTML = `<strong>SOLICITUD ${code}</strong><br><span style="color:#c9b8e6;">Enviá el mensaje por WhatsApp. Cuando el local la autorice, tu cuenta se recuperará automáticamente.</span>`;
+        window.location.href = `https://wa.me/${businessPhone}?text=${encodeURIComponent(message)}`;
+      } catch (error) {
+        console.warn('recovery request', error);
+        result.className = 'identify-result show';
+        result.textContent = 'No pudimos crear la solicitud. Probá nuevamente.';
+      }
+    };
+    function resumePendingRecovery() {
+      if (window.cuenta && window.cuenta.telefono) { clearPendingRecovery(); return; }
+      try {
+        const pending = JSON.parse(localStorage.getItem(RECOVERY_REQUEST_KEY) || 'null');
+        if (pending?.requestId && pending?.phone) watchRecoveryRequest(pending.requestId, pending.phone);
+      } catch (error) { clearPendingRecovery(); }
+    }
 
     window.upsertCuenta = async function(nombre, telefono, direccion, loc) {
       const p = normPhoneL(telefono);
@@ -8010,6 +8091,7 @@
 
     // Init
     loadCuenta();
+    resumePendingRecovery();
     renderCuentaBar();
     const initialAddress = getDefaultDir();
     if (initialAddress) {

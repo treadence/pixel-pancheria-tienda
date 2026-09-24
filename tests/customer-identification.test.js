@@ -22,5 +22,10 @@ assert(
   source.includes("return { exists: snap.exists(), blocked: snap.exists() && snap.data().blocked === true }"),
   'La búsqueda debe devolver únicamente existencia y bloqueo a la interfaz'
 );
+assert(source.includes("collection(db, 'accountRecoveryRequests'" ) || source.includes("doc(db, 'accountRecoveryRequests'"), 'Debe crear y escuchar solicitudes de recuperación');
+assert(source.includes("status: 'pending'"), 'La recuperación debe comenzar pendiente');
+assert(source.includes("Date.now() + 30 * 60 * 1000"), 'La solicitud debe vencer a los 30 minutos');
+assert(source.includes("data.status === 'approved'"), 'La tienda debe reaccionar a una autorización');
+assert(source.includes('restoreApprovedAccount(phone)'), 'La autorización debe restaurar la cuenta en el navegador');
 
 console.log('customer-identification: ingreso directo y recuperación protegida presentes');
