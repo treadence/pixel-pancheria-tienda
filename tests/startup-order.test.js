@@ -17,21 +17,20 @@ assert(
 
 console.log('startup-order: updateStockInUI es seguro durante el render inicial');
 
-assert(
-  source.includes('Chrome Android + GPU Mali'),
-  'Debe conservarse el fallback móvil para evitar fallos del compositor con la tarjeta Backdoor'
-);
-assert(
-  source.includes('.hack-card::after {\n        display: none;\n        mix-blend-mode: normal;'),
-  'El fallback móvil debe desactivar las capas mezcladas animadas'
-);
-assert(
-  source.includes('animation: backdoorTakeoverMobile 4.8s steps(1, end) infinite;'),
-  'La transición Backdoor debe conservarar su animación compatible en móviles'
-);
-assert(
-  source.includes('@keyframes backdoorTakeoverMobile'),
-  'Debe existir la animación móvil sin clip-path animado'
-);
+[
+  'glitch-takeover',
+  'hack-card',
+  'backdoorTakeover',
+  'marioSignal',
+  'rgbHack',
+  'scanHack',
+  'productHack',
+  'hackWarning'
+].forEach(marker => {
+  assert(
+    !source.includes(marker),
+    `La tienda publicada no debe incluir el efecto Backdoor desactivado (${marker})`
+  );
+});
 
-console.log('startup-order: animación gráfica móvil compatible presente');
+console.log('startup-order: efecto Backdoor ausente de la tienda publicada');

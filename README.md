@@ -494,3 +494,12 @@ contacto directo al WhatsApp del local.
 - Los productos marcados como retirados desaparecen por completo del menú público, a diferencia de un agotado temporal.
 - La disponibilidad se vuelve a validar al abrir una ficha, elegir componentes de combos y confirmar el pedido; un carrito viejo no puede comprar un producto agotado o retirado.
 - Si una categoría queda sin productos publicados, también se ocultan su sección y su acceso de navegación.
+
+### 2026-09-27 19:56 (-03)
+
+**Desactivación urgente del efecto Backdoor**
+
+- Se retiraron de la tienda publicada la capa HTML, los estilos y todas las animaciones del reemplazo glitch sobre la tarjeta de Mario.
+- La tarjeta vuelve a usar íntegramente el comportamiento normal de producto agotado, sin `clip-path`, filtros, mezcla de capas ni animaciones continuas.
+- El cambio responde a casos reales en los que la página quedaba visualmente en la carga inicial o no repintaba su contenido al suspender y reanudar una pestaña.
+- La prueba de arranque ahora impide que los marcadores del efecto desactivado vuelvan a entrar accidentalmente en producción.
