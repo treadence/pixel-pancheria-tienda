@@ -28,15 +28,26 @@ async function notifyOrder(orderId, requestedEventType) {
     if (!snap.exists) return null;
     const order = snap.data();
     if (!['received', 'pending'].includes(order.status) || order.adminPushSentAt) return null;
-    tx.set(ref, { adminPushSentAt: fbadmin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    const lastAttempt = order.adminPushAttemptAt && order.adminPushAttemptAt.toMillis ? order.adminPushAttemptAt.toMillis() : 0;
+    if (lastAttempt && Date.now() - lastAttempt < 2 * 60 * 1000) return null;
+    tx.set(ref, {
+      adminPushAttemptAt: fbadmin.firestore.FieldValue.serverTimestamp(),
+      adminPushLastError: fbadmin.firestore.FieldValue.delete()
+    }, { merge: true });
     return order;
   });
-  if (!claimed) return { sent: false, reason: 'pedido inexistente, no recibido o ya avisado' };
+  if (!claimed) return { sent: false, reason: 'pedido inexistente, ya avisado o intento reciente' };
 
   const eventType = requestedEventType || (claimed.awaitingTransfer ? 'transferPending' : claimed.paidVia === 'mercadopago' ? 'paymentApproved' : 'newOrder');
   const tokensSnap = await db.collection('adminPushTokens').get();
-  const tokens = [...new Set(tokensSnap.docs.map(d => d.data()).filter(device => deviceAccepts(device, eventType)).map(device => device.token))].slice(0, 500);
-  if (!tokens.length) return { sent: false, reason: 'no hay celulares registrados' };
+  const devices = tokensSnap.docs
+    .map(doc => ({ ref: doc.ref, ...doc.data() }))
+    .filter(device => deviceAccepts(device, eventType));
+  const tokens = [...new Set(devices.map(device => device.token))].slice(0, 500);
+  if (!tokens.length) {
+    await ref.set({ adminPushLastError: 'no hay celulares registrados', adminPushFailureCount: 0 }, { merge: true });
+    return { sent: false, reason: 'no hay celulares registrados' };
+  }
 
   const total = Number(claimed.total) || 0;
   const titles = {
@@ -69,7 +80,35 @@ async function notifyOrder(orderId, requestedEventType) {
       fcmOptions: { link: '/index.html' }
     }
   });
-  return { sent: result.successCount > 0, successCount: result.successCount, failureCount: result.failureCount };
+  const failureCodes = result.responses
+    .map(response => response.error && response.error.code)
+    .filter(Boolean);
+  const invalidCodes = new Set([
+    'messaging/invalid-registration-token',
+    'messaging/registration-token-not-registered'
+  ]);
+  const invalidTokens = new Set(result.responses
+    .map((response, index) => invalidCodes.has(response.error && response.error.code) ? tokens[index] : null)
+    .filter(Boolean));
+  if (invalidTokens.size) {
+    const batch = db.batch();
+    devices.filter(device => invalidTokens.has(device.token)).forEach(device => batch.delete(device.ref));
+    await batch.commit();
+  }
+  const diagnostic = {
+    adminPushSuccessCount: result.successCount,
+    adminPushFailureCount: result.failureCount,
+    adminPushFailureCodes: [...new Set(failureCodes)].slice(0, 10)
+  };
+  if (result.successCount > 0) diagnostic.adminPushSentAt = fbadmin.firestore.FieldValue.serverTimestamp();
+  else diagnostic.adminPushLastError = failureCodes[0] || 'FCM no confirmó la entrega';
+  await ref.set(diagnostic, { merge: true });
+  return {
+    sent: result.successCount > 0,
+    successCount: result.successCount,
+    failureCount: result.failureCount,
+    failureCodes: [...new Set(failureCodes)]
+  };
 }
 
 exports.notifyOrder = notifyOrder;
