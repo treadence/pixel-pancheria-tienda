@@ -8282,10 +8282,11 @@
 
         // Aviso al celular del admin. Es best-effort: una falla del push nunca
         // debe impedir que el cliente termine ni que el pedido quede guardado.
-        fetch('/.netlify/functions/notify-admin', {
+        await fetch('/.netlify/functions/notify-admin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderId })
+          body: JSON.stringify({ orderId }),
+          keepalive: true
         }).catch(() => {});
 
         // Efectivo/transferencia representan pedidos recibidos, no pagos

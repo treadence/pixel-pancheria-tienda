@@ -44,17 +44,28 @@ async function notifyOrder(orderId, requestedEventType) {
     paymentApproved: '💳 ¡Pago aprobado!',
     transferPending: '📲 Transferencia pendiente'
   };
+  const title = titles[eventType] || titles.newOrder;
+  const body = `${claimed.customer || 'Cliente'} · $${total.toLocaleString('es-AR')} · ${claimed.delivery || 'Pedido web'}`;
   const result = await fbadmin.messaging().sendEachForMulticast({
     tokens,
+    notification: { title, body },
     data: {
-      title: titles[eventType] || titles.newOrder,
-      body: `${claimed.customer || 'Cliente'} · $${total.toLocaleString('es-AR')} · ${claimed.delivery || 'Pedido web'}`,
+      title,
+      body,
       icon: '/icon-192.png',
       url: '/index.html',
       orderId: String(orderId)
     },
     webpush: {
       headers: { Urgency: 'high', TTL: '3600' },
+      notification: {
+        title,
+        body,
+        icon: '/icon-192.png',
+        badge: '/notification-badge-96.png',
+        vibrate: [200, 100, 200],
+        data: { url: '/index.html', orderId: String(orderId) }
+      },
       fcmOptions: { link: '/index.html' }
     }
   });
