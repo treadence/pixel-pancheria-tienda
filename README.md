@@ -503,3 +503,13 @@ contacto directo al WhatsApp del local.
 - La tarjeta vuelve a usar íntegramente el comportamiento normal de producto agotado, sin `clip-path`, filtros, mezcla de capas ni animaciones continuas.
 - El cambio responde a casos reales en los que la página quedaba visualmente en la carga inicial o no repintaba su contenido al suspender y reanudar una pestaña.
 - La prueba de arranque ahora impide que los marcadores del efecto desactivado vuelvan a entrar accidentalmente en producción.
+
+### 2026-09-28 19:41 (-03)
+
+**Compras confirmadas desde servidor para Google Analytics**
+
+- Cada pedido web conserva de forma invisible el `client_id` y `session_id` de GA4; no cambia ninguna pantalla ni paso del checkout.
+- El webhook de Mercado Pago envía `purchase` mediante Measurement Protocol después de validar el pago real, incluso si el cliente cerró la tienda.
+- Firestore guarda reclamo, resultado y `transaction_id` para impedir duplicados y permitir reintentos seguros ante una falla temporal.
+- La emisión requiere `GA4_API_SECRET` en Netlify; `GA4_MEASUREMENT_ID` es opcional y usa `G-KF22RZJNS3` por defecto.
+- Se mantiene el evento del navegador como respaldo y GA4 deduplica ambos usando el mismo ID único del pedido.

@@ -8,6 +8,7 @@
 
 const crypto = require('crypto');
 const { notifyOrder: notifyAdminOrder } = require('./notify-admin');
+const { recordPaidPurchase } = require('./purchase-analytics');
 const PROJECT_ID = 'pixelpancheria';
 const API_KEY = 'AIzaSyBQGQlfNxRVMk7UfvGI6VRqURwAw7JIMuI';
 
@@ -170,7 +171,13 @@ exports.handler = async (event) => {
   if (!order) { console.warn('Pedido no encontrado para pago', paymentId); return ok(headers); }
 
   // Idempotencia: si ya se procesó este pago, no hacer nada
-  if (order.paymentId && String(order.paymentId) === String(paymentId) && order.paid) return ok(headers);
+  if (order.paymentId && String(order.paymentId) === String(paymentId) && order.paid) {
+    if (adminDb) {
+      try { await recordPaidPurchase({ db: adminDb, orderId: String(orderId) }); }
+      catch (e) { console.error('No se pudo registrar purchase en GA4:', e.message); }
+    }
+    return ok(headers);
+  }
 
   if (payment.status === 'approved') {
     // Validar que el monto pagado cubra el total del pedido
@@ -192,6 +199,10 @@ exports.handler = async (event) => {
       patch.statusHistory = Object.assign({}, order.statusHistory || {}, { received: now });
     }
     await fsPatch('orders/' + orderId, patch);
+    if (adminDb) {
+      try { await recordPaidPurchase({ db: adminDb, orderId: String(orderId) }); }
+      catch (e) { console.error('No se pudo registrar purchase en GA4:', e.message); }
+    }
     if (order.status === 'pending_payment') {
       try { await notifyAdminOrder(String(orderId), 'paymentApproved'); }
       catch (e) { console.error('No se pudo avisar el pedido MP al admin:', e.message); }

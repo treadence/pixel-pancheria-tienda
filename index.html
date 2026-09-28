@@ -3300,6 +3300,26 @@
       });
     }
 
+    function readGaClientId() {
+      const match = document.cookie.match(/(?:^|;\s*)_ga=GA\d+\.\d+\.(\d+\.\d+)/);
+      return match ? match[1] : '';
+    }
+
+    function getGtagField(field, fallback = '') {
+      return new Promise(resolve => {
+        if (typeof window.gtag !== 'function') return resolve(fallback);
+        let done = false;
+        const finish = value => { if (!done) { done = true; resolve(value || fallback); } };
+        window.gtag('get', PIXEL_GA4_ID, field, finish);
+        setTimeout(() => finish(fallback), 600);
+      });
+    }
+
+    const analyticsContextPromise = Promise.all([
+      getGtagField('client_id', readGaClientId()),
+      getGtagField('session_id', '')
+    ]).then(([clientId, sessionId]) => ({ clientId, sessionId })).catch(() => ({ clientId: readGaClientId() }));
+
     // transaction_id es el id único de Firestore. El storage evita dobles
     // emisiones si el pedido se actualiza o la pantalla se refresca.
     function sendGa4OrderEvent(eventName, orderId, order) {
@@ -8168,6 +8188,8 @@
         status: 'pending',
         source: 'web'
       };
+      const analyticsContext = await analyticsContextPromise;
+      if (analyticsContext && analyticsContext.clientId) firebaseOrder.analytics = analyticsContext;
       if (payCode === 'efectivo' && checkoutCfg.cashChangeEnabled && cashTendered > 0) {
         firebaseOrder.cashTendered = cashTendered;
         firebaseOrder.cashChangeDue = Math.max(0, cashTendered - finalTotal);
