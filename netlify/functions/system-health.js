@@ -26,6 +26,15 @@ function corsOrigin(event) {
 function reply(statusCode, body, event) {
   return { statusCode, headers: { 'Access-Control-Allow-Origin': corsOrigin(event), 'Vary': 'Origin', 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
 }
+function firestoreFailure(error) {
+  const code = String(error?.code || '').toLowerCase();
+  if (['8', 'resource-exhausted', 'resource_exhausted'].includes(code)) return 'quota_exceeded';
+  if (['7', 'permission-denied', 'permission_denied'].includes(code)) return 'permission_denied';
+  if (['16', 'unauthenticated'].includes(code)) return 'unauthenticated';
+  if (['14', 'unavailable'].includes(code)) return 'unavailable';
+  return 'read_failed';
+}
+exports._test = { firestoreFailure };
 exports.handler = async event => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: reply(200, {}, event).headers, body: '' };
   if (event.httpMethod !== 'GET') return reply(405, { error: 'GET only' }, event);
@@ -33,12 +42,14 @@ exports.handler = async event => {
   if (!(await authorized(event))) return reply(401, { error: 'No autorizado' }, event);
   const hasServiceAccount = Boolean(process.env.FIREBASE_SERVICE_ACCOUNT);
   let firestore = false;
+  let firestoreError = hasServiceAccount ? null : "missing_service_account";
   if (hasServiceAccount) {
-    try { await fbadmin.firestore().doc('settings/store').get(); firestore = true; } catch (_) {}
+    try { await fbadmin.firestore().doc('settings/store').get(); firestore = true; } catch (error) { firestoreError = firestoreFailure(error); }
   }
   return reply(200, { ok: true, site: 'store', checkedAt: new Date().toISOString(), services: {
     firebaseServiceAccount: hasServiceAccount,
     firestore,
+    firestoreError,
     messaging: hasServiceAccount,
     mercadoPago: Boolean(process.env.MP_ACCESS_TOKEN),
     mercadoPagoWebhook: Boolean(process.env.MP_WEBHOOK_SECRET),
