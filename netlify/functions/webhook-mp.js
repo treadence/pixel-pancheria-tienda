@@ -98,13 +98,13 @@ function ok(headers) { return { statusCode: 200, headers, body: JSON.stringify({
 
 // Mercado Pago firma los webhooks con x-signature y x-request-id. La clave se
 // configura en el panel de Webhooks de MP y se guarda solo en Netlify.
-// Mientras ENFORCE_MP_WEBHOOK_SIGNATURE no sea "true" mantenemos compatibilidad
-// con la configuración anterior, pero dejamos un aviso explícito en logs.
+// Con secreto configurado la validación siempre es estricta. Sin secreto,
+// ENFORCE_MP_WEBHOOK_SIGNATURE=true rechaza las notificaciones sin validar.
 function verifyMpSignature(event, paymentId) {
   const secret = process.env.MP_WEBHOOK_SECRET;
-  const enforce = process.env.ENFORCE_MP_WEBHOOK_SIGNATURE === 'true';
-  const signature = event.headers['x-signature'] || event.headers['X-Signature'] || '';
-  const requestId = event.headers['x-request-id'] || event.headers['X-Request-Id'] || '';
+  const enforce = Boolean(secret) || process.env.ENFORCE_MP_WEBHOOK_SIGNATURE === 'true';
+  const signature = (event.headers || {})['x-signature'] || (event.headers || {})['X-Signature'] || '';
+  const requestId = (event.headers || {})['x-request-id'] || (event.headers || {})['X-Request-Id'] || '';
   if (!secret || !signature || !requestId || !paymentId) {
     if (enforce) return false;
     console.warn('Webhook MP sin firma verificada: falta MP_WEBHOOK_SECRET o headers de firma.');
@@ -223,3 +223,5 @@ exports.handler = async (event) => {
   // in_process / pending / otros: no hacemos nada, esperamos la próxima notificación
   return ok(headers);
 };
+
+exports._signatureTest = verifyMpSignature;

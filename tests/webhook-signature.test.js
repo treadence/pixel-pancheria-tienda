@@ -1,0 +1,13 @@
+const assert = require('assert');
+const crypto = require('crypto');
+const verify = require('../netlify/functions/webhook-mp')._signatureTest;
+process.env.MP_WEBHOOK_SECRET = 'test-only-secret';
+const id = '123', requestId = 'request-1', ts = '123456';
+const signature = crypto.createHmac('sha256', process.env.MP_WEBHOOK_SECRET).update(`id:${id};request-id:${requestId};ts:${ts};`).digest('hex');
+assert.strictEqual(verify({ headers: { 'x-signature': `ts=${ts},v1=${signature}`, 'x-request-id': requestId } }, id), true);
+assert.strictEqual(verify({ headers: {} }, id), false);
+assert.strictEqual(verify({}, id), false);
+assert.strictEqual(verify({ headers: { 'x-signature': 'ts=123,v1=00', 'x-request-id': requestId } }, id), false);
+assert.strictEqual(verify({ headers: { 'x-signature': 'v1=00', 'x-request-id': requestId } }, id), false);
+delete process.env.MP_WEBHOOK_SECRET;
+console.log('webhook: firma válida aceptada; firmas ausentes, incompletas e inválidas rechazadas');

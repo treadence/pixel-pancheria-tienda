@@ -37,6 +37,10 @@ function localDayKey(date = new Date()) {
 exports.handler = async () => {
   try {
     const db = getDb();
+    const settingsRef = db.doc('settings/store');
+    const settings = await settingsRef.get();
+    const current = settings.exists ? settings.data().webBestSeller30d : null;
+    if (settings.exists && settings.data().webBestSeller30dComputedDay === localDayKey()) return { statusCode: 200, body: JSON.stringify({ ok: true, cached: true, webBestSeller30d: current }) };
     const snapshot = await db.collection('orders').get();
     const cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000);
     const counts = {};
@@ -61,7 +65,14 @@ exports.handler = async () => {
     const webBestSeller30d = winner
       ? { productId: winner[0], units: winner[1], day: localDayKey() }
       : null;
-    await db.doc('settings/store').set({ webBestSeller30d }, { merge: true });
+    await db.runTransaction(async tx => {
+      const latest = await tx.get(settingsRef);
+      const previous = latest.exists ? latest.data().webBestSeller30d : null;
+      if (JSON.stringify(previous || null) !== JSON.stringify(webBestSeller30d)) {
+        tx.set(settingsRef, { webBestSeller30d }, { merge: true });
+      }
+      tx.set(settingsRef, { webBestSeller30dComputedDay: localDayKey() }, { merge: true });
+    });
     return { statusCode: 200, body: JSON.stringify({ ok: true, webBestSeller30d }) };
   } catch (error) {
     console.error('Error actualizando más vendido:', error);
