@@ -1,3 +1,4 @@
+const { isAutomationActive, pausedResponse } = require('./automation-hours');
 const fbadmin = require('firebase-admin');
 
 function getDb() {
@@ -35,6 +36,7 @@ function localDayKey(date = new Date()) {
 }
 
 exports.handler = async () => {
+  if (!isAutomationActive()) return pausedResponse();
   try {
     const db = getDb();
     const settingsRef = db.doc('settings/store');
