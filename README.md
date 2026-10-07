@@ -10,6 +10,14 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 
 ## Registro de cambios
 
+### 2026-10-07 20:39 (-03) — Verificación del flujo sin domicilio inicial
+
+- Detectada y corregida una regresión: al restaurar una dirección guardada sin cotización, el botón de pago podía quedar bloqueado. Ahora se cotiza al abrir el checkout o elegir la dirección, sin consultar cobertura al iniciar el menú.
+- Las cotizaciones vigentes se reutilizan; las vencidas se actualizan. Se evitan consultas duplicadas y respuestas atrasadas que podrían guardar o modificar otra dirección. Los fallos bloquean delivery y permiten retiro o reintento.
+- Nueva prueba automatizada de checkout: visitante nuevo, dirección guardada, total con envío, retiro, cotización vigente/vencida, fuera de cobertura, error/reintento, cambios concurrentes y modalidades deshabilitadas.
+- Validación: 12 suites de tienda y 13 del admin aprobadas. Navegador móvil 390×844 con servicios simulados: delivery nuevo/guardado, retiro, efectivo y transferencia; importes, dirección, estados y redirecciones de pago/seguimiento correctos, sin errores JavaScript.
+- Alcance: no se ejecutaron cobros, pedidos, notificaciones ni cambios reales en Firebase; los servicios externos y redirecciones se probaron con simulaciones. El cambio sigue pendiente de publicación.
+
 ### 2026-10-07 20:32 (-03) — Menú directo y dirección al finalizar
 
 - Todos los clientes ingresan directamente al menú. Se elimina el formulario previo de cobertura y la barra de domicilio del menú.

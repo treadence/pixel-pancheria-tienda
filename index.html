@@ -6279,6 +6279,34 @@
       return loc;
     }
 
+    // Cotizar direcciones guardadas al entrar al checkout, nunca al entrar al menú.
+    const checkoutShippingRequests = new WeakMap();
+    function refreshCheckoutShipping() {
+      const loc = selectedLocation;
+      if (!loc || window.deliveryMode === 'pickup') return Promise.resolve();
+      if (checkoutShippingRequests.has(loc)) return checkoutShippingRequests.get(loc);
+      if (quoteIsFresh(loc) && !loc.quoteError) return Promise.resolve();
+      loc.shippingTier = null;
+      loc.deliveryEligible = null;
+      loc.quoteError = null;
+      updateZoneStatus();
+      updateCartTotals();
+      const request = quoteDeliveryLocation(loc, true).then(() => {
+        if (selectedLocation !== loc) return;
+        addDireccion(loc);
+        saveCuentaLocal();
+      }).catch(error => {
+        if (selectedLocation === loc) loc.quoteError = error.message;
+      }).finally(() => {
+        checkoutShippingRequests.delete(loc);
+        if (selectedLocation !== loc) return;
+        updateZoneStatus();
+        updateCartTotals();
+      });
+      checkoutShippingRequests.set(loc, request);
+      return request;
+    }
+
     function shippingInfo(loc, isPickup) {
       if (isPickup) return { cost: 0, tier: 'pickup', label: 'RETIRO EN LOCAL', color: 'var(--neon-green)', eligible: true };
       if (!loc) return { cost: 0, tier: 'missing', label: '— elegí una dirección', color: 'var(--neon-yellow)', eligible: false };
@@ -6630,6 +6658,7 @@
 
       window.updateCartPaymentOptions();
       updateCartTotals();
+      refreshCheckoutShipping();
       if (window.cuenta) {
         window.cuenta.preferredDeliveryMode = window.deliveryMode;
         saveCuentaLocal();
@@ -7358,16 +7387,7 @@
       if (typeof showMapAndStatus === 'function') showMapAndStatus();
       if (typeof updateCartTotals === 'function') updateCartTotals();
       renderSavedAddresses();
-      quoteDeliveryLocation(selectedLocation, !quoteIsFresh(selectedLocation)).then(() => {
-        addDireccion(selectedLocation);
-        saveCuentaLocal();
-        updateZoneStatus();
-        updateCartTotals();
-      }).catch(error => {
-        selectedLocation.quoteError = error.message;
-        updateZoneStatus();
-        updateCartTotals();
-      });
+      refreshCheckoutShipping();
     };
     window.nuevaDireccion = function() {
       selectedDirId = null; selectedLocation = null;
