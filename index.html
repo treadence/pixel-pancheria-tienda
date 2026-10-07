@@ -3115,7 +3115,9 @@
   <script type="module">
     // ====== FIREBASE ======
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, doc, setDoc, getDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+    import { createCoalescedRead } from './coalesced-read.mjs';
+    const getDoc = createCoalescedRead(sdkGetDoc);
+    import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, doc, setDoc, getDoc as sdkGetDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBQGQlfNxRVMk7UfvGI6VRqURwAw7JIMuI",

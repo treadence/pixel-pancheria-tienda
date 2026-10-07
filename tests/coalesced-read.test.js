@@ -1,0 +1,20 @@
+const assert = require('assert');
+(async () => {
+  const { createCoalescedRead } = await import('../coalesced-read.mjs');
+  let calls = 0; let resolve;
+  const read = createCoalescedRead(() => { calls++; return new Promise(done => { resolve = done; }); });
+  const a = read({path:'loyalty/123'}), b = read({path:'loyalty/123'});
+  assert.strictEqual(a,b); await Promise.resolve(); assert.strictEqual(calls,1);
+  resolve({coins:10}); assert.deepStrictEqual(await a,{coins:10}); await b;
+  const fresh = read({path:'loyalty/123'}); await Promise.resolve(); assert.strictEqual(calls,2);
+  resolve({coins:8}); assert.deepStrictEqual(await fresh,{coins:8},'Later action must not reuse old balance');
+  let failures = 0;
+  const retry = createCoalescedRead(async () => { failures++; throw Error('offline'); });
+  await assert.rejects(retry({path:'orders/1'}));
+  await assert.rejects(retry({path:'orders/1'})); assert.strictEqual(failures,2,'Failures must not become a cached result');
+  let distinct = 0;
+  const separate = createCoalescedRead(async ref => { distinct++; return ref.path; });
+  assert.deepStrictEqual(await Promise.all([separate({path:'loyalty/a'}),separate({path:'loyalty/b'})]), ['loyalty/a','loyalty/b']);
+  assert.strictEqual(distinct,2);
+  console.log('coalesced-read: concurrent deduplication, fresh balances, retry and separate customers verified');
+})().catch(error => { console.error(error); process.exitCode = 1; });
