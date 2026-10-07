@@ -3132,6 +3132,13 @@
     const firebaseApp = initializeApp(firebaseConfig);
     const db = getFirestore(firebaseApp);
 
+    // Disponible antes de restaurar el pedido guardado; la configuración remota se combina al llegar.
+    const DEFAULT_FEATURE_CONFIG = Object.freeze({
+      loyalty: true, coupons: true, upsell: true, customerAccount: true,
+      feedback: true, highlights: true, trackingShortcut: true, version: 1
+    });
+    window.getFeatureConfig = () => ({ ...DEFAULT_FEATURE_CONFIG, ...((window.storeSettings || {}).featureConfig || {}) });
+
     // ====== EMBUDO ANÓNIMO DE COMPRA ======
     // Una sesión dura hasta 4 horas y no guarda nombre, teléfono ni dirección
     // exacta. Sirve para saber en qué paso se corta una compra y, si finalmente
@@ -4412,10 +4419,7 @@
       legal: { enabled: false, legalName: '', taxId: '', text: '' },
       version: 1
     });
-    const DEFAULT_FEATURE_CONFIG = Object.freeze({
-      loyalty: true, coupons: true, upsell: true, customerAccount: true,
-      feedback: true, highlights: true, trackingShortcut: true, version: 1
-    });
+
     window.storeSettings = { open: _openByDefault, schedule: null, deliveryConfig: { ...DEFAULT_DELIVERY_CONFIG }, businessConfig: { ...DEFAULT_BUSINESS_CONFIG }, checkoutConfig: { ...DEFAULT_CHECKOUT_CONFIG, payments: { delivery: { ...DEFAULT_CHECKOUT_CONFIG.payments.delivery }, pickup: { ...DEFAULT_CHECKOUT_CONFIG.payments.pickup } } }, legalConfig: { ...DEFAULT_LEGAL_CONFIG }, featureConfig: { ...DEFAULT_FEATURE_CONFIG } };
     window.getDeliveryConfig = () => ({ ...DEFAULT_DELIVERY_CONFIG, ...((window.storeSettings || {}).deliveryConfig || {}) });
     window.getBusinessConfig = () => ({ ...DEFAULT_BUSINESS_CONFIG, ...((window.storeSettings || {}).businessConfig || {}) });
@@ -4464,7 +4468,7 @@
         legal: { ...DEFAULT_LEGAL_CONFIG.legal, ...(saved.legal || {}) }
       };
     };
-    window.getFeatureConfig = () => ({ ...DEFAULT_FEATURE_CONFIG, ...((window.storeSettings || {}).featureConfig || {}) });
+
     if (!_openByDefault) updateStoreStatus();
 
     setTimeout(() => document.getElementById('loadingScreen').classList.add('hidden'), 4000);
