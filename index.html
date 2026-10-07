@@ -2990,7 +2990,6 @@
 
   <div id="cuentaBar" style="display:none;"></div>
   <div id="identifyBar" class="identify-bar"></div>
-  <div id="customerDeliveryBar" class="customer-delivery-bar"></div>
   <div id="coinChip" style="display:none;"></div>
 
   <nav class="categories" id="cats"></nav>
@@ -3062,37 +3061,6 @@
       </div>
       <button type="button" id="identifySubmit" class="customer-setup-submit" onclick="lookupCustomerAccount()">BUSCAR MI CUENTA</button>
       <div id="identifyResult" class="identify-result" aria-live="polite"></div>
-    </div>
-  </div>
-
-  <div class="customer-setup-overlay" id="customerSetupOverlay">
-    <div class="customer-setup-card">
-      <button type="button" class="customer-setup-close" onclick="closeCustomerSetup()" aria-label="Cerrar">X</button>
-      <div class="customer-setup-title">¿DÓNDE LLEVAMOS TU PEDIDO?</div>
-      <div class="customer-setup-sub">Primero confirmá si llegamos a tu dirección. Tu nombre y teléfono te los pedimos recién al finalizar el pedido.</div>
-      <div class="delivery-mode customer-setup-mode">
-        <button type="button" class="dm-btn sel" id="setupDeliveryBtn" onclick="setCustomerSetupMode('delivery')">🛵 Envío a domicilio</button>
-        <button type="button" class="dm-btn" id="setupPickupBtn" onclick="setCustomerSetupMode('pickup')">🏪 Retiro gratis</button>
-      </div>
-      <div id="setupDeliveryFields" class="customer-setup-address">
-        <div id="setupSavedAddresses"></div>
-        <div class="form-field">
-          <label>📍 DIRECCIÓN DE ENTREGA</label>
-          <div class="address-wrap" id="setupAddressWrap">
-            <input type="text" id="setupAddress" placeholder="Empezá a escribir tu dirección..." autocomplete="off">
-          </div>
-          <button type="button" class="address-gps-btn" id="setupGpsBtn" onclick="useSetupGps(this)">◎ Ajustar el pin con mi GPS</button>
-        </div>
-        <div id="setupMap" class="customer-setup-map" style="display:none;"></div>
-        <div id="setupQuoteResult" class="customer-setup-result"></div>
-      </div>
-      <div id="setupPickupInfo" class="pickup-info" style="display:none;">
-        <div class="pickup-title">🏪 RETIRO GRATIS</div>
-        <div class="pickup-addr">Calle 410 N°747 · Juan María Gutiérrez</div>
-        <div class="pickup-note">Preparamos tu pedido y lo pasás a retirar por el local.</div>
-      </div>
-      <div class="cart-privacy-note" style="margin-top:14px;">Guardamos tu modalidad y dirección para agilizar tu pedido.</div>
-      <button type="button" id="customerSetupSubmit" class="customer-setup-submit" onclick="saveCustomerSetup()">CONTINUAR AL MENÚ</button>
     </div>
   </div>
 
@@ -6236,13 +6204,6 @@
         }
       });
       if (typeof window.applyDeliveryModeAvailability === 'function') window.applyDeliveryModeAvailability();
-      const setupOverlay = document.getElementById('customerSetupOverlay');
-      if (!cfg.deliveryEnabled && !cfg.pickupEnabled && setupOverlay) {
-        setupOverlay.classList.remove('open', 'required');
-        document.body.style.overflow = '';
-      } else if (setupOverlay && setupOverlay.classList.contains('open') && typeof window.setCustomerSetupMode === 'function') {
-        window.setCustomerSetupMode(window.deliveryMode);
-      }
       if (typeof window.updateCartTotals === 'function') window.updateCartTotals();
     }
     window.applyDeliveryConfig = applyDeliveryConfig;
@@ -6672,7 +6633,6 @@
       if (window.cuenta) {
         window.cuenta.preferredDeliveryMode = window.deliveryMode;
         saveCuentaLocal();
-        renderCustomerDeliveryBar();
       }
       if (previousMode !== window.deliveryMode) {
         sendGa4Event('delivery_mode_changed', { delivery_type: window.deliveryMode });
@@ -7036,7 +6996,6 @@
       clearPendingRecovery();
       await refreshCustomerBenefits(phone);
       renderCuentaBar();
-      renderCustomerDeliveryBar();
       window.closeIdentify();
       showWelcomeToast();
       alert('✅ Cuenta recuperada. Ya tenés nuevamente tus datos, coins y beneficios.');
@@ -7330,7 +7289,6 @@
       selectedLocation = null; selectedDirId = null; window.deliveryMode = 'delivery';
       try { localStorage.removeItem(LOYALTY_KEY); } catch (e) {}
       renderCuentaBar();
-      renderCustomerDeliveryBar();
       const ov = document.getElementById('cartOverlay');
       if (ov && ov.classList.contains('open')) renderCart();
       renderIdentifyBar();
@@ -7405,7 +7363,6 @@
         saveCuentaLocal();
         updateZoneStatus();
         updateCartTotals();
-        renderCustomerDeliveryBar();
       }).catch(error => {
         selectedLocation.quoteError = error.message;
         updateZoneStatus();
@@ -7460,41 +7417,6 @@
       renderSavedAddresses();
     };
 
-    // ---- Dirección activa (se solicita recién durante la compra) ----
-    let customerSetupMode = 'delivery';
-    let setupLocation = null;
-    let setupAddressMap = null;
-    let setupAddressMarker = null;
-    let setupPlacesAutocomplete = null;
-
-    function renderCustomerDeliveryBar() {
-      const bar = document.getElementById('customerDeliveryBar');
-      if (!bar || !window.cuenta || !window.getFeatureConfig().customerAccount) {
-        if (bar) { bar.classList.remove('show'); bar.innerHTML = ''; }
-        return;
-      }
-      const pickup = (window.cuenta.preferredDeliveryMode || window.deliveryMode) === 'pickup';
-      const current = selectedLocation || locationFromSavedAddress(getDefaultDir());
-      const shipping = shippingInfo(current, pickup);
-      const status = pickup
-        ? 'Retiro gratis en el local'
-        : shipping.tier === 'free'
-          ? 'Envío gratis'
-          : (shipping.tier === 'standard_3000' || shipping.tier === 'standard')
-            ? 'Envío $' + Number(shipping.cost || 0).toLocaleString('es-AR')
-            : shipping.tier === 'out_of_coverage'
-              ? 'Fuera de cobertura · elegí retiro gratis'
-              : 'Cobertura pendiente de verificar';
-      const address = pickup ? window.getDeliveryConfig().storeAddress : ((current && current.address) || 'Elegí una dirección');
-      bar.innerHTML = `<div class="customer-delivery-inner">
-        <span>${pickup ? '🏪' : '📍'}</span>
-        <div class="customer-delivery-copy"><strong>${status}</strong><span>${escHtmlL(address)}</span></div>
-        <button type="button" class="customer-delivery-change" onclick="openCustomerSetup(false)">CAMBIAR</button>
-      </div>`;
-      bar.classList.add('show');
-    }
-    window.renderCustomerDeliveryBar = renderCustomerDeliveryBar;
-
     window.applyFeatureConfig = function() {
       const cfg = window.getFeatureConfig();
       window.COINS_ENABLED = cfg.loyalty !== false && cfg.customerAccount !== false;
@@ -7511,7 +7433,6 @@
         if (feedback) feedback.classList.remove('open');
       }
       renderCuentaBar();
-      renderCustomerDeliveryBar();
       renderCoinChip();
       renderProductCards();
       const cartOverlay = document.getElementById('cartOverlay');
@@ -7519,316 +7440,11 @@
     };
     window.applyFeatureConfig();
 
-    function renderSetupSavedAddresses() {
-      const box = document.getElementById('setupSavedAddresses');
-      if (!box) return;
-      const addresses = getDirecciones();
-      if (!addresses.length) { box.innerHTML = ''; box.style.display = 'none'; return; }
-      box.style.display = 'block';
-      box.innerHTML = `<div class="dir-list" style="margin-bottom:10px;">${addresses.map(address => {
-        const selected = setupLocation && Math.abs(address.lat - setupLocation.lat) < 1e-6 && Math.abs(address.lng - setupLocation.lng) < 1e-6;
-        return `<button type="button" class="dir-chip-main ${selected ? 'sel' : ''}" style="border:2px solid ${selected ? 'var(--neon-green)' : 'var(--neon-purple)'};border-radius:6px;" onclick="selectSetupSavedAddress('${address.id}')">📍 ${escHtmlL(address.address || 'Dirección guardada')}</button>`;
-      }).join('')}<button type="button" class="dir-nueva" onclick="newSetupAddress()">➕ Otra dirección</button></div>`;
-    }
-
-    function renderSetupQuote() {
-      const result = document.getElementById('setupQuoteResult');
-      if (!result) return;
-      result.className = 'customer-setup-result';
-      if (customerSetupMode === 'pickup') { result.innerHTML = ''; return; }
-      if (!setupLocation) { result.innerHTML = ''; return; }
-      result.classList.add('show');
-      if (setupLocation.quoteError) {
-        result.classList.add('out');
-        result.innerHTML = '⚠️ No pudimos verificar la cobertura.<br><small>Probá nuevamente o elegí retiro gratis.</small>';
-      } else if (!setupLocation.shippingTier) {
-        result.classList.add('loading');
-        result.textContent = '⌛ Verificando cobertura…';
-      } else if (setupLocation.deliveryEligible === false) {
-        result.classList.add('out');
-        result.innerHTML = '❌ ESTA DIRECCIÓN ESTÁ FUERA DE NUESTRA ZONA DE ENTREGA<br><small>Podés elegir retiro gratis en el local.</small>';
-      } else {
-        result.classList.add('ok');
-        result.textContent = setupLocation.shippingTier === 'free'
-          ? '✅ ENVÍO GRATIS'
-          : '✅ LLEGAMOS A TU DOMICILIO · ENVÍO $3.000';
-      }
-    }
-
-    async function quoteSetupLocation(force) {
-      if (!setupLocation) return;
-      setupLocation.shippingTier = force ? null : setupLocation.shippingTier;
-      setupLocation.quoteError = null;
-      renderSetupQuote();
-      try {
-        await quoteDeliveryLocation(setupLocation, force);
-        sendGa4Event('shipping_quote_viewed', {
-          delivery_type: 'delivery',
-          shipping_tier: setupLocation.shippingTier,
-          shipping_cost: setupLocation.shippingCost
-        });
-        if (setupLocation.deliveryEligible === false) {
-          sendGa4Event('delivery_unavailable', { shipping_tier: 'out_of_coverage' });
-        }
-      } catch (error) {
-        setupLocation.quoteError = error.message;
-      }
-      renderSetupQuote();
-    }
-
-    function showSetupMap() {
-      const mapEl = document.getElementById('setupMap');
-      if (!mapEl || !setupLocation || typeof L === 'undefined') return;
-      mapEl.style.display = 'block';
-      if (!setupAddressMap) {
-        setupAddressMap = L.map('setupMap', { zoomControl: true, scrollWheelZoom: false })
-          .setView([setupLocation.lat, setupLocation.lng], 17);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19, attribution: '© OpenStreetMap'
-        }).addTo(setupAddressMap);
-        L.marker([STORE_LOCATION.lat, STORE_LOCATION.lng], { title: window.getBusinessConfig().businessName, opacity: .8 })
-          .addTo(setupAddressMap).bindPopup('🌭 ' + businessEscape(window.getBusinessConfig().businessName));
-        setupAddressMarker = L.marker([setupLocation.lat, setupLocation.lng], { draggable: true, title: 'Tu dirección' })
-          .addTo(setupAddressMap).bindPopup('Ajustá el pin si hace falta').openPopup();
-        setupAddressMarker.on('dragend', event => {
-          const point = event.target.getLatLng();
-          setupLocation = {
-            ...setupLocation,
-            lat: point.lat,
-            lng: point.lng,
-            distanceKm: haversineKm(STORE_LOCATION.lat, STORE_LOCATION.lng, point.lat, point.lng),
-            shippingTier: null,
-            deliveryEligible: null,
-            quoteAt: null
-          };
-          quoteSetupLocation(true);
-        });
-      } else {
-        setupAddressMap.setView([setupLocation.lat, setupLocation.lng], 17);
-        if (setupAddressMarker) setupAddressMarker.setLatLng([setupLocation.lat, setupLocation.lng]);
-      }
-      setTimeout(() => setupAddressMap && setupAddressMap.invalidateSize(), 100);
-    }
-
-    async function initCustomerSetupAddressPicker() {
-      const input = document.getElementById('setupAddress');
-      if (!input || !window.google || !window.google.maps) return;
-      if (setupPlacesAutocomplete && setupPlacesAutocomplete.isConnected) return;
-      setupPlacesAutocomplete = null;
-      try {
-        const { PlaceAutocompleteElement } = await google.maps.importLibrary('places');
-        const picker = new PlaceAutocompleteElement({
-          locationBias: { center: { lat: STORE_LOCATION.lat, lng: STORE_LOCATION.lng }, radius: 20000 },
-          includedRegionCodes: ['ar'],
-          types: ['address']
-        });
-        input.style.display = 'none';
-        input.parentElement.appendChild(picker);
-        picker.style.width = '100%';
-        picker.style.display = 'block';
-        setupPlacesAutocomplete = picker;
-        picker.addEventListener('gmp-select', async event => {
-          const prediction = event.placePrediction;
-          if (!prediction) return;
-          const place = prediction.toPlace();
-          await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location', 'addressComponents'] });
-          if (!place.location) return;
-          const address = formatPlaceAddress(place);
-          input.value = address;
-          setupLocation = {
-            lat: place.location.lat(), lng: place.location.lng(), address,
-            distanceKm: haversineKm(STORE_LOCATION.lat, STORE_LOCATION.lng, place.location.lat(), place.location.lng()),
-            shippingTier: null, deliveryEligible: null
-          };
-          renderSetupSavedAddresses();
-          showSetupMap();
-          quoteSetupLocation(true);
-          sendGa4Event('delivery_address_selected', { customer_status: window.cuenta ? 'returning' : 'new' });
-        });
-      } catch (error) {
-        console.warn('No se pudo iniciar la dirección previa', error);
-        input.style.display = '';
-      }
-    }
-
-    window.setCustomerSetupMode = function(mode) {
-      const cfg = window.getDeliveryConfig();
-      if (mode === 'delivery' && !cfg.deliveryEnabled) mode = cfg.pickupEnabled ? 'pickup' : 'delivery';
-      if (mode === 'pickup' && !cfg.pickupEnabled) mode = cfg.deliveryEnabled ? 'delivery' : 'pickup';
-      const previousMode = customerSetupMode;
-      customerSetupMode = mode === 'pickup' ? 'pickup' : 'delivery';
-      window.applyDeliveryModeAvailability();
-      document.getElementById('setupDeliveryBtn').classList.toggle('sel', customerSetupMode === 'delivery');
-      document.getElementById('setupPickupBtn').classList.toggle('sel', customerSetupMode === 'pickup');
-      document.getElementById('setupDeliveryFields').style.display = customerSetupMode === 'delivery' ? 'block' : 'none';
-      document.getElementById('setupPickupInfo').style.display = customerSetupMode === 'pickup' ? 'block' : 'none';
-      renderSetupQuote();
-      if (previousMode !== customerSetupMode) {
-        sendGa4Event('delivery_mode_changed', { delivery_type: customerSetupMode });
-      }
-    };
-
-    window.selectSetupSavedAddress = function(id) {
-      const address = getDirById(id);
-      if (!address) return;
-      setupLocation = locationFromSavedAddress(address);
-      const input = document.getElementById('setupAddress');
-      if (input) input.value = address.address || '';
-      renderSetupSavedAddresses();
-      showSetupMap();
-      quoteSetupLocation(!quoteIsFresh(setupLocation));
-      sendGa4Event('saved_address_selected', { shipping_tier: setupLocation.shippingTier || 'pending' });
-    };
-
-    window.newSetupAddress = function() {
-      setupLocation = null;
-      const input = document.getElementById('setupAddress');
-      if (input) input.value = '';
-      const mapEl = document.getElementById('setupMap');
-      if (mapEl) mapEl.style.display = 'none';
-      renderSetupSavedAddresses();
-      renderSetupQuote();
-    };
-
-    window.useSetupGps = function(button) {
-      if (!setupLocation) { alert('Primero elegí tu dirección del listado.'); return; }
-      if (!('geolocation' in navigator)) { alert('Este dispositivo no ofrece ubicación GPS.'); return; }
-      const original = button.textContent;
-      button.disabled = true;
-      button.textContent = '◎ Buscando señal precisa…';
-      navigator.geolocation.getCurrentPosition(position => {
-        const accuracy = Number(position.coords.accuracy) || 999;
-        button.disabled = false;
-        button.textContent = original;
-        if (accuracy > 100) {
-          alert(`La señal todavía es imprecisa (±${Math.round(accuracy)} m). Probá nuevamente cerca de una ventana.`);
-          return;
-        }
-        setupLocation = {
-          ...setupLocation,
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          distanceKm: haversineKm(STORE_LOCATION.lat, STORE_LOCATION.lng, position.coords.latitude, position.coords.longitude),
-          shippingTier: null,
-          deliveryEligible: null,
-          quoteAt: null
-        };
-        showSetupMap();
-        quoteSetupLocation(true);
-      }, error => {
-        button.disabled = false;
-        button.textContent = original;
-        alert('No pudimos obtener tu ubicación: ' + error.message);
-      }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
-    };
-
-    window.openCustomerSetup = function(required) {
-      const overlay = document.getElementById('customerSetupOverlay');
-      if (!overlay) return;
-      const cfg = window.getDeliveryConfig();
-      if (!cfg.deliveryEnabled && !cfg.pickupEnabled) {
-        if (required !== true) alert('Los pedidos están temporalmente pausados. Volvé a intentar más tarde.');
-        return;
-      }
-      overlay.classList.toggle('required', required === true);
-      overlay.classList.add('open');
-      document.body.style.overflow = 'hidden';
-      customerSetupMode = (window.cuenta && window.cuenta.preferredDeliveryMode) || window.deliveryMode || 'delivery';
-      if (customerSetupMode === 'delivery' && !cfg.deliveryEnabled) customerSetupMode = 'pickup';
-      if (customerSetupMode === 'pickup' && !cfg.pickupEnabled) customerSetupMode = 'delivery';
-      const active = selectedLocation || locationFromSavedAddress(getDefaultDir());
-      setupLocation = active ? { ...active } : null;
-      window.setCustomerSetupMode(customerSetupMode);
-      renderSetupSavedAddresses();
-      renderSetupQuote();
-      if (setupLocation) showSetupMap();
-      setTimeout(initCustomerSetupAddressPicker, 100);
-      if (required === true) sendGa4Event('customer_setup_started', { customer_status: 'new' });
-    };
-
-    window.closeCustomerSetup = function() {
-      const overlay = document.getElementById('customerSetupOverlay');
-      if (!overlay || overlay.classList.contains('required')) return;
-      overlay.classList.remove('open');
-      document.body.style.overflow = '';
-    };
-
-    window.saveCustomerSetup = async function() {
-      const wasKnownCustomer = !!(window.cuenta && window.cuenta.telefono);
-      const button = document.getElementById('customerSetupSubmit');
-      if (customerSetupMode === 'delivery' && !setupLocation) { alert('⚠ Elegí tu dirección del listado'); return; }
-      button.disabled = true;
-      button.textContent = customerSetupMode === 'delivery' ? 'VERIFICANDO COBERTURA…' : 'GUARDANDO…';
-      try {
-        if (customerSetupMode === 'delivery') {
-          await quoteDeliveryLocation(setupLocation, !quoteIsFresh(setupLocation));
-          if (setupLocation.deliveryEligible === false) {
-            renderSetupQuote();
-            alert('Esta dirección está fuera de nuestra zona de entrega. Elegí otra dirección o retiro gratis.');
-            return;
-          }
-        }
-        if (!window.cuenta) window.cuenta = { nombre: '', telefono: '', coins: 0, direcciones: [], defaultDirId: null };
-        window.cuenta.preferredDeliveryMode = customerSetupMode;
-        window.deliveryMode = customerSetupMode;
-        if (customerSetupMode === 'delivery') {
-          selectedLocation = { ...setupLocation };
-          selectedDirId = addDireccion(selectedLocation);
-          window.cuenta.defaultDirId = selectedDirId || window.cuenta.defaultDirId;
-        } else {
-          selectedLocation = null;
-        }
-        saveCuentaLocal();
-        if (wasKnownCustomer) {
-          try {
-            await setDoc(doc(db, 'loyalty', normPhoneL(window.cuenta.telefono)), {
-              direcciones: window.cuenta.direcciones || [],
-              defaultDirId: window.cuenta.defaultDirId || null,
-              preferredDeliveryMode: customerSetupMode,
-              updatedAt: serverTimestamp()
-            }, { merge: true });
-          } catch (error) { console.warn('No se pudo sincronizar la cobertura elegida', error); }
-        }
-        document.getElementById('customerSetupOverlay').classList.remove('required', 'open');
-        document.body.style.overflow = '';
-        renderCuentaBar();
-        renderCustomerDeliveryBar();
-        sendGa4Event('customer_setup_completed', {
-          customer_status: wasKnownCustomer ? 'returning' : 'new',
-          delivery_type: customerSetupMode,
-          shipping_tier: customerSetupMode === 'pickup' ? 'pickup' : setupLocation.shippingTier,
-          shipping_cost: customerSetupMode === 'pickup' ? 0 : setupLocation.shippingCost
-        });
-      } catch (error) {
-        alert('No pudimos guardar tus datos: ' + error.message);
-      } finally {
-        button.disabled = false;
-        button.textContent = 'CONTINUAR AL MENÚ';
-      }
-    };
-
     // Init
     loadCuenta();
     resumePendingRecovery();
     renderCuentaBar();
-    const initialAddress = getDefaultDir();
-    if (initialAddress) {
-      selectedDirId = initialAddress.id;
-      selectedLocation = locationFromSavedAddress(initialAddress);
-      const initialLocation = selectedLocation;
-      quoteDeliveryLocation(initialLocation, !quoteIsFresh(initialLocation)).then(() => {
-        if (selectedLocation !== initialLocation) return;
-        addDireccion(initialLocation);
-        saveCuentaLocal();
-        renderCustomerDeliveryBar();
-        if (typeof updateCartTotals === 'function') updateCartTotals();
-      }).catch(error => {
-        if (selectedLocation === initialLocation) initialLocation.quoteError = error.message;
-        renderCustomerDeliveryBar();
-      });
-    }
     window.deliveryMode = (window.cuenta && window.cuenta.preferredDeliveryMode) || 'delivery';
-    renderCustomerDeliveryBar();
     if (window.cuenta && window.cuenta.telefono) {
       // Cartel de bienvenida con los coins cacheados (aparece al toque)
       setTimeout(showWelcomeToast, 600);

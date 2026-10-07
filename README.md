@@ -10,6 +10,12 @@ Manual completo del proyecto (arquitectura, modelo de datos, mapas del código):
 
 ## Registro de cambios
 
+### 2026-10-07 20:32 (-03) — Menú directo y dirección al finalizar
+
+- Todos los clientes ingresan directamente al menú. Se elimina el formulario previo de cobertura y la barra de domicilio del menú.
+- La dirección, el GPS, las direcciones guardadas, el costo de envío y la validación de cobertura permanecen en el cierre del pedido.
+- Se elimina la cotización automática del domicilio guardado durante el arranque; se restaura en el checkout.
+
 ### 2026-09-22 — Disponibilidad por horario y pausas temporales
 
 - La tienda combina stock manual, agotamiento por receta, pausas con vencimiento y programación semanal antes de permitir una compra.
