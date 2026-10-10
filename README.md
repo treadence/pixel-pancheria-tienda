@@ -527,3 +527,16 @@ contacto directo al WhatsApp del local.
 - Firestore guarda reclamo, resultado y `transaction_id` para impedir duplicados y permitir reintentos seguros ante una falla temporal.
 - La emisión requiere `GA4_API_SECRET` en Netlify; `GA4_MEASUREMENT_ID` es opcional y usa `G-KF22RZJNS3` por defecto.
 - Se mantiene el evento del navegador como respaldo y GA4 deduplica ambos usando el mismo ID único del pedido.
+
+
+## 2026-10-09 19:30 ART — Parche temporal de cinco alemanas
+
+Se agrega un límite temporal compartido por tienda y comandera. La primera consulta al endpoint inicia la ventana en stock/temporaryGermanLimit20261009; cuenta cinco unidades adicionales en pedidos recibidos, incluyendo combos y cantidades de comandera/PeYa. Excluye cancelados y Mercado Pago pendiente. Consulta cada 30 segundos en pestañas visibles y antes de confirmar el pedido; bloquea cantidades superiores al saldo y las nuevas selecciones al agotarse. El 10/10/2026 a las 00:00 Argentina (03:00 UTC) deja de consultar y bloquear sin otro despliegue. No modifica disponibilidad manual ni recetas.
+
+Limitación: es un control de disponibilidad, sin reserva transaccional. Compras simultáneas o pagos pendientes confirmados después podrían superar el cupo. El código queda inerte tras vencer; no se elimina físicamente solo. Activación pendiente de despliegue de ambos sitios.
+
+Validación: suites existentes y pruebas del conteo web, comandera, combos, pedidos cancelados/pendientes, deduplicación y vencimiento.
+
+## 2026-10-10 — Parche de faltantes hasta 11/10 00:30 ART
+
+Fritas a1–a3, Coca común y adicionales cebolla/panceta bloqueados; pay conservadas. Panchos afectados con aviso y 10%, incluyendo comandera. Pedidos identifican ingrediente omitido. Límite compartido 2 alemanas/12 panes desde primera consulta; incluye combos, excluye cancelados y MP pendiente. Sin pan, tienda cerrada. Vence 11/10 00:30 ART sin alterar disponibilidad manual; código inerte, sin borrado físico. No reserva stock: concurrencia y pagos diferidos pueden exceder saldo. Validación: 28 suites y escenarios 12/13 panes, faltantes/pay. Pendiente publicar.

@@ -3080,7 +3080,8 @@
     </div>
   </div>
 
-  <script type="module">
+  <script src="temporary-german-limit.js"></script>
+<script type="module">
     // ====== FIREBASE ======
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
     import { createCoalescedRead } from './coalesced-read.mjs';
@@ -3479,7 +3480,7 @@
     function updateStockInUI() {
       document.querySelectorAll('.card[data-product-id]').forEach(card => {
         const id = card.dataset.productId;
-        const available = stockMap[id] !== false; // si no está en el mapa, asume disponible
+        const available = stockMap[id] !== false && !window.temporaryGermanLimit.blocked(id); // si no está en el mapa, asume disponible
         card.classList.toggle('sold-out', !available);
       });
       // Un cambio de stock también debe reflejarse dentro del selector del combo.
@@ -3497,6 +3498,7 @@
 
     // Evalúa si la tienda está abierta según settings y horario
     function isStoreOpen() {
+      if (!window.temporaryGermanLimit.breadAvailable()) return { open:false, reason:'Por hoy nos quedamos sin pan. Tienda cerrada.' };
       const s = window.storeSettings || {};
       // Override manual desde el admin: manda por sobre el horario
       const ovr = (s.override === 'open' || s.override === 'closed' || s.override === 'auto')
@@ -4656,7 +4658,7 @@
             <div class="sprite${item.imageUrl ? ' has-image' : ''}">${spriteFor(item)}</div>
             <div class="card-content">
               <h3>${item.name}</h3>
-              <p class="desc">${item.desc}</p>
+              <p class="desc">${item.desc}${window.temporaryGermanLimit.affected(item.id) ? '<br><strong>Hoy sin ' + (item.id === 'p4' ? 'cebolla' : 'panceta') + '. 10% de descuento.</strong>' : ''}</p>
               <div class="price-row">
                 <span class="price">${getProductDiscount(item.id) > 0
                   ? `<span class="price-old">$${item.price.toLocaleString('es-AR')}</span><span class="price-now">$${discountedPrice(item.price, item.id).toLocaleString('es-AR')}</span>`
@@ -4727,7 +4729,7 @@
 
     function productAvailable(id) {
       const item = findItem(id);
-      return !!item && item.retired !== true && (!window.stockMap || window.stockMap[id] !== false);
+      return !window.temporaryGermanLimit.blocked(id) && !!item && item.retired !== true && (!window.stockMap || window.stockMap[id] !== false);
     }
 
     function removeUnavailableComboSelections() {
@@ -4855,7 +4857,7 @@
       if (isCombo) removeUnavailableComboSelections();
 
       // Helper: filtrar addons que estén habilitados según Firebase
-      const addonEnabled = (id) => !window.addonsMap || window.addonsMap[id] !== false;
+      const addonEnabled = (id) => !window.temporaryGermanLimit.blocked(id) && !window.addonsMap || window.addonsMap[id] !== false;
 
       // Listas filtradas (solo los habilitados)
       const visibleSauces = SAUCES.filter(s => addonEnabled(s.id));
@@ -4876,7 +4878,7 @@
       body.innerHTML = `
       <div class="pm-sprite${item.imageUrl ? ' has-image' : ''}">${spriteFor(item)}</div>
       <h2 class="pm-name">${item.name}</h2>
-      <p class="pm-desc">${item.desc}</p>
+      <p class="pm-desc">${item.desc}${window.temporaryGermanLimit.affected(item.id) ? '<br><strong>Hoy sin ' + (item.id === 'p4' ? 'cebolla' : 'panceta') + '. 10% de descuento.</strong>' : ''}</p>
       <div class="pm-price">${getProductDiscount(item.id) > 0
         ? `<span class="price-old">$${item.price.toLocaleString('es-AR')}</span><span class="price-now">$${discountedPrice(item.price, item.id).toLocaleString('es-AR')}</span>`
         : `$${item.price.toLocaleString('es-AR')}`}</div>
@@ -4905,16 +4907,16 @@
         // Si este pancho requiere salchicha y hay unidades seleccionadas, mostrar selector por unidad
         let sausagePickers = '';
         if (p.sausage && qty > 0) {
-          const options = SAUSAGES.map(sg => `<option value="${sg.id}">${sg.name}</option>`).join('');
+          const options = SAUSAGES.map(sg => `<option ${!window.temporaryGermanLimit.available(sg.id) ? 'disabled' : ''} value="${sg.id}">${sg.name}</option>`).join('');
           const pickers = [];
           for (let i = 0; i < qty; i++) {
             const key = `${p.id}_${i}`;
-            const currentVal = currentComboSausages[key] || SAUSAGES[0].id;
+            const currentVal = currentComboSausages[key] || (SAUSAGES.find(s => window.temporaryGermanLimit.available(s.id)) || SAUSAGES[0]).id;
             pickers.push(`
                   <div style="display:flex;align-items:center;gap:8px;margin-top:6px;padding-left:8px;">
                     <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--neon-cyan);min-width:70px;">SALCHICHA ${i + 1}:</span>
                     <select onchange="setComboSausage('${key}', this.value)" style="flex:1;background:var(--bg);border:2px solid var(--neon-purple);color:#fff;padding:6px 8px;font-family:'VT323',monospace;font-size:15px;">
-                      ${SAUSAGES.map(sg => `<option value="${sg.id}" ${sg.id === currentVal ? 'selected' : ''}>${sg.name}</option>`).join('')}
+                      ${SAUSAGES.map(sg => `<option ${!window.temporaryGermanLimit.available(sg.id) ? 'disabled' : ''} value="${sg.id}" ${sg.id === currentVal ? 'selected' : ''}>${sg.name}</option>`).join('')}
                     </select>
                   </div>
                 `);
@@ -4986,7 +4988,7 @@
           ${SAUSAGES.map(sg => {
             const sel = currentSausages.find(x => x.id === sg.id);
             const qty = sel ? sel.qty : 0;
-            const canAdd = sausageCount < maxSausages;
+            const canAdd = sausageCount < maxSausages && window.temporaryGermanLimit.available(sg.id);
             return `
               <div class="pm-combo-item">
                 <div class="pm-combo-item-left">
@@ -5158,11 +5160,13 @@
     }
 
     function setComboSausage(key, sausageId) {
+      if (!window.temporaryGermanLimit.available(sausageId)) return;
       currentComboSausages[key] = sausageId;
       // No re-render - perdería el foco del select. El valor queda guardado.
     }
 
     function changeSausage(sausageId, delta) {
+      if (delta > 0 && !window.temporaryGermanLimit.available(sausageId)) return;
       const max = currentQty;
       const total = currentSausages.reduce((s, x) => s + x.qty, 0);
 
@@ -5231,7 +5235,7 @@
         if (pancho && pancho.sausage) {
           for (let i = 0; i < newQty; i++) {
             const k = itemId + '_' + i;
-            if (!currentComboSausages[k]) currentComboSausages[k] = SAUSAGES[0].id;
+            if (!currentComboSausages[k]) currentComboSausages[k] = (SAUSAGES.find(s => window.temporaryGermanLimit.available(s.id)) || SAUSAGES[0]).id;
           }
         }
       }
@@ -5598,14 +5602,14 @@
           <div class="upsell-sprite">${spriteFor(item)}</div>
           <div class="upsell-info">
             <div class="upsell-name">${item.name}</div>
-            <div class="upsell-cardesc">${item.desc}</div>
+            <div class="upsell-cardesc">${item.desc}${window.temporaryGermanLimit.affected(item.id) ? '<br><strong>Hoy sin ' + (item.id === 'p4' ? 'cebolla' : 'panceta') + '. 10% de descuento.</strong>' : ''}</div>
             <div class="upsell-price">$${price.toLocaleString('es-AR')}</div>
           </div>
         </div>
         <div class="upsell-sausage-field">
           <label>▶ TIPO DE SALCHICHA</label>
           <select id="upsellSausageSel">
-            ${SAUSAGES.map(sg => `<option value="${sg.id}">${sg.name}</option>`).join('')}
+            ${SAUSAGES.map(sg => `<option ${!window.temporaryGermanLimit.available(sg.id) ? 'disabled' : ''} value="${sg.id}">${sg.name}</option>`).join('')}
           </select>
         </div>
         <button class="upsell-skip" onclick="upsellConfirmPancho('${id}')">🌭 AGREGAR AL PEDIDO</button>
@@ -5621,6 +5625,7 @@
       if (!item) return;
       const sel = document.getElementById('upsellSausageSel');
       const sausageId = (sel && sel.value) || SAUSAGES[0].id;
+      if (!window.temporaryGermanLimit.available(sausageId)) return;
       upsellAddToCart(item, [{ id: sausageId, qty: 1 }]);
       _upsellAdded.add(id);
       renderUpsellList();
@@ -5711,6 +5716,7 @@
     }
     // Devuelve el % de descuento vigente para un producto (0 si no hay)
     function getProductDiscount(productId) {
+      if (window.temporaryGermanLimit.affected(productId)) return 10;
       const s = window.storeSettings || {};
       const globalPct = (s.menuDiscountActive && s.menuDiscountPct > 0 && promotionWindowActive(s.menuDiscountStartsAt, s.menuDiscountEndsAt)) ? Number(s.menuDiscountPct) : 0;
       const overlay = (window.productsOverlay || {})[productId] || {};
@@ -7711,7 +7717,7 @@
         const promoPct = getProductDiscount(c.item.id);
         const baseItem = {
           productId: c.item.id,
-          name: c.item.name,
+          name: c.item.name + (window.temporaryGermanLimit.affected(c.item.id) ? (c.item.id === 'p4' ? ' (SIN CEBOLLA)' : ' (SIN PANCETA)') : ''),
           unitPrice: c.item.price,
           qty: c.qty,
           subtotal: cartItemSubtotal(c)
@@ -7761,7 +7767,7 @@
           baseItem.comboPanchos = c.comboPanchos.map(x => {
             const p = findItem(x.id);
             if (!p) return null;
-            const item = { id: p.id, name: p.name, qty: x.qty };
+            const item = { id: p.id, name: p.name + (window.temporaryGermanLimit.affected(p.id) ? (p.id === 'p4' ? ' (SIN CEBOLLA)' : ' (SIN PANCETA)') : ''), qty: x.qty };
             // Si requiere salchicha, incluir array de salchichas por unidad
             if (p.sausage && c.comboSausages) {
               const sList = [];
@@ -7891,6 +7897,8 @@
           firebaseOrder.personalDiscountPct = Number(personal.pct) || 0;
         }
       }
+
+      if (!await window.temporaryGermanLimit.check(firebaseOrder)) return;
 
       // ── Mercado Pago: paga online, el pedido arranca al confirmarse el pago ──
       // Si el total quedó en $0 (recompensa/promo lo dejó gratis), MP rechaza el
