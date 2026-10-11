@@ -4637,7 +4637,7 @@
       const features = window.getFeatureConfig();
       const hasPolicies = ['cancellation', 'delivery', 'allergens', 'returns', 'privacy', 'legal'].some(key => legal[key] && legal[key].enabled);
       // Limpiar main antes de re-renderear (evita duplicados al actualizar)
-      main.innerHTML = '';
+      main.innerHTML = window.temporaryGermanLimit.active() ? '<p class="pm-desc">HOY: 10% en el menú · 20% en productos afectados por faltantes (no se suman). Elegí Viena y ahorrá $500 adicionales por pancho. Hasta el 11/10 a las 00:30.</p>' : '';
 
       Object.keys(MENU).forEach(key => {
         const cat = MENU[key];
@@ -4658,7 +4658,7 @@
             <div class="sprite${item.imageUrl ? ' has-image' : ''}">${spriteFor(item)}</div>
             <div class="card-content">
               <h3>${item.name}</h3>
-              <p class="desc">${item.desc}${window.temporaryGermanLimit.affected(item.id) ? '<br><strong>Hoy sin ' + (item.id === 'p4' ? 'cebolla' : 'panceta') + '. 10% de descuento.</strong>' : ''}</p>
+              <p class="desc">${item.desc}${window.temporaryGermanLimit.affected(item.id) ? '<br><strong>Hoy sin ' + (item.id === 'p4' ? 'cebolla' : 'panceta') + '. 20% de descuento.</strong>' : ''}</p>
               <div class="price-row">
                 <span class="price">${getProductDiscount(item.id) > 0
                   ? `<span class="price-old">$${item.price.toLocaleString('es-AR')}</span><span class="price-now">$${discountedPrice(item.price, item.id).toLocaleString('es-AR')}</span>`
@@ -4878,7 +4878,7 @@
       body.innerHTML = `
       <div class="pm-sprite${item.imageUrl ? ' has-image' : ''}">${spriteFor(item)}</div>
       <h2 class="pm-name">${item.name}</h2>
-      <p class="pm-desc">${item.desc}${window.temporaryGermanLimit.affected(item.id) ? '<br><strong>Hoy sin ' + (item.id === 'p4' ? 'cebolla' : 'panceta') + '. 10% de descuento.</strong>' : ''}</p>
+      <p class="pm-desc">${item.desc}${window.temporaryGermanLimit.affected(item.id) ? '<br><strong>Hoy sin ' + (item.id === 'p4' ? 'cebolla' : 'panceta') + '. 20% de descuento.</strong>' : ''}</p>
       <div class="pm-price">${getProductDiscount(item.id) > 0
         ? `<span class="price-old">$${item.price.toLocaleString('es-AR')}</span><span class="price-now">$${discountedPrice(item.price, item.id).toLocaleString('es-AR')}</span>`
         : `$${item.price.toLocaleString('es-AR')}`}</div>
@@ -4907,7 +4907,7 @@
         // Si este pancho requiere salchicha y hay unidades seleccionadas, mostrar selector por unidad
         let sausagePickers = '';
         if (p.sausage && qty > 0) {
-          const options = SAUSAGES.map(sg => `<option ${!window.temporaryGermanLimit.available(sg.id) ? 'disabled' : ''} value="${sg.id}">${sg.name}</option>`).join('');
+          const options = SAUSAGES.map(sg => `<option ${!window.temporaryGermanLimit.available(sg.id) ? 'disabled' : ''} value="${sg.id}">${sg.name}${window.temporaryGermanLimit.active() && sg.id === 'sg2' ? ' (−$500)' : ''}</option>`).join('');
           const pickers = [];
           for (let i = 0; i < qty; i++) {
             const key = `${p.id}_${i}`;
@@ -4916,7 +4916,7 @@
                   <div style="display:flex;align-items:center;gap:8px;margin-top:6px;padding-left:8px;">
                     <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--neon-cyan);min-width:70px;">SALCHICHA ${i + 1}:</span>
                     <select onchange="setComboSausage('${key}', this.value)" style="flex:1;background:var(--bg);border:2px solid var(--neon-purple);color:#fff;padding:6px 8px;font-family:'VT323',monospace;font-size:15px;">
-                      ${SAUSAGES.map(sg => `<option ${!window.temporaryGermanLimit.available(sg.id) ? 'disabled' : ''} value="${sg.id}" ${sg.id === currentVal ? 'selected' : ''}>${sg.name}</option>`).join('')}
+                      ${SAUSAGES.map(sg => `<option ${!window.temporaryGermanLimit.available(sg.id) ? 'disabled' : ''} value="${sg.id}" ${sg.id === currentVal ? 'selected' : ''}>${sg.name}${window.temporaryGermanLimit.active() && sg.id === 'sg2' ? ' (−$500)' : ''}</option>`).join('')}
                     </select>
                   </div>
                 `);
@@ -4993,7 +4993,7 @@
               <div class="pm-combo-item">
                 <div class="pm-combo-item-left">
                   <div class="pm-combo-info">
-                    <div class="pm-combo-name">${sg.name}</div>
+                    <div class="pm-combo-name">${sg.name}${window.temporaryGermanLimit.active() && sg.id === 'sg2' ? ' (−$500)' : ''}</div>
                   </div>
                 </div>
                 <div class="pm-combo-qty-ctrl">
@@ -5261,7 +5261,8 @@
       const paidOptionsTotal = (currentProduct.paidOptions || []).reduce((s, po) => {
         return s + (currentPaidOptions.includes(po.id) ? po.price : 0);
       }, 0);
-      return (currentProduct.price + extrasTotal + toppingsTotal + comboSurcharge + paidOptionsTotal) * currentQty;
+      const raw = (currentProduct.price + extrasTotal + toppingsTotal + comboSurcharge + paidOptionsTotal) * currentQty;
+      return Math.max(0, raw - promoDiscountForItem({item:currentProduct,qty:currentQty,sausages:currentSausages,comboPanchos:currentComboPanchos,comboSausages:currentComboSausages}));
     }
 
     function changeModalQty(delta) {
@@ -5602,14 +5603,14 @@
           <div class="upsell-sprite">${spriteFor(item)}</div>
           <div class="upsell-info">
             <div class="upsell-name">${item.name}</div>
-            <div class="upsell-cardesc">${item.desc}${window.temporaryGermanLimit.affected(item.id) ? '<br><strong>Hoy sin ' + (item.id === 'p4' ? 'cebolla' : 'panceta') + '. 10% de descuento.</strong>' : ''}</div>
+            <div class="upsell-cardesc">${item.desc}${window.temporaryGermanLimit.affected(item.id) ? '<br><strong>Hoy sin ' + (item.id === 'p4' ? 'cebolla' : 'panceta') + '. 20% de descuento.</strong>' : ''}</div>
             <div class="upsell-price">$${price.toLocaleString('es-AR')}</div>
           </div>
         </div>
         <div class="upsell-sausage-field">
           <label>▶ TIPO DE SALCHICHA</label>
           <select id="upsellSausageSel">
-            ${SAUSAGES.map(sg => `<option ${!window.temporaryGermanLimit.available(sg.id) ? 'disabled' : ''} value="${sg.id}">${sg.name}</option>`).join('')}
+            ${SAUSAGES.map(sg => `<option ${!window.temporaryGermanLimit.available(sg.id) ? 'disabled' : ''} value="${sg.id}">${sg.name}${window.temporaryGermanLimit.active() && sg.id === 'sg2' ? ' (−$500)' : ''}</option>`).join('')}
           </select>
         </div>
         <button class="upsell-skip" onclick="upsellConfirmPancho('${id}')">🌭 AGREGAR AL PEDIDO</button>
@@ -5716,7 +5717,7 @@
     }
     // Devuelve el % de descuento vigente para un producto (0 si no hay)
     function getProductDiscount(productId) {
-      if (window.temporaryGermanLimit.affected(productId)) return 10;
+      if (window.temporaryGermanLimit.active()) return window.temporaryGermanLimit.affected(productId) ? 20 : 10;
       const s = window.storeSettings || {};
       const globalPct = (s.menuDiscountActive && s.menuDiscountPct > 0 && promotionWindowActive(s.menuDiscountStartsAt, s.menuDiscountEndsAt)) ? Number(s.menuDiscountPct) : 0;
       const overlay = (window.productsOverlay || {})[productId] || {};
@@ -5737,9 +5738,9 @@
 
     // Ahorro por promo de un item del carrito (solo sobre precio base, no extras/toppings)
     function promoDiscountForItem(c) {
-      const pct = getProductDiscount(c.item.id);
+      const pct = window.temporaryGermanLimit.active() && (c.comboPanchos || []).some(p => window.temporaryGermanLimit.affected(p.id)) ? 20 : getProductDiscount(c.item.id);
       if (pct <= 0) return 0;
-      return Math.round(c.item.price * (pct / 100)) * c.qty;
+      return Math.min(cartItemSubtotal(c), Math.round(c.item.price * (pct / 100)) * c.qty + window.temporaryGermanLimit.viennaSavings(c));
     }
     window.promoDiscountForItem = promoDiscountForItem;
 
@@ -6705,7 +6706,7 @@
       const surchargePct = parseInt((paySelect.selectedOptions[0] && paySelect.selectedOptions[0].dataset.surcharge) || '0');
 
       // Ahorro total por promos (sobre cada item del carrito)
-      const promoSavings = activeCoupon && activeCoupon.stackable !== true ? 0 : Object.values(cart).reduce((s, c) => s + promoDiscountForItem(c), 0);
+      const promoSavings = activeCoupon && activeCoupon.stackable !== true && !window.temporaryGermanLimit.active() ? 0 : Object.values(cart).reduce((s, c) => s + promoDiscountForItem(c), 0);
       const subtotalAfterPromo = subtotal - promoSavings;
       // Cupón se calcula sobre el subtotal YA rebajado por la promo
       const discount = calcDiscount(subtotalAfterPromo, activeCoupon);
@@ -7692,7 +7693,7 @@
         }
         activeCoupon = { ...latestCoupon.coupon, code: activeCoupon.code, id: latestCoupon.coupon.id };
       }
-      const promoSavings = activeCoupon && activeCoupon.stackable !== true ? 0 : entries.reduce((s, [, c]) => s + promoDiscountForItem(c), 0);
+      const promoSavings = activeCoupon && activeCoupon.stackable !== true && !window.temporaryGermanLimit.active() ? 0 : entries.reduce((s, [, c]) => s + promoDiscountForItem(c), 0);
       const subtotalAfterPromo = subtotal - promoSavings;
       const discount = calcDiscount(subtotalAfterPromo, activeCoupon);
       const rewardDesc = (typeof window.rewardDiscount === 'function') ? window.rewardDiscount() : 0;
@@ -7714,7 +7715,7 @@
 
       // Construir items estructurados para Firebase (sin funciones ni campos innecesarios)
       const itemsForFirebase = entries.map(([, c]) => {
-        const promoPct = getProductDiscount(c.item.id);
+        const promoPct = window.temporaryGermanLimit.active() && (c.comboPanchos || []).some(p => window.temporaryGermanLimit.affected(p.id)) ? 20 : getProductDiscount(c.item.id);
         const baseItem = {
           productId: c.item.id,
           name: c.item.name + (window.temporaryGermanLimit.affected(c.item.id) ? (c.item.id === 'p4' ? ' (SIN CEBOLLA)' : ' (SIN PANCETA)') : ''),
@@ -7726,6 +7727,8 @@
           baseItem.promoPct = promoPct;
           baseItem.discountedUnitPrice = discountedPrice(c.item.price, c.item.id);
           baseItem.promoSavings = promoDiscountForItem(c);
+          baseItem.viennaSavings = window.temporaryGermanLimit.viennaSavings(c);
+          baseItem.discountedUnitPrice = Math.max(0, c.item.price - baseItem.promoSavings / c.qty);
         }
         if (c.extras && c.extras.length) {
           baseItem.extras = c.extras.map(exId => {

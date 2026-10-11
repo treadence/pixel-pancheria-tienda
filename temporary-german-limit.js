@@ -1,4 +1,4 @@
-// Se desactiva solo el 10/10 a las 00:00 (Argentina), sin otro despliegue.
+// Parche temporal hasta el 11/10 a las 00:30 (Argentina).
 (() => {
   const expiresAt = Date.parse('2026-10-11T00:30:00-03:00');
   let remaining = null; let breadRemaining = null;
@@ -22,6 +22,17 @@ function countBread(items, source = 'web') {
  return sum+(item.comboPanchos ? countBread(item.comboPanchos,source)*(source==='web'?1:qty) : pancho?qty:0);
  },0);
 }
+  function viennaSavings(line) {
+    if (!active()) return 0;
+    const sausages = line.sausages || [];
+    const total = sausages.reduce((sum,s) => sum + (Number(s.qty) || 1),0);
+    const vienna = sausages.filter(s => s.id === 'sg2').reduce((sum,s) => sum + (Number(s.qty) || 1),0);
+    if (total) return Math.round(500 * vienna * line.qty / total);
+    const selections = Object.values(line.comboSausages || {});
+    const panchos = (line.comboPanchos || []).reduce((sum,p)=>sum + p.qty,0);
+    const perCombo = line.item?.combo?.panchos || 0;
+    return panchos && perCombo ? Math.round(500 * selections.filter(id=>id==='sg2').length * perCombo * line.qty / panchos) : 0;
+  }
   async function refresh() {
     if (!active()) { remaining = null; return; }
     if (inflight) return inflight;
@@ -50,7 +61,7 @@ function countBread(items, source = 'web') {
     } catch (error) { alert(error.message); }
     return false;
   }
-  window.temporaryGermanLimit = { available, refresh, check, count, countBread, active, breadAvailable: () => !active() || breadRemaining > 0, blocked: id => active() && ['a1','a2','a3','b1','to5','to7','add_panceta'].includes(id), affected: id => active() && (['p4','p5'].includes(id) || /cebolla|panceta/i.test(String(window.productsOverlay?.[id]?.desc || '')) && !/^a/.test(id)) };
+  window.temporaryGermanLimit = { available, refresh, check, count, countBread, active, viennaSavings, breadAvailable: () => !active() || breadRemaining > 0, blocked: id => active() && ['a1','a2','a3','b1','to5','to7','add_panceta'].includes(id), affected: id => active() && (['p4','p5'].includes(id) || /cebolla|panceta/i.test(String(window.productsOverlay?.[id]?.desc || '')) && !/^a/.test(id)) };
   if (active()) {
     refresh().catch(console.warn);
     const timer = setInterval(() => {

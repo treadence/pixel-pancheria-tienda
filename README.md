@@ -540,3 +540,7 @@ Validación: suites existentes y pruebas del conteo web, comandera, combos, pedi
 ## 2026-10-10 — Parche de faltantes hasta 11/10 00:30 ART
 
 Fritas a1–a3, Coca común y adicionales cebolla/panceta bloqueados; pay conservadas. Panchos afectados con aviso y 10%, incluyendo comandera. Pedidos identifican ingrediente omitido. Límite compartido 2 alemanas/12 panes desde primera consulta; incluye combos, excluye cancelados y MP pendiente. Sin pan, tienda cerrada. Vence 11/10 00:30 ART sin alterar disponibilidad manual; código inerte, sin borrado físico. No reserva stock: concurrencia y pagos diferidos pueden exceder saldo. Validación: 28 suites y escenarios 12/13 panes, faltantes/pay. Pendiente publicar.
+
+## 2026-10-10 21:03 ART — Ajuste de descuentos temporales
+
+Hasta 11/10 00:30 ART: 20% en panchos afectados y combos que los incluyen; 10% en el resto del menú, porcentajes no acumulables. Viena descuenta $500 adicionales por unidad seleccionada, después del porcentaje. Se refleja en ficha, carrito, pedido/pago y comandera. Se mantienen límites 2 alemanas/12 panes. Validación: 28 suites aprobadas, pruebas específicas de porcentajes, selección mixta, cantidades, combos y vencimiento; sintaxis de ambos sitios validada. Pendiente publicar.
