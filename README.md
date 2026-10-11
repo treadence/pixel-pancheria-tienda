@@ -548,3 +548,7 @@ Hasta 11/10 00:30 ART: 20% en panchos afectados y combos que los incluyen; 10% e
 ## 2026-10-10 21:11 ART — Avisos de faltantes y Viena más visibles
 
 Aviso destacado con texto «Nos quedamos sin … :( Aun así lo podés pedir solo con …», enumerando únicamente toppings disponibles (omite pan/salchicha). Visible en fichas, menú, combos y wizard. Viena muestra $500 OFF en verde, con aviso persistente junto a selectores de combos/upsell. Sin cambios de importes, stock ni vencimiento. Sintaxis de ambos sitios, textos de Sonic/Mortal Kombat y pruebas de precios verificadas.
+
+## 2026-10-10 21:19 ART — Aviso compacto solo al seleccionar
+
+Se retira el aviso de faltantes de las cards del menú y de sugerencias. Permanece dentro de la ficha abierta y, en combos, solo junto a panchos ya seleccionados. Aviso reducido a dos líneas: faltante y toppings disponibles, sin tercera línea de descuento; fuente 11–13 px, borde y espaciado compactos. Comandera usa el mismo aviso compacto. Viena $500 OFF, importes y vencimiento conservados. Sintaxis y prueba de precios/stock/vencimiento aprobadas.

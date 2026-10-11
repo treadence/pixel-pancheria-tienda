@@ -31,7 +31,7 @@ function countBread(items, source = 'web') {
     const ingredients = desc.split(/,| y /i).map(x=>x.trim()).filter(x=>x && !/cebolla|panceta|\bpan\b|salchicha/i.test(x)).map(x=>x.replace(/\bchampis\b/gi,'champiñones'));
     const remaining = ingredients.length > 1 ? ingredients.slice(0,-1).join(', ') + ' y ' + ingredients.at(-1) : ingredients.join('');
     const escape = value => value.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    return '<span class="temporary-missing" role="note"><strong>Nos quedamos sin ' + missing.join(' ni ') + ' :(</strong><span>Aun así lo podés pedir solo con ' + escape(remaining.toLowerCase()) + '.</span><span>20% de descuento aplicado.</span></span>';
+    return '<span class="temporary-missing" role="note"><strong>Nos quedamos sin ' + missing.join(' ni ') + ' :(</strong><span>Podés pedirlo con ' + escape(remaining.toLowerCase()) + '.</span></span>';
   }
   function viennaSavings(line) {
     if (!active()) return 0;

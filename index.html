@@ -2926,8 +2926,8 @@
 
 
 /* Avisos del parche temporal; su contenido desaparece al vencer. */
-.temporary-missing{display:flex;flex-direction:column;gap:5px;margin:10px 0;padding:12px;border:2px solid #ffb347;background:#35200e;color:#ffe5bd;font:18px/1.25 'VT323',monospace;text-align:left;white-space:normal}
-.temporary-missing strong{color:#ffd081;font-size:20px;letter-spacing:.4px}
+.temporary-missing{display:flex;flex-direction:column;gap:2px;margin:6px 0;padding:6px 8px;border:1px solid #ffb347;background:#35200e;color:#ffe5bd;font:clamp(11px,3.3vw,13px)/1.35 Arial,sans-serif;text-align:left;white-space:normal}
+.temporary-missing strong{color:#ffd081;font-size:inherit;font-weight:700}
 .temporary-vienna-off{display:inline-block;color:#00ff66!important;font-weight:700;white-space:nowrap}
 .temporary-vienna-hint{display:block;margin:6px 0;color:#00ff66;font:18px/1.3 'VT323',monospace}
 </style>
@@ -4664,7 +4664,7 @@
             <div class="sprite${item.imageUrl ? ' has-image' : ''}">${spriteFor(item)}</div>
             <div class="card-content">
               <h3>${item.name}</h3>
-              <p class="desc">${item.desc}${window.temporaryGermanLimit.missingNotice(item.id, item.desc)}</p>
+              <p class="desc">${item.desc}</p>
               <div class="price-row">
                 <span class="price">${getProductDiscount(item.id) > 0
                   ? `<span class="price-old">$${item.price.toLocaleString('es-AR')}</span><span class="price-now">$${discountedPrice(item.price, item.id).toLocaleString('es-AR')}</span>`
@@ -4937,7 +4937,7 @@
                   <div class="pm-combo-item-left">
                     <span class="pm-combo-sprite">${spriteFor(p)}</span>
                     <div class="pm-combo-info">
-                      <div class="pm-combo-name">${p.name}${available ? '' : ' · AGOTADO'}</div>${window.temporaryGermanLimit.missingNotice(p.id, p.desc)}
+                      <div class="pm-combo-name">${p.name}${available ? '' : ' · AGOTADO'}</div>${qty > 0 ? window.temporaryGermanLimit.missingNotice(p.id, p.desc) : ''}
                       <div style="font-size:12px;color:#9b8bb8;margin-top:3px;line-height:1.35;">${p.desc}</div>
                     </div>
                   </div>
@@ -5610,7 +5610,7 @@
           <div class="upsell-sprite">${spriteFor(item)}</div>
           <div class="upsell-info">
             <div class="upsell-name">${item.name}</div>
-            <div class="upsell-cardesc">${item.desc}${window.temporaryGermanLimit.missingNotice(item.id, item.desc)}</div>
+            <div class="upsell-cardesc">${item.desc}</div>
             <div class="upsell-price">$${price.toLocaleString('es-AR')}</div>
           </div>
         </div>
