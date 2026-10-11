@@ -544,3 +544,7 @@ Fritas a1–a3, Coca común y adicionales cebolla/panceta bloqueados; pay conser
 ## 2026-10-10 21:03 ART — Ajuste de descuentos temporales
 
 Hasta 11/10 00:30 ART: 20% en panchos afectados y combos que los incluyen; 10% en el resto del menú, porcentajes no acumulables. Viena descuenta $500 adicionales por unidad seleccionada, después del porcentaje. Se refleja en ficha, carrito, pedido/pago y comandera. Se mantienen límites 2 alemanas/12 panes. Validación: 28 suites aprobadas, pruebas específicas de porcentajes, selección mixta, cantidades, combos y vencimiento; sintaxis de ambos sitios validada. Pendiente publicar.
+
+## 2026-10-10 21:11 ART — Avisos de faltantes y Viena más visibles
+
+Aviso destacado con texto «Nos quedamos sin … :( Aun así lo podés pedir solo con …», enumerando únicamente toppings disponibles (omite pan/salchicha). Visible en fichas, menú, combos y wizard. Viena muestra $500 OFF en verde, con aviso persistente junto a selectores de combos/upsell. Sin cambios de importes, stock ni vencimiento. Sintaxis de ambos sitios, textos de Sonic/Mortal Kombat y pruebas de precios verificadas.
