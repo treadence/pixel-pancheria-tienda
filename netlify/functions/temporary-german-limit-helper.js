@@ -1,6 +1,6 @@
-// Parche temporal: cinco alemanas adicionales, hasta medianoche argentina.
-const EXPIRES_AT = Date.parse('2026-10-11T00:30:00-03:00');
-function active(now = Date.now()) { return now < EXPIRES_AT; }
+// Parche de faltantes sin vencimiento. Conserva el inicio y las ventas de la ventana original.
+const EXPIRES_AT = null;
+function active() { return true; }
 function count(items, source = 'web') {
   return (items || []).reduce((total, item) => {
     const qty = Math.max(0, Number(item.qty) || 1);
@@ -22,15 +22,19 @@ async function status(db, now = Date.now()) {
   const ref = db.doc('stock/temporaryShortages20261010');
   const startedAt = await db.runTransaction(async tx => {
     const snap = await tx.get(ref);
-    if (snap.exists) return Number(snap.data().startedAt);
+    if (snap.exists) {
+      // Actualiza solo el vencimiento anterior; no repone stock ni reinicia ventas.
+      if (snap.data().expiresAt != null) tx.set(ref, { expiresAt: null }, { merge: true });
+      return Number(snap.data().startedAt);
+    }
     tx.set(ref, { startedAt: now, expiresAt: EXPIRES_AT, limit: 2 });
     return now;
   });
   const orders = db.collection('orders');
   const Timestamp = require('firebase-admin').firestore.Timestamp;
   const snapshots = await Promise.all([
-    orders.where('at', '>=', Timestamp.fromMillis(startedAt)).where('at', '<', Timestamp.fromMillis(EXPIRES_AT)).get(),
-    orders.where('at', '>=', startedAt).where('at', '<', EXPIRES_AT).get()
+    orders.where('at', '>=', Timestamp.fromMillis(startedAt)).get(),
+    orders.where('at', '>=', startedAt).get()
   ]);
   let sold = 0; let breadSold = 0;
   const seen = new Set();

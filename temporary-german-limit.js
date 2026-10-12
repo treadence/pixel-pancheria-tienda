@@ -1,9 +1,8 @@
-// Parche temporal hasta el 11/10 a las 00:30 (Argentina).
+// Parche de faltantes activo sin vencimiento, hasta desactivación manual.
 (() => {
-  const expiresAt = Date.parse('2026-10-11T00:30:00-03:00');
   let remaining = null; let breadRemaining = null;
   let inflight;
-  const active = () => Date.now() < expiresAt;
+  const active = () => true;
   const available = id => id !== 'sg1' || !active() || remaining > 0;
   function count(items, source = 'web') {
   return (items || []).reduce((total, item) => {

@@ -552,3 +552,7 @@ Aviso destacado con texto «Nos quedamos sin … :( Aun así lo podés pedir sol
 ## 2026-10-10 21:19 ART — Aviso compacto solo al seleccionar
 
 Se retira el aviso de faltantes de las cards del menú y de sugerencias. Permanece dentro de la ficha abierta y, en combos, solo junto a panchos ya seleccionados. Aviso reducido a dos líneas: faltante y toppings disponibles, sin tercera línea de descuento; fuente 11–13 px, borde y espaciado compactos. Comandera usa el mismo aviso compacto. Viena $500 OFF, importes y vencimiento conservados. Sintaxis y prueba de precios/stock/vencimiento aprobadas.
+
+## 2026-10-11 21:05 ART — Parche de faltantes reactivado sin vencimiento
+
+Por solicitud del usuario se reactiva indefinidamente el parche: faltantes, 20% afectados/10% resto, $500 OFF por Viena, avisos compactos y límites originales 2 alemanas/12 panes. Se elimina la fecha límite en navegador y servidor, y el anuncio indica «Vigente hasta nuevo aviso». Se conserva stock/temporaryShortages20261010.startedAt y el conteo previo, sin reponer stock ni reiniciar ventas; el vencimiento persistido se migra a null. Consultas de pedidos desde el inicio original sin límite de fecha superior, incluidos pedidos posteriores al vencimiento anterior. Validación: 30 suites tienda/admin aprobadas; pruebas de vigencia a futuro, porcentajes/Viena, migración y conservación del conteo. Limitación previa de concurrencia sin reserva transaccional conservada.
