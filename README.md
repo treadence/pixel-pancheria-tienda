@@ -561,3 +561,8 @@ Por solicitud del usuario se reactiva indefinidamente el parche: faltantes, 20% 
 ## 2026-10-13 — Aviso de alemanas antes del carrito
 
 La ficha bloquea Agregar al carrito si las alemanas seleccionadas más las ya agregadas superan el saldo compartido. Incluye combos, cantidades acumuladas, incremento desde carrito y sugerencias. Revalida stock antes de agregar. El aviso usa pm-validation-msg (borde rojo y tipografía pixel), también aplicado a ingredientes faltantes. Verificación: suites npm test y escenarios de saldo 1 con selección doble, carrito acumulado, Viena y combos aprobados. Cambios locales pendientes de publicación.
+
+
+## 2026-10-13 — Retiro del texto general de promociones
+
+Se quita a pedido del usuario el párrafo general sobre 10%/20%, Viena y vigencia encima de Combos. Se conservan descuentos y avisos dentro de las fichas.

@@ -4643,7 +4643,7 @@
       const features = window.getFeatureConfig();
       const hasPolicies = ['cancellation', 'delivery', 'allergens', 'returns', 'privacy', 'legal'].some(key => legal[key] && legal[key].enabled);
       // Limpiar main antes de re-renderear (evita duplicados al actualizar)
-      main.innerHTML = window.temporaryGermanLimit.active() ? '<p class="pm-desc">10% en el menú · 20% en productos afectados por faltantes (no se suman). Elegí Viena y ahorrá $500 adicionales por pancho. Vigente hasta nuevo aviso.</p>' : '';
+      main.innerHTML = '';
 
       Object.keys(MENU).forEach(key => {
         const cat = MENU[key];
