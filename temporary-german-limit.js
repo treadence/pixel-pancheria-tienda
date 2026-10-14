@@ -30,7 +30,7 @@ function countBread(items, source = 'web') {
     const ingredients = desc.split(/,| y /i).map(x=>x.trim()).filter(x=>x && !/cebolla|panceta|\bpan\b|salchicha/i.test(x)).map(x=>x.replace(/\bchampis\b/gi,'champiñones'));
     const remaining = ingredients.length > 1 ? ingredients.slice(0,-1).join(', ') + ' y ' + ingredients.at(-1) : ingredients.join('');
     const escape = value => value.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    return '<span class="temporary-missing" role="note"><strong>Nos quedamos sin ' + missing.join(' ni ') + ' :(</strong><span>Podés pedirlo con ' + escape(remaining.toLowerCase()) + '.</span></span>';
+    return '<span class="temporary-missing pm-validation-msg" role="note"><strong>⚠ Nos quedamos sin ' + missing.join(' ni ') + ' :(</strong><span>Podés pedirlo con ' + escape(remaining.toLowerCase()) + '.</span></span>';
   }
   function viennaSavings(line) {
     if (!active()) return 0;
@@ -71,7 +71,20 @@ function countBread(items, source = 'web') {
     } catch (error) { alert(error.message); }
     return false;
   }
-  window.temporaryGermanLimit = { available, refresh, check, count, countBread, active, viennaSavings, missingNotice, breadAvailable: () => !active() || breadRemaining > 0, blocked: id => active() && ['a1','a2','a3','b1','to5','to7','add_panceta'].includes(id), affected: id => active() && (['p4','p5'].includes(id) || /cebolla|panceta/i.test(String(window.productsOverlay?.[id]?.desc || '')) && !/^a/.test(id)) };
+  function cartGermanCount(line) {
+    const own = (line.sausages || []).filter(s => s.id === 'sg1').reduce((n,s) => n + (Number(s.qty) || 1),0);
+    const combo = (line.comboPanchos || []).reduce((n,p) => n + Array.from({length:p.qty},(_,i) => line.comboSausages?.[p.id + '_' + i]).filter(id => id === 'sg1').length,0);
+    const selected = (line.sausages || []).reduce((n,s) => n + (Number(s.qty) || 1),0);
+    const panchos = (line.comboPanchos || []).reduce((n,p) => n + p.qty,0);
+    return own * (selected && line.qty ? line.qty / selected : 1) + combo * (panchos && line.item?.combo ? line.item.combo.panchos * line.qty / panchos : 1);
+  }
+  function cartNotice(lines, candidate) {
+    const requested = (lines || []).reduce((n,line) => n + cartGermanCount(line),0) + (candidate ? cartGermanCount(candidate) : 0);
+    if (!requested) return '';
+    if (remaining === null) return 'VERIFICANDO STOCK DE ALEMANAS. ESPERÁ UN MOMENTO.';
+    return requested > remaining ? 'QUEDA' + (remaining === 1 ? ' ' : 'N ') + remaining + ' ALEMANA' + (remaining === 1 ? '' : 'S') + '. CAMBIÁ LA SELECCIÓN A VIENA.' : '';
+  }
+  window.temporaryGermanLimit = { cartGermanCount, cartNotice, available, refresh, check, count, countBread, active, viennaSavings, missingNotice, breadAvailable: () => !active() || breadRemaining > 0, blocked: id => active() && ['a1','a2','a3','b1','to5','to7','add_panceta'].includes(id), affected: id => active() && (['p4','p5'].includes(id) || /cebolla|panceta/i.test(String(window.productsOverlay?.[id]?.desc || '')) && !/^a/.test(id)) };
   if (active()) {
     refresh().catch(console.warn);
     const timer = setInterval(() => {

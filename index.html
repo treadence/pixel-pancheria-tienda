@@ -2926,8 +2926,8 @@
 
 
 /* Avisos del parche temporal; su contenido desaparece al vencer. */
-.temporary-missing{display:flex;flex-direction:column;gap:2px;margin:6px 0;padding:6px 8px;border:1px solid #ffb347;background:#35200e;color:#ffe5bd;font:clamp(11px,3.3vw,13px)/1.35 Arial,sans-serif;text-align:left;white-space:normal}
-.temporary-missing strong{color:#ffd081;font-size:inherit;font-weight:700}
+.temporary-missing{display:flex;flex-direction:column;gap:4px;margin:8px 0;white-space:normal}
+.temporary-missing strong{color:inherit;font-size:inherit;font-weight:normal}
 .temporary-vienna-off{display:inline-block;color:#00ff66!important;font-weight:700;white-space:nowrap}
 .temporary-vienna-hint{display:block;margin:6px 0;color:#00ff66;font:18px/1.3 'VT323',monospace}
 </style>
@@ -5149,9 +5149,11 @@
             panchoCount >= item.combo.panchos * currentQty &&
             bebidaCount >= item.combo.bebidas * currentQty
           );
-          const canAdd = sausageOk && comboOk;
+          const stockNotice = window.temporaryGermanLimit.cartNotice(Object.values(cart), currentStockSelection());
+          const canAdd = sausageOk && comboOk && !stockNotice;
 
           const msgs = [];
+          if (stockNotice) msgs.push(stockNotice);
           if (!sausageOk) msgs.push(`ELEGÍ EL TIPO DE SALCHICHA (${sausageCount}/${currentQty})`);
           if (isCombo && panchoCount < item.combo.panchos * currentQty) msgs.push(`FALTA${item.combo.panchos * currentQty - panchoCount > 1 ? 'N' : ''} ${item.combo.panchos * currentQty - panchoCount} PANCHO${item.combo.panchos * currentQty - panchoCount > 1 ? 'S' : ''}`);
           if (isCombo && bebidaCount < item.combo.bebidas * currentQty) msgs.push(`FALTA${item.combo.bebidas * currentQty - bebidaCount > 1 ? 'N' : ''} ${item.combo.bebidas * currentQty - bebidaCount} BEBIDA${item.combo.bebidas * currentQty - bebidaCount > 1 ? 'S' : ''}`);
@@ -5169,7 +5171,7 @@
     function setComboSausage(key, sausageId) {
       if (!window.temporaryGermanLimit.available(sausageId)) return;
       currentComboSausages[key] = sausageId;
-      // No re-render - perdería el foco del select. El valor queda guardado.
+      renderProductModal();
     }
 
     function changeSausage(sausageId, delta) {
@@ -5361,8 +5363,24 @@
       if (navigator.vibrate) navigator.vibrate(8);
     }
 
-    function confirmAddToCart() {
+    function currentStockSelection() {
+      return { item: currentProduct, qty: currentQty, sausages: currentSausages, comboPanchos: currentComboPanchos, comboSausages: currentComboSausages };
+    }
+
+    async function confirmAddToCart() {
       if (!currentProduct) return;
+      const selectionNotes = document.getElementById('pmNotes');
+      if (selectionNotes) currentNotes = selectionNotes.value.trim();
+      try { await window.temporaryGermanLimit.refresh(); }
+      catch (error) {
+        renderProductModal();
+        const button = document.querySelector('.pm-add-btn');
+        if (button) { const warning = document.createElement('div'); warning.className = 'pm-validation-msg'; warning.textContent = '⚠ NO SE PUDO VERIFICAR EL STOCK. REINTENTÁ.'; button.before(warning); }
+        return;
+      }
+      if (window.temporaryGermanLimit.cartNotice(Object.values(cart), currentStockSelection())) {
+        renderProductModal(); return;
+      }
 
       if (!productAvailable(currentProduct.id)) {
         alert('😔 Este producto está agotado momentáneamente');
@@ -5446,6 +5464,16 @@
     function changeQty(cartKey, delta) {
       if (!cart[cartKey]) return;
       const line = cart[cartKey];
+      if (delta > 0) {
+        const added = window.temporaryGermanLimit.cartGermanCount(line) * delta / line.qty;
+        const notice = window.temporaryGermanLimit.cartNotice(Object.values(cart), {sausages: added ? [{id:'sg1',qty:added}] : []});
+        if (notice) {
+          let warning = document.getElementById('cartStockWarning');
+          if (!warning) { warning = document.createElement('div'); warning.id = 'cartStockWarning'; warning.className = 'pm-validation-msg'; document.getElementById('cartBody').prepend(warning); }
+          warning.textContent = '⚠ ' + notice;
+          return;
+        }
+      }
       const eventName = delta > 0 ? 'add_to_cart' : 'remove_from_cart';
       const changedQty = Math.min(Math.abs(delta), line.qty);
       const unitPrice = line.qty > 0 ? Number((cartItemSubtotal(line) / line.qty).toFixed(2)) : 0;
@@ -5643,6 +5671,7 @@
     // salchichas indicadas (vacío para simples). Arma la misma clave que
     // confirmAddToCart para que se agrupe igual.
     function upsellAddToCart(item, sausages) {
+      if (window.temporaryGermanLimit.cartNotice(Object.values(cart), {sausages})) { openProduct(item.id); return; }
       const extrasKey = '', saucesKey = '', specialSaucesKey = '', toppingsKey = '',
         removablesKey = '', paidOptionsKey = '', notesKey = '', comboKey = '';
       const sausagesKey = sausages.map(x => x.id + 'x' + x.qty).sort().join(',');

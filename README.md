@@ -556,3 +556,8 @@ Se retira el aviso de faltantes de las cards del menú y de sugerencias. Permane
 ## 2026-10-11 21:05 ART — Parche de faltantes reactivado sin vencimiento
 
 Por solicitud del usuario se reactiva indefinidamente el parche: faltantes, 20% afectados/10% resto, $500 OFF por Viena, avisos compactos y límites originales 2 alemanas/12 panes. Se elimina la fecha límite en navegador y servidor, y el anuncio indica «Vigente hasta nuevo aviso». Se conserva stock/temporaryShortages20261010.startedAt y el conteo previo, sin reponer stock ni reiniciar ventas; el vencimiento persistido se migra a null. Consultas de pedidos desde el inicio original sin límite de fecha superior, incluidos pedidos posteriores al vencimiento anterior. Validación: 30 suites tienda/admin aprobadas; pruebas de vigencia a futuro, porcentajes/Viena, migración y conservación del conteo. Limitación previa de concurrencia sin reserva transaccional conservada.
+
+
+## 2026-10-13 — Aviso de alemanas antes del carrito
+
+La ficha bloquea Agregar al carrito si las alemanas seleccionadas más las ya agregadas superan el saldo compartido. Incluye combos, cantidades acumuladas, incremento desde carrito y sugerencias. Revalida stock antes de agregar. El aviso usa pm-validation-msg (borde rojo y tipografía pixel), también aplicado a ingredientes faltantes. Verificación: suites npm test y escenarios de saldo 1 con selección doble, carrito acumulado, Viena y combos aprobados. Cambios locales pendientes de publicación.
