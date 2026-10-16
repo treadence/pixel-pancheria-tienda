@@ -1,8 +1,9 @@
+// Desactivado por solicitud del usuario el 15/10/2026. Se conserva el historial.
 // Parche de faltantes activo sin vencimiento, hasta desactivación manual.
 (() => {
   let remaining = null; let breadRemaining = null;
   let inflight;
-  const active = () => true;
+  const active = () => false;
   const available = id => id !== 'sg1' || !active() || remaining > 0;
   function count(items, source = 'web') {
   return (items || []).reduce((total, item) => {

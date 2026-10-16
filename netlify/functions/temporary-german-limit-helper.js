@@ -1,6 +1,7 @@
+// Desactivado por solicitud del usuario el 15/10/2026. Se conserva el historial.
 // Parche de faltantes sin vencimiento. Conserva el inicio y las ventas de la ventana original.
 const EXPIRES_AT = null;
-function active() { return true; }
+function active() { return false; }
 function count(items, source = 'web') {
   return (items || []).reduce((total, item) => {
     const qty = Math.max(0, Number(item.qty) || 1);

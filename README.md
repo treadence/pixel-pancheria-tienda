@@ -566,3 +566,7 @@ La ficha bloquea Agregar al carrito si las alemanas seleccionadas más las ya ag
 ## 2026-10-13 — Retiro del texto general de promociones
 
 Se quita a pedido del usuario el párrafo general sobre 10%/20%, Viena y vigencia encima de Combos. Se conservan descuentos y avisos dentro de las fichas.
+
+
+### 15/10/2026 — Ganancia neta y fin del parche
+Se desactiva el parche de faltantes en navegador y servidor, incluidos descuentos, restricciones y sondeo temporal. Se conserva el historial de pedidos y stock. Admin calcula ingresos de productos restando promociones, cupón y recompensa del subtotal; si solo hay total neto, no descuenta dos veces. Regresión Patricia: $28.000 - $6.400 - $11.171 = $10.429 (48%).
